@@ -369,36 +369,6 @@ No requiere cuerpo (`body`).
 
 El cliente debe enviar un JWT válido:
 
-```http
-Authorization: Bearer {token}
-Response 200 OK
-{
-  "success": true,
-  "data": [],
-  "message": "Logout (el cliente elimina el token)"
-}
-Consideraciones
-El endpoint requiere un JWT válido.
-Actualmente la API no mantiene una lista de tokens revocados.
-El logout se realiza del lado del cliente eliminando el token JWT almacenado.
-Una vez eliminado el token, el cliente deberá autenticarse nuevamente para obtener acceso a endpoints protegidos.
-El servidor no invalida ni modifica el JWT existente.
-Si el token enviado es inválido, está expirado o no se proporciona, la API responderá con 401 Unauthorized.
-
-## 4.5. Logout
-
-### `POST /api/autenticador/logout`
-
-Permite cerrar la sesión del usuario autenticado.
-
-**Autenticación requerida:** Sí.
-
-### Request
-
-No requiere cuerpo (`body`).
-
-El cliente debe enviar un JWT válido:
-
     Authorization: Bearer {token}
 
 ### Response `200 OK`
