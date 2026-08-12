@@ -627,3 +627,101 @@ Permite restaurar un usuario eliminado mediante SoftDeletes.
 - El usuario debe existir como registro eliminado.
 - Si el usuario no está eliminado, la API debe informar que la operación no es válida.
 - Si el usuario no existe, se responde con `404 Not Found`.
+
+# 6. Gestión de propiedades
+
+## 6.1. Obtener propiedades
+
+### `GET /api/propiedades`
+
+Permite obtener el listado de propiedades disponibles en el sistema.
+
+**Autenticación requerida:** No.
+
+### Response `200 OK`
+
+    {
+      "success": true,
+      "data": {
+        "items": [],
+        "total": 0
+      }
+    }
+
+### Consideraciones
+
+- El endpoint es público y no requiere autenticación.
+- Devuelve las propiedades registradas en el sistema.
+- Actualmente devuelve todas las propiedades mediante el modelo Propiedad.
+- La respuesta incluye la colección de propiedades dentro de `data.items`.
+- El campo `total` indica la cantidad de propiedades devueltas.
+- Las propiedades pertenecen a un usuario, pero esto no implica que dicho usuario tenga un rol especial de propietario.
+- Un usuario puede publicar propiedades y también alquilar propiedades de otros usuarios.
+- La información sensible del usuario propietario no debe exponerse en este endpoint salvo que sea definida explícitamente por el contrato.
+
+## 6.2. Obtener una propiedad
+
+### `GET /api/propiedades/{id}`
+
+Permite obtener la información de una propiedad específica.
+
+**Autenticación requerida:** No.
+
+### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `id` | integer | Sí | Identificador de la propiedad. Debe ser un número entero positivo. |
+
+### Response `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "data": {
+      "id": 1,
+      "usuario_id": 1,
+      "titulo": "Casa en alquiler",
+      "descripcion": "Casa amplia y luminosa.",
+      "precio": 250000,
+      "expensas": 50000,
+      "direccion": "Av. Principal 123",
+      "cantidad_ambientes": 4,
+      "cantidad_dormitorios": 3,
+      "cantidad_banos": 2,
+      "capacidad": 6,
+      "disponible": true,
+      "categoria_id": 1,
+      "localidad_id": 1
+    }
+  }
+}
+Propiedad no encontrada
+
+HTTP 404 Not Found
+
+{
+  "success": false,
+  "error": "Propiedad no encontrada"
+}
+ID inválido
+
+HTTP 422 Unprocessable Entity
+
+{
+  "success": false,
+  "error": "Error de validación",
+  "validation_errors": {
+    "id": "El ID de la propiedad debe ser positivo"
+  }
+}
+Consideraciones
+El endpoint es público y no requiere autenticación.
+El id de la propiedad se obtiene desde la URL.
+El ID debe ser un número entero positivo.
+Si la propiedad no existe, la API responde con 404 Not Found.
+La respuesta utiliza la estructura estándar definida por la API.
+La propiedad está asociada a un usuario mediante usuario_id.
+usuario_id identifica al usuario que publicó la propiedad, pero no representa un rol diferente dentro del sistema.
+Un mismo usuario puede publicar propiedades y alquilar propiedades de otros usuarios.
