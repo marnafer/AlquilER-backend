@@ -290,62 +290,70 @@ Permite registrar un nuevo usuario en el sistema.
 
 ### Request
 
-```json
-{
-  "nombre": "Juan",
-  "apellido": "Perez",
-  "email": "usuario@email.com",
-  "telefono": "3431234567",
-  "domicilio": "Av. Principal 123",
-  "contrasena": "123456"
-}
-Campos
-Campo	Tipo	Obligatorio	Descripción
-nombre	string	Sí	Nombre del usuario. Entre 2 y 50 caracteres.
-apellido	string	Sí	Apellido del usuario. Entre 2 y 50 caracteres.
-email	string	Sí	Correo electrónico válido. Máximo 100 caracteres. Debe ser único.
-telefono	string	No	Número telefónico.
-domicilio	string	No	Domicilio del usuario. Entre 5 y 100 caracteres.
-contrasena	string	Sí	Contraseña de al menos 6 caracteres.
-rol_id	integer	No	No debe ser enviado por el frontend. El sistema asigna 1 (Usuario) automáticamente.
-Response 201 Created
-{
-  "success": true,
-  "data": [],
-  "message": "Usuario registrado"
-}
-Email ya registrado
+    {
+      "nombre": "Juan",
+      "apellido": "Perez",
+      "email": "usuario@email.com",
+      "telefono": "3431234567",
+      "domicilio": "Av. Principal 123",
+      "contrasena": "123456"
+    }
 
-HTTP 422 Unprocessable Entity
+### Campos
 
-{
-  "success": false,
-  "error": "Error de validación",
-  "validation_errors": {
-    "email": "El usuario ya existe"
-  }
-}
-Datos inválidos
+| Campo | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `nombre` | string | Sí | Nombre del usuario. Entre 2 y 50 caracteres. |
+| `apellido` | string | Sí | Apellido del usuario. Entre 2 y 50 caracteres. |
+| `email` | string | Sí | Correo electrónico válido. Máximo 100 caracteres. Debe ser único. |
+| `telefono` | string | No | Número telefónico. |
+| `domicilio` | string | No | Domicilio del usuario. Entre 5 y 100 caracteres. |
+| `contrasena` | string | Sí | Contraseña de al menos 6 caracteres. |
+| `rol_id` | integer | No | No debe ser enviado por el frontend. El sistema asigna 1 (Usuario) automáticamente. |
 
-HTTP 422 Unprocessable Entity
+### Response `201 Created`
 
-{
-  "success": false,
-  "error": "Error de validación",
-  "validation_errors": {
-    "nombre": "El nombre es requerido",
-    "email": "El email no es válido",
-    "contrasena": "Debe tener al menos 6 caracteres"
-  }
-}
-Consideraciones
-El registro no requiere autenticación.
-Todo nuevo usuario se registra inicialmente con rol_id = 1.
-El frontend no debe permitir que el usuario seleccione o envíe su propio rol_id.
-El rol de administrador será asignado mediante mecanismos administrativos.
-La contraseña debe almacenarse utilizando un algoritmo de hash seguro.
-La contraseña nunca se devuelve en una respuesta de la API.
-Un usuario representa una única cuenta, independientemente de si publica propiedades, alquila propiedades o realiza ambas actividades.
+    {
+      "success": true,
+      "data": [],
+      "message": "Usuario registrado"
+    }
+
+### Email ya registrado
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "email": "El usuario ya existe"
+      }
+    }
+
+### Datos inválidos
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "nombre": "El nombre es requerido",
+        "email": "El email no es válido",
+        "contrasena": "Debe tener al menos 6 caracteres"
+      }
+    }
+
+### Consideraciones
+
+- El registro no requiere autenticación.
+- Todo nuevo usuario se registra inicialmente con rol_id = 1.
+- El frontend no debe permitir que el usuario seleccione o envíe su propio rol_id.
+- El rol de administrador será asignado mediante mecanismos administrativos.
+- La contraseña debe almacenarse utilizando un algoritmo de hash seguro.
+- La contraseña nunca se devuelve en una respuesta de la API.
+- Un usuario representa una única cuenta, independientemente de si publica propiedades, alquila propiedades o realiza ambas actividades.
 
 ## 4.5. Logout
 
