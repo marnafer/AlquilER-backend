@@ -1,0 +1,10 @@
+﻿RewriteEngine On
+# Si el archivo o carpeta existe físicamente, que lo abra (para CSS/JS)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+# Si no existe, todo al index.php
+RewriteRule ^ index.php [QSA,L]
+
+# Pasar Authorization header a PHP
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

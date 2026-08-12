@@ -1,0 +1,22 @@
+{
+  "name": "marnafer/alquiler-backend",
+  "description": "API backend del sistema AlquilER",
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "marnafer",
+      "email": "marianofernandez98@outlook.com"
+    }
+  ],
+  "require": {
+    "illuminate/database": "^10.38",
+    "illuminate/events": "10.0",
+    "firebase/php-jwt": "^7.0",
+    "vlucas/phpdotenv": "^5.6",
+    "zircote/swagger-php": "^6.2"
+  }
+}

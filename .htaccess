@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Si intentan entrar a la raíz del proyecto, mandarlos a public
+RewriteRule ^$ public/ [L]
+
+# Si la petición no es un archivo real, mandarlo todo al index de public
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]

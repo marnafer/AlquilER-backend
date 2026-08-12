@@ -1,0 +1,13 @@
+# No subir configuraciones locales de XAMPP o IDEs
+.vs/
+vendor/
+node_modules/
+.env
+.idea/
+*.log
+
+# No subir archivos de configuraci�n con contrase�as (cuando los crees)
+src/config/config.php
+
+# Archivos subidos por los usuarios
+/public/uploads/
