@@ -670,18 +670,76 @@ Permite obtener la información de una propiedad específica.
 ### Parámetro de ruta
 
 | Parámetro | Tipo | Obligatorio | Descripción |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | `id` | integer | Sí | Identificador de la propiedad. Debe ser un número entero positivo. |
 
 ### Response `200 OK`
 
-```json
-{
-  "success": true,
-  "data": {
-    "data": {
-      "id": 1,
-      "usuario_id": 1,
+    {
+      "success": true,
+      "data": {
+        "data": {
+          "id": 1,
+          "usuario_id": 1,
+          "titulo": "Casa en alquiler",
+          "descripcion": "Casa amplia y luminosa.",
+          "precio": 250000,
+          "expensas": 50000,
+          "direccion": "Av. Principal 123",
+          "cantidad_ambientes": 4,
+          "cantidad_dormitorios": 3,
+          "cantidad_banos": 2,
+          "capacidad": 6,
+          "disponible": true,
+          "categoria_id": 1,
+          "localidad_id": 1
+        }
+      }
+    }
+
+### Propiedad no encontrada
+
+**HTTP `404 Not Found`**
+
+    {
+      "success": false,
+      "error": "Propiedad no encontrada"
+    }
+
+### ID inválido
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "id": "El ID de la propiedad debe ser positivo"
+      }
+    }
+
+### Consideraciones
+
+- El endpoint es público y no requiere autenticación.
+- El ID de la propiedad se obtiene desde la URL.
+- El ID debe ser un número entero positivo.
+- Si la propiedad no existe, la API responde con `404 Not Found`.
+- La respuesta utiliza la estructura estándar definida por la API.
+- La propiedad está asociada a un usuario mediante `usuario_id`.
+- `usuario_id` identifica al usuario que publicó la propiedad, pero no representa un rol diferente dentro del sistema.
+- Un mismo usuario puede publicar propiedades y alquilar propiedades de otros usuarios.
+
+## 6.3. Crear propiedad
+
+### `POST /api/propiedades`
+
+Permite crear una nueva propiedad asociada al usuario autenticado.
+
+**Autenticación requerida:** Sí.
+
+### Request
+
+    {
       "titulo": "Casa en alquiler",
       "descripcion": "Casa amplia y luminosa.",
       "precio": 250000,
@@ -695,33 +753,388 @@ Permite obtener la información de una propiedad específica.
       "categoria_id": 1,
       "localidad_id": 1
     }
-  }
-}
-Propiedad no encontrada
 
-HTTP 404 Not Found
+### Campos
 
-{
-  "success": false,
-  "error": "Propiedad no encontrada"
-}
-ID inválido
+| Campo | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `titulo` | string | Sí | Título de la propiedad. |
+| `descripcion` | string | Sí | Descripción de la propiedad. |
+| `precio` | number | Sí | Precio de alquiler de la propiedad. |
+| `expensas` | number | No | Monto de expensas, si corresponde. |
+| `direccion` | string | Sí | Dirección de la propiedad. |
+| `cantidad_ambientes` | integer | Sí | Cantidad de ambientes. |
+| `cantidad_dormitorios` | integer | Sí | Cantidad de dormitorios. |
+| `cantidad_banos` | integer | Sí | Cantidad de baños. |
+| `capacidad` | integer | Sí | Capacidad máxima de personas. |
+| `disponible` | boolean | Sí | Indica si la propiedad se encuentra disponible para alquiler. |
+| `categoria_id` | integer | Sí | Identificador de la categoría de la propiedad. |
+| `localidad_id` | integer | Sí | Identificador de la localidad donde se encuentra la propiedad. |
+| `usuario_id` | integer | No | No debe ser enviado por el frontend. Se obtiene automáticamente del JWT. |
 
-HTTP 422 Unprocessable Entity
+### Response `201 Created`
 
-{
-  "success": false,
-  "error": "Error de validación",
-  "validation_errors": {
-    "id": "El ID de la propiedad debe ser positivo"
-  }
-}
-Consideraciones
-El endpoint es público y no requiere autenticación.
-El id de la propiedad se obtiene desde la URL.
-El ID debe ser un número entero positivo.
-Si la propiedad no existe, la API responde con 404 Not Found.
-La respuesta utiliza la estructura estándar definida por la API.
-La propiedad está asociada a un usuario mediante usuario_id.
-usuario_id identifica al usuario que publicó la propiedad, pero no representa un rol diferente dentro del sistema.
-Un mismo usuario puede publicar propiedades y alquilar propiedades de otros usuarios.
+    {
+      "success": true,
+      "data": {
+        "id": 1,
+        "usuario_id": 1,
+        "titulo": "Casa en alquiler",
+        "descripcion": "Casa amplia y luminosa.",
+        "precio": 250000,
+        "expensas": 50000,
+        "direccion": "Av. Principal 123",
+        "cantidad_ambientes": 4,
+        "cantidad_dormitorios": 3,
+        "cantidad_banos": 2,
+        "capacidad": 6,
+        "disponible": true,
+        "categoria_id": 1,
+        "localidad_id": 1
+      },
+      "message": "Propiedad creada exitosamente"
+    }
+
+### JSON inválido
+
+**HTTP `400 Bad Request`**
+
+    {
+      "success": false,
+      "error": "JSON inválido"
+    }
+
+### Datos inválidos
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "titulo": "El título es requerido",
+        "precio": "El precio debe ser válido"
+      }
+    }
+
+### Sin autenticación
+
+**HTTP `401 Unauthorized`**
+
+    {
+      "success": false,
+      "error": "Token requerido"
+    }
+
+### Consideraciones
+
+- El endpoint requiere un JWT válido.
+- Cualquier usuario autenticado puede crear una propiedad.
+- El administrador también puede utilizar este endpoint porque posee los permisos de un usuario autenticado.
+- El frontend no debe enviar `usuario_id`.
+- El `usuario_id` se obtiene automáticamente a partir del `sub` incluido en el JWT.
+- La propiedad queda asociada al usuario que realizó la solicitud.
+- No existe un rol separado de propietario.
+- Un usuario puede crear múltiples propiedades.
+- Un usuario puede crear propiedades y, al mismo tiempo, alquilar propiedades de otros usuarios.
+
+## 6.4. Actualizar propiedad
+
+### `PUT /api/propiedades/{id}`
+
+Permite modificar una propiedad existente.
+
+**Autenticación requerida:** Sí.
+
+### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | integer | Sí | Identificador de la propiedad que se desea modificar. |
+
+### Request
+
+    {
+      "titulo": "Casa en alquiler actualizada",
+      "descripcion": "Casa amplia, luminosa y totalmente equipada.",
+      "precio": 280000,
+      "expensas": 55000,
+      "direccion": "Av. Principal 456",
+      "cantidad_ambientes": 5,
+      "cantidad_dormitorios": 3,
+      "cantidad_banos": 2,
+      "capacidad": 7,
+      "disponible": true,
+      "categoria_id": 1,
+      "localidad_id": 1
+    }
+
+### Campos
+
+| Campo | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `titulo` | string | Según validación | Título de la propiedad. |
+| `descripcion` | string | Según validación | Descripción de la propiedad. |
+| `precio` | number | Según validación | Precio de alquiler de la propiedad. |
+| `expensas` | number | No | Monto de expensas, si corresponde. |
+| `direccion` | string | Según validación | Dirección de la propiedad. |
+| `cantidad_ambientes` | integer | Según validación | Cantidad de ambientes. |
+| `cantidad_dormitorios` | integer | Según validación | Cantidad de dormitorios. |
+| `cantidad_banos` | integer | Según validación | Cantidad de baños. |
+| `capacidad` | integer | Según validación | Capacidad máxima de personas. |
+| `disponible` | boolean | Según validación | Indica si la propiedad se encuentra disponible para alquiler. |
+| `categoria_id` | integer | Según validación | Identificador de la categoría de la propiedad. |
+| `localidad_id` | integer | Según validación | Identificador de la localidad donde se encuentra la propiedad. |
+| `usuario_id` | integer | No | No debe ser enviado. La propiedad mantiene su usuario propietario actual. |
+
+### Response `200 OK`
+
+    {
+      "success": true,
+      "data": {
+        "data": {
+          "id": 1,
+          "usuario_id": 1,
+          "titulo": "Casa en alquiler actualizada",
+          "descripcion": "Casa amplia, luminosa y totalmente equipada.",
+          "precio": 280000,
+          "expensas": 55000,
+          "direccion": "Av. Principal 456",
+          "cantidad_ambientes": 5,
+          "cantidad_dormitorios": 3,
+          "cantidad_banos": 2,
+          "capacidad": 7,
+          "disponible": true,
+          "categoria_id": 1,
+          "localidad_id": 1
+        }
+      }
+    }
+
+### JSON inválido
+
+**HTTP `400 Bad Request`**
+
+    {
+      "success": false,
+      "error": "JSON inválido"
+    }
+
+### Propiedad no encontrada
+
+**HTTP `404 Not Found`**
+
+    {
+      "success": false,
+      "error": "Propiedad no encontrada"
+    }
+
+### Sin permisos
+
+**HTTP `403 Forbidden`**
+
+    {
+      "success": false,
+      "error": "No tienes permiso para modificar esta propiedad"
+    }
+
+### Datos inválidos
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "titulo": "El título es requerido",
+        "precio": "El precio debe ser válido"
+      }
+    }
+
+### Consideraciones
+
+- El endpoint requiere un JWT válido.
+- Cualquier usuario autenticado puede modificar sus propias propiedades.
+- El administrador también puede utilizar este endpoint, pero actualmente la implementación verifica que la propiedad pertenezca al usuario autenticado.
+- Un usuario no puede modificar una propiedad perteneciente a otro usuario.
+- El ID de la propiedad se obtiene de la URL.
+- El `usuario_id` no debe ser enviado por el frontend.
+- El `usuario_id` de la propiedad no se modifica durante la actualización.
+- La propiedad debe existir para poder ser actualizada.
+- Si el usuario autenticado no es el propietario de la propiedad, la API responde con `403 Forbidden`.
+- La actualización utiliza los campos permitidos por `PropiedadController`.
+
+## 6.5. Eliminar propiedad
+
+### `DELETE /api/propiedades/{id}`
+
+Permite eliminar una propiedad existente.
+
+**Autenticación requerida:** Sí.
+
+### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | integer | Sí | Identificador de la propiedad que se desea eliminar. |
+
+### Response `200 OK`
+
+    {
+      "success": true,
+      "data": [],
+      "message": "Propiedad eliminada exitosamente"
+    }
+
+### Propiedad no encontrada
+
+**HTTP `404 Not Found`**
+
+    {
+      "success": false,
+      "error": "Propiedad no encontrada"
+    }
+
+### Sin permisos
+
+**HTTP `403 Forbidden`**
+
+    {
+      "success": false,
+      "error": "No tienes permiso para eliminar esta propiedad"
+    }
+
+### ID inválido
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "id": "El ID de la propiedad debe ser positivo"
+      }
+    }
+
+### Sin autenticación
+
+**HTTP `401 Unauthorized`**
+
+    {
+      "success": false,
+      "error": "Token requerido"
+    }
+
+### Consideraciones
+
+- El endpoint requiere un JWT válido.
+- Un usuario autenticado puede eliminar únicamente sus propias propiedades.
+- La propiedad debe pertenecer al usuario identificado mediante el `sub` del JWT.
+- Un usuario no puede eliminar una propiedad perteneciente a otro usuario.
+- El administrador también requiere que la propiedad pertenezca al usuario autenticado, debido a la implementación actual del controlador.
+- El ID de la propiedad se obtiene de la URL.
+- La eliminación utiliza el mecanismo definido por el modelo `Propiedad`.
+- Si el modelo utiliza `SoftDeletes`, la propiedad será marcada como eliminada y no se eliminará físicamente de la base de datos.
+- Una propiedad eliminada podrá ser restaurada mediante el endpoint correspondiente, si el sistema utiliza `SoftDeletes`.
+- Si la propiedad no existe, la API responde con `404 Not Found`.
+
+## 6.6. Restaurar propiedad
+
+### `PATCH /api/propiedades/{id}/restaurar`
+
+Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
+
+**Autenticación requerida:** Sí.
+
+### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | integer | Sí | Identificador de la propiedad que se desea restaurar. |
+
+### Response `200 OK`
+
+    {
+      "success": true,
+      "data": {
+        "data": {
+          "id": 1,
+          "usuario_id": 1,
+          "titulo": "Casa en alquiler",
+          "descripcion": "Casa amplia y luminosa.",
+          "precio": 250000,
+          "expensas": 50000,
+          "direccion": "Av. Principal 123",
+          "cantidad_ambientes": 4,
+          "cantidad_dormitorios": 3,
+          "cantidad_banos": 2,
+          "capacidad": 6,
+          "disponible": true,
+          "categoria_id": 1,
+          "localidad_id": 1,
+          "deleted_at": null
+        }
+      },
+      "message": "Propiedad restaurada exitosamente"
+    }
+
+### Propiedad no encontrada
+
+**HTTP `404 Not Found`**
+
+    {
+      "success": false,
+      "error": "Propiedad no encontrada"
+    }
+
+### Propiedad no eliminada
+
+**HTTP `400 Bad Request`**
+
+    {
+      "success": false,
+      "error": "La propiedad no está eliminada"
+    }
+
+### Sin permisos
+
+**HTTP `403 Forbidden`**
+
+    {
+      "success": false,
+      "error": "No tienes permiso para restaurar esta propiedad"
+    }
+
+### ID inválido
+
+**HTTP `422 Unprocessable Entity`**
+
+    {
+      "success": false,
+      "error": "Error de validación",
+      "validation_errors": {
+        "id": "El ID de la propiedad debe ser positivo"
+      }
+    }
+
+### Sin autenticación
+
+**HTTP `401 Unauthorized`**
+
+    {
+      "success": false,
+      "error": "Token requerido"
+    }
+
+### Consideraciones
+
+- El endpoint requiere un JWT válido.
+- La propiedad debe haber sido eliminada previamente mediante `SoftDeletes`.
+- Un usuario autenticado puede restaurar únicamente sus propias propiedades.
+- La propiedad debe pertenecer al usuario identificado mediante el `sub` del JWT.
+- Un usuario no puede restaurar una propiedad perteneciente a otro usuario.
+- El administrador también requiere que la propiedad pertenezca al usuario autenticado, debido a la implementación actual del controlador.
+- El endpoint utiliza `withTrashed()` para localizar propiedades eliminadas.
+- Si la propiedad existe pero no está eliminada, la API responde con `400 Bad Request`.
+- Si la propiedad no existe, incluso entre los registros eliminados, la API responde con `404 Not Found`.
+- Una vez restaurada, la propiedad vuelve a tener `deleted_at = null`.
