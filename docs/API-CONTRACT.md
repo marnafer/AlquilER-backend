@@ -325,8 +325,8 @@ Permite registrar un nuevo usuario en el sistema.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
+      "message": "Error de validación",
+      "errors": {
         "email": "El usuario ya existe"
       }
     }
@@ -337,8 +337,8 @@ Permite registrar un nuevo usuario en el sistema.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
+      "message": "Error de validación",
+      "errors": {
         "nombre": "El nombre es requerido",
         "email": "El email no es válido",
         "contrasena": "Debe tener al menos 6 caracteres"
@@ -605,7 +605,7 @@ Permite eliminar un usuario.
 
 ### 5.6. Restaurar usuario
 
-#### `PATCH /api/usuarios/{id}/restaurar`
+#### `POST /api/usuarios/{id}/restaurar`
 
 Permite restaurar un usuario eliminado mediante SoftDeletes.
 
@@ -634,7 +634,7 @@ Permite restaurar un usuario eliminado mediante SoftDeletes.
 
 ### `GET /api/propiedades`
 
-Permite obtener el listado de propiedades disponibles en el sistema.
+Permite obtener el listado de propiedades registradas en el sistema.
 
 **Autenticación requerida:** No.
 
@@ -657,7 +657,9 @@ Permite obtener el listado de propiedades disponibles en el sistema.
 - El campo `total` indica la cantidad de propiedades devueltas.
 - Las propiedades pertenecen a un usuario, pero esto no implica que dicho usuario tenga un rol especial de propietario.
 - Un usuario puede publicar propiedades y también alquilar propiedades de otros usuarios.
-- La información sensible del usuario propietario no debe exponerse en este endpoint salvo que sea definida explícitamente por el contrato.
+- La información sensible del usuario propietario no debe exponerse en este endpoint.
+- Las propiedades eliminadas mediante `SoftDeletes` no se incluyen en los listados ni pueden consultarse mediante los endpoints públicos habituales.
+-El endpoint permite consultar propiedades y aplicar filtros mediante parámetros de consulta.
 
 ## 6.2. Obtener una propiedad
 
@@ -678,7 +680,6 @@ Permite obtener la información de una propiedad específica.
     {
       "success": true,
       "data": {
-        "data": {
           "id": 1,
           "usuario_id": 1,
           "titulo": "Casa en alquiler",
@@ -693,7 +694,6 @@ Permite obtener la información de una propiedad específica.
           "disponible": true,
           "categoria_id": 1,
           "localidad_id": 1
-        }
       }
     }
 
@@ -703,7 +703,7 @@ Permite obtener la información de una propiedad específica.
 
     {
       "success": false,
-      "error": "Propiedad no encontrada"
+      "message": "Propiedad no encontrada"
     }
 
 ### ID inválido
@@ -712,8 +712,8 @@ Permite obtener la información de una propiedad específica.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
+      "message": "Error de validación",
+      "errors": {
         "id": "El ID de la propiedad debe ser positivo"
       }
     }
@@ -801,7 +801,7 @@ Permite crear una nueva propiedad asociada al usuario autenticado.
 
     {
       "success": false,
-      "error": "JSON inválido"
+      "message": "JSON inválido"
     }
 
 ### Datos inválidos
@@ -810,8 +810,8 @@ Permite crear una nueva propiedad asociada al usuario autenticado.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
+      "message": "Error de validación",
+      "errors": {
         "titulo": "El título es requerido",
         "precio": "El precio debe ser válido"
       }
@@ -823,7 +823,7 @@ Permite crear una nueva propiedad asociada al usuario autenticado.
 
     {
       "success": false,
-      "error": "Token requerido"
+      "message": "Token requerido"
     }
 
 ### Consideraciones
@@ -842,7 +842,7 @@ Permite crear una nueva propiedad asociada al usuario autenticado.
 
 ### `PUT /api/propiedades/{id}`
 
-Permite modificar una propiedad existente.
+Permite actualizar total o parcialmente los datos modificables de una propiedad.
 
 **Autenticación requerida:** Sí.
 
@@ -873,26 +873,24 @@ Permite modificar una propiedad existente.
 
 | Campo | Tipo | Obligatorio | Descripción |
 | :--- | :--- | :--- | :--- |
-| `titulo` | string | Según validación | Título de la propiedad. |
-| `descripcion` | string | Según validación | Descripción de la propiedad. |
-| `precio` | number | Según validación | Precio de alquiler de la propiedad. |
+| `titulo` | string | No | Título de la propiedad. |
+| `descripcion` | string | No | Descripción de la propiedad. |
+| `precio` | number | No | Precio de alquiler de la propiedad. |
 | `expensas` | number | No | Monto de expensas, si corresponde. |
-| `direccion` | string | Según validación | Dirección de la propiedad. |
-| `cantidad_ambientes` | integer | Según validación | Cantidad de ambientes. |
-| `cantidad_dormitorios` | integer | Según validación | Cantidad de dormitorios. |
-| `cantidad_banos` | integer | Según validación | Cantidad de baños. |
-| `capacidad` | integer | Según validación | Capacidad máxima de personas. |
-| `disponible` | boolean | Según validación | Indica si la propiedad se encuentra disponible para alquiler. |
-| `categoria_id` | integer | Según validación | Identificador de la categoría de la propiedad. |
-| `localidad_id` | integer | Según validación | Identificador de la localidad donde se encuentra la propiedad. |
-| `usuario_id` | integer | No | No debe ser enviado. La propiedad mantiene su usuario propietario actual. |
+| `direccion` | string | No | Dirección de la propiedad. |
+| `cantidad_ambientes` | integer | No | Cantidad de ambientes. |
+| `cantidad_dormitorios` | integer | No | Cantidad de dormitorios. |
+| `cantidad_banos` | integer | No | Cantidad de baños. |
+| `capacidad` | integer | No | Capacidad máxima de personas. |
+| `disponible` | boolean | No | Indica si la propiedad se encuentra disponible para alquiler. |
+| `categoria_id` | integer | No | Identificador de la categoría de la propiedad. |
+| `localidad_id` | integer | No | Identificador de la localidad donde se encuentra la propiedad. |
 
 ### Response `200 OK`
 
     {
       "success": true,
       "data": {
-        "data": {
           "id": 1,
           "usuario_id": 1,
           "titulo": "Casa en alquiler actualizada",
@@ -907,7 +905,6 @@ Permite modificar una propiedad existente.
           "disponible": true,
           "categoria_id": 1,
           "localidad_id": 1
-        }
       }
     }
 
@@ -917,7 +914,7 @@ Permite modificar una propiedad existente.
 
     {
       "success": false,
-      "error": "JSON inválido"
+      "message": "JSON inválido"
     }
 
 ### Propiedad no encontrada
@@ -926,7 +923,7 @@ Permite modificar una propiedad existente.
 
     {
       "success": false,
-      "error": "Propiedad no encontrada"
+      "message": "Propiedad no encontrada"
     }
 
 ### Sin permisos
@@ -935,7 +932,7 @@ Permite modificar una propiedad existente.
 
     {
       "success": false,
-      "error": "No tienes permiso para modificar esta propiedad"
+      "message": "No tienes permiso para modificar esta propiedad"
     }
 
 ### Datos inválidos
@@ -944,9 +941,8 @@ Permite modificar una propiedad existente.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
-        "titulo": "El título es requerido",
+      "message": "Error de validación",
+      "errors": {
         "precio": "El precio debe ser válido"
       }
     }
@@ -955,14 +951,17 @@ Permite modificar una propiedad existente.
 
 - El endpoint requiere un JWT válido.
 - Cualquier usuario autenticado puede modificar sus propias propiedades.
-- El administrador también puede utilizar este endpoint, pero actualmente la implementación verifica que la propiedad pertenezca al usuario autenticado.
+- Un administrador puede modificar cualquier propiedad.
 - Un usuario no puede modificar una propiedad perteneciente a otro usuario.
 - El ID de la propiedad se obtiene de la URL.
 - El `usuario_id` no debe ser enviado por el frontend.
 - El `usuario_id` de la propiedad no se modifica durante la actualización.
 - La propiedad debe existir para poder ser actualizada.
-- Si el usuario autenticado no es el propietario de la propiedad, la API responde con `403 Forbidden`.
+- Si el usuario autenticado no es el propietario de la propiedad y no posee permisos administrativos, la API responde con `403 Forbidden`.
 - La actualización utiliza los campos permitidos por `PropiedadController`.
+- Los campos son opcionales individualmente. La solicitud debe incluir al menos un campo modificable válido.
+-El endpoint permite realizar tanto actualizaciones parciales como actualizaciones completas de la propiedad.
+-El campo `usuario_id` no puede ser enviado ni modificado por el cliente.
 
 ## 6.5. Eliminar propiedad
 
@@ -992,7 +991,7 @@ Permite eliminar una propiedad existente.
 
     {
       "success": false,
-      "error": "Propiedad no encontrada"
+      "message": "Propiedad no encontrada"
     }
 
 ### Sin permisos
@@ -1001,7 +1000,7 @@ Permite eliminar una propiedad existente.
 
     {
       "success": false,
-      "error": "No tienes permiso para eliminar esta propiedad"
+      "message": "No tienes permiso para eliminar esta propiedad"
     }
 
 ### ID inválido
@@ -1010,8 +1009,8 @@ Permite eliminar una propiedad existente.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
+      "message": "Error de validación",
+      "errors": {
         "id": "El ID de la propiedad debe ser positivo"
       }
     }
@@ -1022,7 +1021,7 @@ Permite eliminar una propiedad existente.
 
     {
       "success": false,
-      "error": "Token requerido"
+      "message": "Token requerido"
     }
 
 ### Consideraciones
@@ -1031,7 +1030,7 @@ Permite eliminar una propiedad existente.
 - Un usuario autenticado puede eliminar únicamente sus propias propiedades.
 - La propiedad debe pertenecer al usuario identificado mediante el `sub` del JWT.
 - Un usuario no puede eliminar una propiedad perteneciente a otro usuario.
-- El administrador también requiere que la propiedad pertenezca al usuario autenticado, debido a la implementación actual del controlador.
+- Un administrador puede eliminar cualquier propiedad.
 - El ID de la propiedad se obtiene de la URL.
 - La eliminación utiliza el mecanismo definido por el modelo `Propiedad`.
 - Si el modelo utiliza `SoftDeletes`, la propiedad será marcada como eliminada y no se eliminará físicamente de la base de datos.
@@ -1040,7 +1039,7 @@ Permite eliminar una propiedad existente.
 
 ## 6.6. Restaurar propiedad
 
-### `PATCH /api/propiedades/{id}/restaurar`
+### `POST /api/propiedades/{id}/restaurar`
 
 Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 
@@ -1057,7 +1056,6 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
     {
       "success": true,
       "data": {
-        "data": {
           "id": 1,
           "usuario_id": 1,
           "titulo": "Casa en alquiler",
@@ -1071,9 +1069,7 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
           "capacidad": 6,
           "disponible": true,
           "categoria_id": 1,
-          "localidad_id": 1,
-          "deleted_at": null
-        }
+          "localidad_id": 1
       },
       "message": "Propiedad restaurada exitosamente"
     }
@@ -1084,7 +1080,7 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 
     {
       "success": false,
-      "error": "Propiedad no encontrada"
+      "message": "Propiedad no encontrada"
     }
 
 ### Propiedad no eliminada
@@ -1093,7 +1089,7 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 
     {
       "success": false,
-      "error": "La propiedad no está eliminada"
+      "message": "La propiedad no está eliminada"
     }
 
 ### Sin permisos
@@ -1102,7 +1098,7 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 
     {
       "success": false,
-      "error": "No tienes permiso para restaurar esta propiedad"
+      "message": "No tienes permiso para restaurar esta propiedad"
     }
 
 ### ID inválido
@@ -1111,8 +1107,8 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 
     {
       "success": false,
-      "error": "Error de validación",
-      "validation_errors": {
+      "message": "Error de validación",
+      "errors": {
         "id": "El ID de la propiedad debe ser positivo"
       }
     }
@@ -1123,7 +1119,7 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 
     {
       "success": false,
-      "error": "Token requerido"
+      "message": "Token requerido"
     }
 
 ### Consideraciones
@@ -1133,8 +1129,453 @@ Permite restaurar una propiedad que fue eliminada mediante `SoftDeletes`.
 - Un usuario autenticado puede restaurar únicamente sus propias propiedades.
 - La propiedad debe pertenecer al usuario identificado mediante el `sub` del JWT.
 - Un usuario no puede restaurar una propiedad perteneciente a otro usuario.
-- El administrador también requiere que la propiedad pertenezca al usuario autenticado, debido a la implementación actual del controlador.
+- El administrador puede restaurar cualquier propiedad.
 - El endpoint utiliza `withTrashed()` para localizar propiedades eliminadas.
 - Si la propiedad existe pero no está eliminada, la API responde con `400 Bad Request`.
 - Si la propiedad no existe, incluso entre los registros eliminados, la API responde con `404 Not Found`.
 - Una vez restaurada, la propiedad vuelve a tener `deleted_at = null`.
+
+## 7. Gestión de imágenes de propiedades
+
+### 7.1. Obtener imágenes de propiedades
+
+**`GET`** `/api/propiedad-imagenes`
+
+Permite obtener las imágenes registradas en el sistema para las propiedades.
+
+- **Autenticación requerida:** No.
+
+#### Response `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "total": 0
+  }
+}
+```
+
+#### Consideraciones
+
+* El endpoint es público y no requiere autenticación.
+* Devuelve las imágenes registradas de las propiedades.
+* La información de cada imagen debe estar asociada a una propiedad mediante `propiedad_id`.
+* Las imágenes pertenecientes a propiedades eliminadas mediante *SoftDeletes* no deben incluirse en el listado público.
+* La respuesta incluye la colección de imágenes dentro de `data.items`.
+* El campo `total` indica la cantidad de imágenes devueltas.
+* El endpoint permite aplicar filtros mediante parámetros de consulta.
+* Los parámetros de consulta permiten realizar búsquedas o filtrados según los criterios admitidos por la API.
+* La información sensible relacionada con el usuario propietario de la propiedad no debe exponerse en este endpoint.
+* El endpoint no requiere conocer ni enviar el `usuario_id` para consultar las imágenes.
+* Las imágenes deben incluir únicamente la información definida por el contrato para este recurso.
+
+#### Estructura de cada imagen
+
+La representación de cada imagen deberá contener, como mínimo, la información necesaria para identificarla y relacionarla con su propiedad.
+
+**Ejemplo:**
+
+```json
+{
+  "id": 1,
+  "propiedad_id": 1,
+  "url": "[https://ejemplo.com/imagenes/propiedad-1.jpg](https://ejemplo.com/imagenes/propiedad-1.jpg)",
+  "es_principal": true
+}
+```
+#### Propiedad sin imágenes
+
+Si no existen imágenes que coincidan con la consulta, el endpoint responde igualmente con un **`200 OK`**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "total": 0
+  }
+}
+```
+### 7.2. Obtener una imagen
+
+**`GET`** `/api/propiedad-imagenes/{id}`
+
+Permite obtener la información de una imagen específica registrada en el sistema.
+
+- **Autenticación requerida:** No.
+
+#### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | integer | Sí | Identificador de la imagen. Debe ser un número entero positivo. |
+
+#### Response `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "propiedad_id": 1,
+    "url": "[https://ejemplo.com/imagenes/propiedad-1.jpg](https://ejemplo.com/imagenes/propiedad-1.jpg)",
+    "es_principal": true
+  }
+}
+```
+
+#### Response `404 Not Found` (Imagen no encontrada)
+
+```json
+{
+  "success": false,
+  "message": "Imagen no encontrada"
+}
+```
+
+#### Response `422 Unprocessable Entity` (ID inválido)
+
+```json
+{
+  "success": false,
+  "message": "Error de validación",
+  "errors": {
+    "id": "El ID de la imagen debe ser positivo"
+  }
+}
+```
+
+#### Consideraciones
+
+* El endpoint es público y no requiere autenticación.
+* El ID de la imagen se obtiene desde la URL.
+* El ID debe ser un número entero positivo.
+* Si la imagen no existe, la API responde con `404 Not Found`.
+* Una imagen perteneciente a una propiedad eliminada mediante *SoftDeletes* no debe estar disponible mediante este endpoint público.
+* La imagen está asociada a una propiedad mediante `propiedad_id`.
+* `es_principal` indica si la imagen es la imagen principal de la propiedad.
+* La respuesta utiliza la estructura estándar definida por la API.
+* No se expone información sensible del usuario propietario de la propiedad.
+* La consulta de una imagen específica no requiere conocer ni enviar el `usuario_id`.
+
+### 7.3. Crear imagen
+
+**`POST`** `/api/propiedad-imagenes`
+
+Permite registrar una nueva imagen asociada a una propiedad.
+
+- **Autenticación requerida:** Sí.
+
+#### Request
+
+```json
+{
+  "propiedad_id": 1,
+  "url": "[https://ejemplo.com/imagenes/propiedad-1.jpg](https://ejemplo.com/imagenes/propiedad-1.jpg)",
+  "es_principal": false
+}
+```
+
+#### Campos
+
+| Campo | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `propiedad_id` | integer | Sí | Identificador de la propiedad a la que pertenece la imagen. |
+| `url` | string | Sí | URL o ubicación de la imagen. |
+| `es_principal` | boolean | No | Indica si la imagen será establecida como principal. |
+
+#### Response `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "propiedad_id": 1,
+    "url": "[https://ejemplo.com/imagenes/propiedad-1.jpg](https://ejemplo.com/imagenes/propiedad-1.jpg)",
+    "es_principal": false
+  },
+  "message": "Imagen creada exitosamente"
+}
+```
+
+#### Response `400 Bad Request` (JSON inválido)
+
+```json
+{
+  "success": false,
+  "message": "JSON inválido"
+}
+```
+
+#### Response `422 Unprocessable Entity` (Datos inválidos)
+
+```json
+{
+  "success": false,
+  "message": "Error de validación",
+  "errors": {
+    "propiedad_id": "El ID de la propiedad debe ser positivo",
+    "url": "La URL de la imagen es requerida"
+  }
+}
+```
+
+#### Response `404 Not Found` (Propiedad no encontrada)
+
+```json
+{
+  "success": false,
+  "message": "Propiedad no encontrada"
+}
+```
+
+#### Response `401 Unauthorized` (Sin autenticación)
+
+```json
+{
+  "success": false,
+  "message": "Token requerido"
+}
+```
+
+#### Response `403 Forbidden` (Sin permisos)
+
+```json
+{
+  "success": false,
+  "message": "No tienes permiso para agregar imágenes a esta propiedad"
+}
+```
+
+#### Consideraciones
+
+* El endpoint requiere un JWT válido.
+* Un usuario autenticado puede agregar imágenes únicamente a sus propias propiedades.
+* Un administrador puede agregar imágenes a cualquier propiedad.
+* La propiedad indicada mediante `propiedad_id` debe existir.
+* La propiedad no debe estar eliminada mediante *SoftDeletes*.
+* El usuario propietario se determina a partir de la propiedad y no debe ser enviado por el cliente.
+* No se debe aceptar un `usuario_id` en el request.
+* `es_principal` es opcional.
+* Una propiedad puede tener múltiples imágenes.
+* Si `es_principal` es `true`, la imagen creada se establece como imagen principal de la propiedad.
+* Una propiedad debe tener como máximo una imagen principal.
+* Si la propiedad ya posee una imagen principal y se establece una nueva como principal, la anterior debe dejar de ser principal.
+* La imagen principal también puede modificarse posteriormente mediante el endpoint correspondiente.
+* La URL de la imagen debe cumplir las reglas de validación establecidas para este recurso.
+
+### 7.4. Establecer imagen principal
+
+**`PUT`** `/api/propiedad-imagenes/{id}/principal`
+
+Permite establecer una imagen existente como la imagen principal de la propiedad a la que pertenece.
+
+- **Autenticación requerida:** Sí.
+
+#### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | integer | Sí | Identificador de la imagen que se desea establecer como principal. |
+
+#### Request
+
+No requiere cuerpo (body). 
+La imagen se identifica exclusivamente mediante el parámetro `id` de la URL.
+
+#### Response `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "propiedad_id": 1,
+    "url": "[https://ejemplo.com/imagenes/propiedad-1.jpg](https://ejemplo.com/imagenes/propiedad-1.jpg)",
+    "es_principal": true
+  },
+  "message": "Imagen principal establecida exitosamente"
+}
+```
+
+#### Response `404 Not Found` (Imagen no encontrada)
+
+```json
+{
+  "success": false,
+  "message": "Imagen no encontrada"
+}
+```
+
+#### Response `404 Not Found` (Propiedad no encontrada)
+
+```json
+{
+  "success": false,
+  "message": "Propiedad no encontrada"
+}
+```
+
+#### Response `422 Unprocessable Entity` (ID inválido)
+
+```json
+{
+  "success": false,
+  "message": "Error de validación",
+  "errors": {
+    "id": "El ID de la imagen debe ser positivo"
+  }
+}
+```
+
+#### Response `401 Unauthorized` (Sin autenticación)
+
+```json
+{
+  "success": false,
+  "message": "Token requerido"
+}
+```
+
+#### Response `403 Forbidden` (Sin permisos)
+
+```json
+{
+  "success": false,
+  "message": "No tienes permiso para modificar las imágenes de esta propiedad"
+}
+```
+
+#### Consideraciones
+
+* El endpoint requiere un JWT válido.
+* El ID de la imagen se obtiene de la URL.
+* El ID debe ser un número entero positivo.
+* La imagen debe existir para poder establecerla como principal.
+* La imagen debe pertenecer a una propiedad existente.
+* La propiedad no debe estar eliminada mediante *SoftDeletes*.
+* Un usuario autenticado puede establecer como principal únicamente imágenes pertenecientes a sus propias propiedades.
+* Un administrador puede establecer como principal una imagen de cualquier propiedad.
+* Al establecer una imagen como principal, cualquier otra imagen que actualmente sea principal para esa misma propiedad deja de serlo.
+* Una propiedad puede tener como máximo una imagen principal.
+* La operación no modifica la URL ni la relación de la imagen con la propiedad.
+* No requiere cuerpo (body) ni parámetros adicionales.
+* La respuesta devuelve la imagen actualizada.
+
+#### Resultado esperado
+
+Si inicialmente tenemos:
+
+* Imagen 1 → `es_principal = true`
+* Imagen 2 → `es_principal = false`
+* Imagen 3 → `es_principal = false`
+
+y ejecutamos:
+
+```http
+PUT /api/propiedad-imagenes/2/principal
+```
+
+el resultado será:
+
+* Imagen 1 → `es_principal = false`
+* Imagen 2 → `es_principal = true`
+* Imagen 3 → `es_principal = false`
+
+### 7.5. Eliminar imagen
+
+**`DELETE`** `/api/propiedad-imagenes/{id}`
+
+Permite eliminar una imagen asociada a una propiedad.
+
+- **Autenticación requerida:** Sí.
+
+#### Parámetro de ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+| :--- | :--- | :--- | :--- |
+| `id` | integer | Sí | Identificador de la imagen que se desea eliminar. |
+
+#### Response `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [],
+  "message": "Imagen eliminada exitosamente"
+}
+```
+
+#### Response `404 Not Found` (Imagen no encontrada)
+
+```json
+{
+  "success": false,
+  "message": "Imagen no encontrada"
+}
+```
+
+#### Response `422 Unprocessable Entity` (ID inválido)
+
+```json
+{
+  "success": false,
+  "message": "Error de validación",
+  "errors": {
+    "id": "El ID de la imagen debe ser positivo"
+  }
+}
+```
+
+#### Response `401 Unauthorized` (Sin autenticación)
+
+```json
+{
+  "success": false,
+  "message": "Token requerido"
+}
+```
+
+#### Response `403 Forbidden` (Sin permisos)
+
+```json
+{
+  "success": false,
+  "message": "No tienes permiso para eliminar esta imagen"
+}
+```
+
+#### Consideraciones
+
+* El endpoint requiere un JWT válido.
+* El ID de la imagen se obtiene de la URL.
+* El ID debe ser un número entero positivo.
+* Un usuario autenticado puede eliminar únicamente imágenes pertenecientes a sus propias propiedades.
+* Un administrador puede eliminar imágenes de cualquier propiedad.
+* La imagen debe existir para poder ser eliminada.
+* La propiedad a la que pertenece la imagen debe existir.
+* La eliminación utiliza el mecanismo definido para las imágenes de propiedades.
+* Si se utiliza *SoftDeletes*, la imagen será marcada como eliminada y no se eliminará físicamente de la base de datos.
+* Una imagen eliminada no debe aparecer en los listados ni en las consultas públicas habituales.
+* Si la imagen eliminada era la imagen principal de la propiedad, la propiedad quedará temporalmente sin imagen principal.
+* La eliminación de una imagen no debe establecer automáticamente otra imagen como principal.
+* La selección de una nueva imagen principal se realiza mediante `PUT /api/propiedad-imagenes/{id}/principal`.
+
+#### Regla sobre la imagen principal
+
+Si la propiedad tiene:
+
+* Imagen 1 → `es_principal = true`
+* Imagen 2 → `es_principal = false`
+* Imagen 3 → `es_principal = false`
+
+y se elimina la Imagen 1, el resultado será:
+
+* Imagen 1 → eliminada
+* Imagen 2 → `es_principal = false`
+* Imagen 3 → `es_principal = false`
+
+No se seleccionará automáticamente otra imagen como principal.
