@@ -21,11 +21,38 @@
     ini_set('display_errors', 1);
 
     // ============================================
+    // CORS
+    // ============================================
+
+    $allowedOrigins = [
+        'http://localhost',
+        'http://127.0.0.1'
+    ];
+
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+    if (in_array($origin, $allowedOrigins, true)) {
+        header("Access-Control-Allow-Origin: $origin");
+    }
+
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+    // ============================================
     // CONFIGURACIÓN
     // ============================================
 
     $method = strtoupper(trim($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+
+    // ============================================
+    // CORS - PREFLIGHT
+    // ============================================
+
+    if ($method === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
 
     $path_bruto = parse_url($requestUri, PHP_URL_PATH);
 
