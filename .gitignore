@@ -6,8 +6,5 @@ node_modules/
 .idea/
 *.log
 
-# No subir archivos de configuraci�n con contrase�as (cuando los crees)
-src/config/config.php
-
 # Archivos subidos por los usuarios
 /public/uploads/

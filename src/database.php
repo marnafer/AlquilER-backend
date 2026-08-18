@@ -8,10 +8,10 @@ $capsule = new Capsule;
 // Configuramos los datos de conexi�n
 $capsule->addConnection([
     'driver'    => 'mysql',
-    'host'      => 'localhost',
-    'database'  => 'sistema_alquiler_db', // <-- Pon� el nombre exacto de tu DB aqu�
-    'username'  => 'root',                // Usuario de XAMPP
-    'password'  => '',                    // Contrase�a de XAMPP (suele estar vac�a)
+    'host'      => $_ENV['DB_HOST'],
+    'database'  => $_ENV['DB_DATABASE'],
+    'username'  => $_ENV['DB_USERNAME'],
+    'password'  => $_ENV['DB_PASSWORD'],
     'charset'   => 'utf8mb4',
     'collation' => 'utf8mb4_unicode_ci',
     'prefix'    => '',
