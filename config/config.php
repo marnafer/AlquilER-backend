@@ -13,6 +13,6 @@ if (APP_ENV === 'development') {
 
 // 2. Configuración de Seguridad (JWT)
 
-define('JWT_SECRET', $_ENV['JWT_SECRET']);
+define('JWT_KEY', $_ENV['JWT_KEY']);
 define('JWT_EXPIRATION', (int) ($_ENV['JWT_EXP'] ?? 3600));
 define('JWT_ALGORITHM', 'HS256');

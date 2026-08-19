@@ -74,7 +74,7 @@
     $GLOBALS['path'] = $path;
 
     // Health
-    if ($method === 'GET' && $path === '/health') {
+    if ($method === 'GET' && $path === '/api/health') {
         Response::success([
             'status' => 'ok',
             'timestamp' => date('Y-m-d H:i:s'),
