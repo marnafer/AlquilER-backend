@@ -128,9 +128,9 @@ El objetivo es obtener una API REST más mantenible, segura, escalable y prepara
 
 ## Evidencia de pruebas
 
-[GET-PROPIEDADES](.docs/capturas/get-propiedades.png)
-[POST-LOGIN](.docs/capturas/post-login.png)
-[POST-PROPIEDADES-1](.docs/capturas/post-propiedades-1.png)
-[POST-PROPIEDADES-2](.docs/capturas/post-propiedades-2.png)
-[PUT-PROPIEDADES](.docs/capturas/put-propiedades-1.png)
+[GET-PROPIEDADES](./docs/capturas/get-propiedades.png)
+[POST-LOGIN](./docs/capturas/post-login.png)
+[POST-PROPIEDADES-1](./docs/capturas/post-propiedades-1.png)
+[POST-PROPIEDADES-2](./docs/capturas/post-propiedades-2.png)
+[PUT-PROPIEDADES](./docs/capturas/put-propiedades-1.png)
 
