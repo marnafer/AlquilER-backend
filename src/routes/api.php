@@ -34,17 +34,17 @@ $router->post('/api/autenticador/logout', [AutenticadorController::class, 'logou
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/usuarios', [UsuarioController::class, 'listarUsuariosApi']);
+$router->get('/api/usuarios', [UsuarioController::class, 'index']);
 
-$router->get('/api/usuarios/{id}', [UsuarioController::class, 'mostrar']);
+$router->get('/api/usuarios/{id}', [UsuarioController::class, 'show']);
 
-$router->get('/api/usuarios/me',[UsuarioController::class, 'perfil']);
+$router->get('/api/usuarios/me',[UsuarioController::class, 'profile']);
 
-$router->put('/api/usuarios/{id}', [UsuarioController::class, 'actualizar']);
+$router->put('/api/usuarios/{id}', [UsuarioController::class, 'update']);
 
-$router->delete('/api/usuarios/{id}', [UsuarioController::class, 'eliminar']);
+$router->delete('/api/usuarios/{id}', [UsuarioController::class, 'delete']);
 
-$router->post('/api/usuarios/restaurar/{id}', [UsuarioController::class, 'restaurar']);
+$router->post('/api/usuarios/{id}/restaurar', [UsuarioController::class, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -52,15 +52,17 @@ $router->post('/api/usuarios/restaurar/{id}', [UsuarioController::class, 'restau
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/categorias',[CategoriaController::class, 'listar']);
+$router->get('/api/categorias',[CategoriaController::class, 'index']);
 
-$router->post('/api/categorias',[CategoriaController::class, 'crear']);
+$router->post('/api/categorias',[CategoriaController::class, 'store']);
 
-$router->get('/api/categorias/{id}',[CategoriaController::class, 'obtener']);
+$router->get('/api/categorias/{id}',[CategoriaController::class, 'show']);
 
-$router->put('/api/categorias/{id}',[CategoriaController::class, 'actualizar']);
+$router->put('/api/categorias/{id}',[CategoriaController::class, 'update']);
 
-$router->delete('/api/categorias/{id}',[CategoriaController::class, 'eliminar']);
+$router->delete('/api/categorias/{id}',[CategoriaController::class, 'delete']);
+
+$router->post('/api/categorias/{id}/restaurar', [CategoriaController::class, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -70,8 +72,6 @@ $router->delete('/api/categorias/{id}',[CategoriaController::class, 'eliminar'])
 
 $router->get('/api/provincias', [ProvinciaController::class, 'index']);
 
-$router->get('/api/provincias/con-localidades',[ProvinciaController::class, 'indexWithCount']);
-
 $router->get('/api/provincias/{id}',[ProvinciaController::class, 'show']);
 
 $router->post('/api/provincias',[ProvinciaController::class, 'store']);
@@ -79,6 +79,8 @@ $router->post('/api/provincias',[ProvinciaController::class, 'store']);
 $router->put('/api/provincias/{id}',[ProvinciaController::class, 'update']);
 
 $router->delete('/api/provincias/{id}',[ProvinciaController::class, 'delete']);
+
+$router->post('/api/provincias/{id}/restaurar', [ProvinciaController::class, 'restore']);
 
 /*
 |--------------------------------------------------------------------------	
@@ -96,6 +98,8 @@ $router->put('/api/localidades/{id}', [LocalidadController::class, 'update']);
 
 $router->delete('/api/localidades/{id}', [LocalidadController::class, 'delete']);
 
+$router->post('/api/localidades/{id}/restaurar', [LocalidadController::class, 'restore']);
+
 /*
 |--------------------------------------------------------------------------
 | ROLES
@@ -104,15 +108,15 @@ $router->delete('/api/localidades/{id}', [LocalidadController::class, 'delete'])
 
 $router->get('/api/roles', [RolController::class, 'index']);
 
-$router->get('/api/roles/con-usuarios', [RolController::class, 'indexWithCount']);
+$router->get('/api/roles/{id}', [RolController::class, 'show']);
 
 $router->post('/api/roles', [RolController::class, 'store']);
-
-$router->get('/api/roles/{id}', [RolController::class, 'show']);
 
 $router->put('/api/roles/{id}', [RolController::class, 'update']);
 
 $router->delete('/api/roles/{id}', [RolController::class, 'delete']);
+
+$router->post('/api/roles/{id}/restaurar', [RolController::class, 'restore']);
 
 /*	
 |--------------------------------------------------------------------------
@@ -120,15 +124,15 @@ $router->delete('/api/roles/{id}', [RolController::class, 'delete']);
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'mostrarApi']);
+$router->get('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'show']);
 
 $router->get('/api/propiedad-imagenes', [PropiedadImagenController::class, 'indexApi']);
 
-$router->post('/api/propiedad-imagenes', [PropiedadImagenController::class, 'crear']);
+$router->post('/api/propiedad-imagenes', [PropiedadImagenController::class, 'store']);
 
-$router->put('/api/propiedad-imagenes/{id}/principal', [PropiedadImagenController::class, 'establecerPrincipal']);
+$router->put('/api/propiedad-imagenes/{id}/principal', [PropiedadImagenController::class, 'setPrincipal']);
 
-$router->delete('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'eliminar']);
+$router->delete('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'delete']);
 
 /*	
 |--------------------------------------------------------------------------
@@ -140,11 +144,9 @@ $router->get('/api/favoritos', [FavoritoController::class, 'index']);
 
 $router->post('/api/favoritos', [FavoritoController::class, 'store']);
 
-$router->delete('/api/favoritos', [FavoritoController::class, 'delete']);
-
 $router->get('/api/usuarios/{id}/favoritos', [FavoritoController::class, 'indexByUsuario']);
 
-$router->delete('/api/favoritos/{id}', [FavoritoController::class, 'deleteById']);
+$router->delete('/api/favoritos/propiedad/{propiedad_id}', [FavoritoController::class, 'deleteByPropiedad']);
 
 /*
 |--------------------------------------------------------------------------
@@ -156,15 +158,13 @@ $router->get('/api/consultas', [ConsultaController::class, 'index']);
 
 $router->get('/api/consultas/{id}', [ConsultaController::class, 'show']);
 
-$router->get('/api/consultas/propiedad/{id}', [ConsultaController::class, 'indexByPropiedad']);
-
-$router->get('/api/consultas/usuario/{id}', [ConsultaController::class, 'indexByUsuario']);
-
 $router->post('/api/consultas', [ConsultaController::class, 'store']);
 
 $router->put('/api/consultas/{id}', [ConsultaController::class, 'update']);
 
 $router->delete('/api/consultas/{id}', [ConsultaController::class, 'delete']);
+
+$router->post('/api/consultas/{id}/restaurar', [ConsultaController::class, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -174,23 +174,15 @@ $router->delete('/api/consultas/{id}', [ConsultaController::class, 'delete']);
 
 $router->get('/api/reservas', [ReservaController::class, 'index']);
 
-$router->get('/api/reservas/mis-reservas', [ReservaController::class, 'misReservas']);
-
 $router->get('/api/reservas/{id}', [ReservaController::class, 'show']);
-
-$router->get('/api/reservas/propiedad/{id}', [ReservaController::class, 'reservasPorPropiedad']);
 
 $router->post('/api/reservas', [ReservaController::class, 'store']);
 
-$router->put('/api/reservas/{id}/aprobar', [ReservaController::class, 'aprobar']);
-
-$router->put('/api/reservas/{id}/rechazar', [ReservaController::class, 'rechazar']);
-
-$router->put('/api/reservas/{id}/cancelar', [ReservaController::class, 'cancelar']);
-
-$router->put('/api/reservas/{id}/finalizar', [ReservaController::class, 'finalizar']);
+$router->put('/api/reservas/{id}', [ReservaController::class, 'update']);
 
 $router->delete('/api/reservas/{id}', [ReservaController::class, 'delete']);
+
+$router->post('/api/reservas/{id}/restaurar', [ReservaController::class, 'restore']);   
 
 /*
 |--------------------------------------------------------------------------
@@ -199,12 +191,6 @@ $router->delete('/api/reservas/{id}', [ReservaController::class, 'delete']);
 */
 
 $router->get('/api/resenas', [ResenaController::class, 'index']);
-
-$router->get('/api/resenas/estadisticas', [ResenaController::class, 'getEstadisticas']);
-
-$router->get('/api/resenas/propiedad/{id}', [ResenaController::class, 'getByPropiedad']);
-
-$router->get('/api/resenas/usuario/{id}', [ResenaController::class, 'getByUsuario']);
 
 $router->get('/api/resenas/{id}', [ResenaController::class, 'show']);
 
@@ -220,15 +206,17 @@ $router->delete('/api/resenas/{id}', [ResenaController::class, 'delete']);
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/servicios', [ServicioController::class, 'listar']);
+$router->get('/api/servicios', [ServicioController::class, 'index']);
 
-$router->get('/api/servicios/{id}', [ServicioController::class, 'obtener']);
+$router->get('/api/servicios/{id}', [ServicioController::class, 'show']);
 
-$router->post('/api/servicios', [ServicioController::class, 'crear']);
+$router->post('/api/servicios', [ServicioController::class, 'store']);
 
-$router->put('/api/servicios/{id}', [ServicioController::class, 'actualizar']);
+$router->put('/api/servicios/{id}', [ServicioController::class, 'update']);
 
-$router->delete('/api/servicios/{id}', [ServicioController::class, 'eliminar']);
+$router->delete('/api/servicios/{id}', [ServicioController::class, 'delete']);
+
+$router->post('/api/servicios/{id}/restaurar', [ServicioController::class, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -236,21 +224,13 @@ $router->delete('/api/servicios/{id}', [ServicioController::class, 'eliminar']);
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/propiedades-servicios', [PropiedadServicioController::class, 'index']);
+$router->get('/api/propiedades/{id}/servicios', [PropiedadServicioController::class, 'index']);
 
-$router->get('/api/propiedades-servicios/estadisticas', [PropiedadServicioController::class, 'getEstadisticas']);
+$router->post('/api/propiedades/{id}/servicios', [PropiedadServicioController::class, 'store']);
 
-$router->get('/api/propiedades-servicios/{id}', [PropiedadServicioController::class, 'show']);
+$router->put('/api/propiedades/{id}/servicios', [PropiedadServicioController::class, 'update']);
 
-$router->post('/api/propiedades-servicios', [PropiedadServicioController::class, 'store']);
-
-$router->delete('/api/propiedades-servicios/{id}', [PropiedadServicioController::class, 'delete']);
-
-$router->get('/api/propiedades-servicios/propiedad/{id}', [PropiedadServicioController::class, 'getByPropiedad']);
-
-$router->get('/api/propiedades-servicios/servicio/{id}', [PropiedadServicioController::class, 'getByServicio']);
-
-$router->post('/api/propiedades-servicios/sync/{id}', [PropiedadServicioController::class, 'sync']);
+$router->delete('/api/propiedades/{id}/servicios/{servicio_id}', [PropiedadServicioController::class, 'delete']);
 
 /*
 |--------------------------------------------------------------------------
@@ -260,23 +240,7 @@ $router->post('/api/propiedades-servicios/sync/{id}', [PropiedadServicioControll
 
 $router->get('/api/logs-actividad', [LogActividadController::class, 'index']);
 
-$router->get('/api/logs-actividad/estadisticas', [LogActividadController::class, 'getEstadisticas']);
-
-$router->get('/api/logs-actividad/buscar', [LogActividadController::class, 'search']);
-
-$router->get('/api/logs-actividad/fecha', [LogActividadController::class, 'getByFecha']);
-
-$router->get('/api/logs-actividad/usuario/{id}', [LogActividadController::class, 'getByUsuario']);
-
-$router->post('/api/logs-actividad/registrar', [LogActividadController::class, 'registrar']);
-
 $router->get('/api/logs-actividad/{id}', [LogActividadController::class, 'show']);
-
-$router->delete('/api/logs-actividad/{id}', [LogActividadController::class, 'delete']);
-
-$router->delete('/api/logs-actividad/limpiar/antiguos', [LogActividadController::class, 'limpiarAntiguos']);
-
-$router->delete('/api/logs-actividad/usuario/{id}', [LogActividadController::class, 'limpiarPorUsuario']);
 
 /*
 |--------------------------------------------------------------------------
@@ -294,4 +258,4 @@ $router->put('/api/propiedades/{id}', [PropiedadController::class, 'update']);
 
 $router->delete('/api/propiedades/{id}', [PropiedadController::class, 'delete']);
 
-$router->patch('/api/propiedades/{id}/restaurar', [PropiedadController::class, 'restore']);
+$router->post('/api/propiedades/{id}/restaurar', [PropiedadController::class, 'restore']);
