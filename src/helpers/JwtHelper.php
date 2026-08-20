@@ -20,14 +20,14 @@ class JwtHelper {
         ];
 
         // Usamos las constantes globales para la clave y el algoritmo
-        return JWT::encode($payload, JWT_SECRET, JWT_ALGORITHM);
+        return JWT::encode($payload, JWT_KEY, JWT_ALGORITHM);
     }
 
     public static function verificarToken($token) {
 
         try {
             // Usamos las constantes globales para decodificar
-            return JWT::decode($token, new Key(JWT_SECRET, JWT_ALGORITHM));
+            return JWT::decode($token, new Key(JWT_KEY, JWT_ALGORITHM));
         } catch (\Exception $e) {
             return null;
         }
