@@ -126,7 +126,7 @@ $router->post('/api/roles/{id}/restaurar', [RolController::class, 'restore']);
 
 $router->get('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'show']);
 
-$router->get('/api/propiedad-imagenes', [PropiedadImagenController::class, 'indexApi']);
+$router->get('/api/propiedad-imagenes', [PropiedadImagenController::class, 'index']);
 
 $router->post('/api/propiedad-imagenes', [PropiedadImagenController::class, 'store']);
 
