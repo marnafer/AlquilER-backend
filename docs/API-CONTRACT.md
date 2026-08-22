@@ -49,10 +49,10 @@
 | `GET /api/usuarios` | Lista usuarios. | Sí - Admin | • Solo admin; • no expone password |
 | `GET /api/usuarios/{id}` | Consulta un usuario. | Sí - Usr/Admin | • Usuario solo ve su perfil; • admin ve todos |
 | `GET /api/usuarios/me` | Devuelve usuario actual. | Sí - Usuario | • Identifica por JWT |
-`PUT /api/usuarios/{id}` | Actualiza datos. | Sí - Usr/Admin | • Admite actualización parcial o total; • no permite cambiar `rol_id`; • email único |
+| `PUT /api/usuarios/{id}` | Actualiza datos. | Sí - Usr/Admin | • Admite actualización parcial o total; • no permite cambiar `rol_id`; • email único |
 | `DELETE /api/usuarios/{id}` | Elimina usuario. | Sí - Usr/Admin | • SoftDeletes; • propio o admin |
 | `POST /api/usuarios/{id}/restaurar` | Restaura usuario. | Sí - Admin | • SoftDeletes; • solo admin |
-**Actualización de usuarios:** El endpoint `PUT /api/usuarios/{id}` admite tanto actualizaciones parciales como totales. Los campos omitidos conservan su valor actual. El campo `rol_id` no puede modificarse mediante este endpoint.
+**Actualización de usuarios:** El endpoint `PUT /api/usuarios/{id}` admite actualizaciones parciales y totales. Los campos omitidos conservan su valor actual. El campo `rol_id` no puede modificarse.
 ---
 
 ## 6. Propiedades
