@@ -1,205 +1,149 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Models\Usuario;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\ForbiddenException;
 use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
-use App\Sanitizers\UsuarioSanitizer;
-use App\Validators\UsuarioValidator;
-use App\Exceptions\ValidationException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\UnauthorizedException;
-use App\Exceptions\BadRequestException;
-
+use App\Repositories\UsuarioRepository;
+use App\Services\UsuarioService;
 
 class UsuarioController
 {
+    private UsuarioService $service;
+
+    public function __construct()
+    {
+        $this->service = new UsuarioService(
+            new UsuarioRepository()
+        );
+    }
+
     /**
-     * SOLO ADMIN
      * GET /api/usuarios
      */
-    public function listarUsuariosApi()
+    public function index(): void
     {
         $user = AutenticadorMiddleware::verificar();
 
-        if ($user->rol_id != 3) {
-            if ($user->rol_id != 3) {
-                throw new UnauthorizedException('Solo administradores');
-            }
+        if ((int) $user->rol_id !== 2) {
+            throw new ForbiddenException('Solo administradores');
         }
 
-        try {
-            $usuarios = Usuario::all();
-
-            Response::success([
-                'items' => $usuarios,
-                'total' => $usuarios->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->listar()
+        );
     }
 
     /**
      * GET /api/usuarios/{id}
      */
-    public function mostrar($id)
+    public function show($id): void
     {
         $user = AutenticadorMiddleware::verificar();
+        $id = (int) $id;
 
-        $idSan = (int)$id;
-
-        if ($user->rol_id != 3 && $user->sub != $idSan) {
-            throw new UnauthorizedException('No autorizado');
+        if (
+            (int) $user->rol_id !== 2
+            && (int) $user->sub !== $id
+        ) {
+            throw new ForbiddenException('No autorizado');
         }
 
-        try {
-            $usuario = Usuario::find($idSan);
-
-            if (!$usuario) {
-                throw new NotFoundException('Usuario no encontrado');
-            }
-
-            Response::success($usuario);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->obtener($id)
+        );
     }
 
     /**
-     * DELETE /api/usuarios/{id}
+     * GET /api/usuarios/me
      */
-    public function eliminar($id)
+    public function profile(): void
     {
         $user = AutenticadorMiddleware::verificar();
 
-        if ($user->rol_id != 3) {
-            throw new UnauthorizedException('Solo administradores');
-        }
-
-        try {
-
-            $usuario = Usuario::find((int)$id);
-
-            if (!$usuario) {
-                throw new NotFoundException('Usuario no encontrado');
-            }
-
-            $usuario->delete();
-
-            Response::success([], 200, 'Usuario eliminado');
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->obtener((int) $user->sub)
+        );
     }
 
     /**
      * PUT /api/usuarios/{id}
      */
-    public function actualizar($id)
+    public function update($id): void
     {
         $user = AutenticadorMiddleware::verificar();
+        $id = (int) $id;
 
-        $id = (int)$id;
-
-        if ($user->rol_id != 3 && $user->sub != $id) {
-            if ($user->rol_id != 3 && $user->sub != $id) {
-                throw new UnauthorizedException('No autorizado');
-            }
+        if (
+            (int) $user->rol_id !== 2
+            && (int) $user->sub !== $id
+        ) {
+            throw new ForbiddenException('No autorizado');
         }
 
-        $raw = json_decode(file_get_contents('php://input'), true);
+        $rawData = json_decode(
+            file_get_contents('php://input'),
+            true
+        );
 
-        if (!is_array($raw)) {
+        if (!is_array($rawData)) {
             throw new BadRequestException('Datos inválidos');
         }
 
-        $data = UsuarioSanitizer::sanitizarUsuario($raw);
-        $validacion = UsuarioValidator::validarActualizarUsuario($data);
+        $this->service->actualizar($id, $rawData);
 
-        if (!$validacion['success']) {
-            if (!$validacion['success']) {
-                throw new ValidationException($validacion['errors']);
-            }
-        }
-
-        try {
-            $usuario = Usuario::find($id);
-
-            if (!$usuario) {
-                if (!$usuario) {
-                    throw new NotFoundException('Usuario no encontrado');
-                }
-            }
-
-            if (!empty($data['contrasena'])) {
-                $data['contrasena'] = password_hash($data['contrasena'], PASSWORD_DEFAULT);
-            }
-
-            $usuario->update($data);
-
-            Response::success([], 200, 'Usuario actualizado correctamente');
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            [],
+            200,
+            'Usuario actualizado correctamente'
+        );
     }
 
-    public function restaurar($id)
+    /**
+     * DELETE /api/usuarios/{id}
+     */
+    public function delete($id): void
     {
-        $user = AutenticadorMiddleware::soloAdmin();
+        $user = AutenticadorMiddleware::verificar();
+        $id = (int) $id;
 
-        try {
-
-            $usuario = Usuario::onlyTrashed()->find($id);
-
-            if (!$usuario) {
-                throw new NotFoundException('Usuario eliminado no encontrado');
-            }
-
-            $usuario->restore();
-
-            Response::success(
-                [],
-                200,
-                'Usuario restaurado correctamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+        if (
+            (int) $user->rol_id !== 2
+            && (int) $user->sub !== $id
+        ) {
+            throw new ForbiddenException('No autorizado');
         }
+
+        $this->service->eliminar($id);
+
+        Response::success(
+            [],
+            200,
+            'Usuario eliminado'
+        );
     }
 
-    public function perfil()
+    /**
+     * POST /api/usuarios/{id}/restaurar
+     */
+    public function restore($id): void
     {
         $user = AutenticadorMiddleware::verificar();
 
-        $usuario = Usuario::find($user->sub);
-
-        if (!$usuario) {
-            throw new NotFoundException('Usuario no encontrado');
+        if ((int) $user->rol_id !== 2) {
+            throw new ForbiddenException('Solo administradores');
         }
 
-        $rolNombre = match ((int)$usuario->rol_id) {
-            3 => 'Administrador',
-            2 => 'Propietario',
-            1 => 'Usuario',
-            default => 'Desconocido'
-        };
+        $this->service->restaurar((int) $id);
 
-        Response::success([
-            'id' => $usuario->id,
-            'nombre' => $usuario->nombre,
-            'apellido' => $usuario->apellido,
-            'email' => $usuario->email, 
-            'telefono' => $usuario->telefono,
-            'domicilio' => $usuario->domicilio,
-            'rol_id' => $usuario->rol_id,
-            'rol' => $rolNombre
-        ]);
+        Response::success(
+            [],
+            200,
+            'Usuario restaurado correctamente'
+        );
     }
 }

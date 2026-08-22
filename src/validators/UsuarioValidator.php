@@ -193,4 +193,33 @@ class UsuarioValidator
             'errors' => null
         ];
     }
+
+    public static function validarActualizacionParcial(array $data): array
+    {
+        $errores = [];
+
+        $validaciones = [
+            'nombre' => 'validarNombreUsuario',
+            'apellido' => 'validarApellidoUsuario',
+            'email' => 'validarEmailUsuario',
+            'telefono' => 'validarTelefonoUsuario',
+            'domicilio' => 'validarDomicilioUsuario',
+            'contrasena' => 'validarContrasenaUsuario',
+        ];
+
+        foreach ($validaciones as $campo => $metodo) {
+            if (array_key_exists($campo, $data)) {
+                $resultado = self::$metodo($data[$campo]);
+
+                if (!$resultado['success']) {
+                    $errores[$campo] = $resultado['error'];
+                }
+            }
+        }
+
+        return [
+            'success' => empty($errores),
+            'errors' => $errores,
+        ];
+    }
 }

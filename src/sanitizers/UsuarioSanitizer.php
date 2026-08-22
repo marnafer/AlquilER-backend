@@ -80,4 +80,30 @@ class UsuarioSanitizer
     public static function sanitizarSoloContrasena($contrasena) {
         return $contrasena ?: null;
     }
+
+    public static function sanitizarActualizacion(array $data): array
+    {
+        $resultado = [];
+
+        $campos = [
+            'nombre' => 'sanitizarNombre',
+            'apellido' => 'sanitizarApellido',
+            'email' => 'sanitizarEmail',
+            'telefono' => 'sanitizarTelefono',
+            'domicilio' => 'sanitizarDomicilio',
+            'rol_id' => 'sanitizarRolId',
+        ];
+
+        foreach ($campos as $campo => $metodo) {
+            if (array_key_exists($campo, $data)) {
+                $resultado[$campo] = self::$metodo($data[$campo]);
+            }
+        }
+
+        if (array_key_exists('contrasena', $data)) {
+            $resultado['contrasena'] = $data['contrasena'];
+        }
+
+        return $resultado;
+    }
 }

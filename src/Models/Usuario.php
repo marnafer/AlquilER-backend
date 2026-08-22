@@ -19,8 +19,7 @@ class Usuario extends Model
         'email',
         'telefono',
         'domicilio',
-        'contrasena',
-        'rol_id'
+        'contrasena'
     ];
 
     protected $hidden = ['contrasena', 'deleted_at'];
@@ -52,47 +51,4 @@ class Usuario extends Model
         return $this->hasMany(Reserva::class, 'usuario_id');
     }
 
-    public function obtenerTodos()
-    {
-        return self::select('usuarios.*', 'roles.nombre as rol_nombre')
-            ->join('roles', 'usuarios.rol_id', '=', 'roles.id')
-            ->whereNull('usuarios.deleted_at')
-            ->orderBy('usuarios.id', 'desc')
-            ->get();
-    }
-
-    public function obtenerPorId($id)
-    {
-        return self::select('usuarios.*', 'roles.nombre as rol_nombre')
-            ->join('roles', 'usuarios.rol_id', '=', 'roles.id')
-            ->where('usuarios.id', $id)
-            ->whereNull('usuarios.deleted_at')
-            ->first();
-    }
-
-    public function existePorEmail($email, $excluirId = null)
-    {
-        $query = self::where('email', $email)->whereNull('deleted_at');
-
-        if ($excluirId) {
-            $query->where('id', '!=', $excluirId);
-        }
-
-        return $query->exists();
-    }
-
-    public function verificarCredenciales($email, $contrasena)
-    {
-        $usuario = self::where('email', $email)
-            ->whereNull('deleted_at')
-            ->first();
-
-        if (!$usuario) return false;
-
-        if (!password_verify($contrasena, $usuario->contrasena)) {
-            return false;
-        }
-
-        return $usuario;
-    }
 }
