@@ -6,6 +6,8 @@ use App\Models\PropiedadImagen;
 use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\PropiedadImagenValidator;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
 
 class PropiedadImagenController
 {
@@ -39,9 +41,8 @@ class PropiedadImagenController
                 'total' => $imagenes->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -53,7 +54,7 @@ class PropiedadImagenController
         $idSan = PropiedadImagenSanitizer::sanitizarIdPropiedadImagen($id);
 
         if ($idSan === null) {
-            Response::validationError([
+            throw new ValidationException([
                 'id' => 'El ID de imagen es requerido, debe ser un entero positivo.'
             ]);
             return;
@@ -64,7 +65,7 @@ class PropiedadImagenController
             $img = PropiedadImagen::find($idSan);
 
             if (!$img) {
-                Response::notFound('Imagen no encontrada');
+                throw new NotFoundException('Imagen no encontrada');
                 return;
             }
 
@@ -72,8 +73,8 @@ class PropiedadImagenController
                 'data' => $img
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -90,7 +91,7 @@ class PropiedadImagenController
         $validacion = PropiedadImagenValidator::validarCrearPropiedadImagen($san, $file);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         try {
@@ -128,8 +129,8 @@ class PropiedadImagenController
 
             Response::created($registro->toArray(), 'Imagen creada correctamente');
 
-        } catch (\Exception $e) {
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -142,7 +143,7 @@ class PropiedadImagenController
         $imagen = PropiedadImagen::find($id);
 
         if (!$imagen) {
-            Response::notFound('Imagen no encontrada');
+            throw new NotFoundException('Imagen no encontrada');
             return;
         }
 
@@ -170,7 +171,7 @@ class PropiedadImagenController
         $idSan = PropiedadImagenSanitizer::sanitizarIdPropiedadImagen($id);
 
         if ($idSan === null) {
-            Response::validationError([
+            throw new ValidationException([
                 'id' => 'El ID de imagen es requerido'
             ]);
             return;
@@ -181,7 +182,7 @@ class PropiedadImagenController
             $img = PropiedadImagen::find($idSan);
 
             if (!$img) {
-                Response::notFound('Imagen no encontrada');
+                throw new NotFoundException('Imagen no encontrada');
                 return;
             }
 
@@ -196,8 +197,8 @@ class PropiedadImagenController
                 'message' => 'Imagen eliminada correctamente'
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

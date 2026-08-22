@@ -6,6 +6,9 @@ use App\Sanitizers\CategoriaSanitizer;
 use App\Validators\CategoriaValidator;
 use App\Models\Categoria;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class CategoriaController
 {
@@ -20,10 +23,8 @@ class CategoriaController
                 'total' => $categorias->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -34,7 +35,7 @@ class CategoriaController
         $validacion = CategoriaValidator::validarIdCategoria($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError([
+            throw new ValidationException([
                 'id' => [$validacion['error']]
             ]);
         }
@@ -44,15 +45,13 @@ class CategoriaController
             $categoria = Categoria::find($idSan);
 
             if (!$categoria) {
-                Response::notFound('Categoría no encontrada');
+                throw new NotFoundException('Categoría no encontrada');
             }
 
             Response::success($categoria);
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -65,13 +64,13 @@ class CategoriaController
         $validacion = CategoriaValidator::validarCategoria($san);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         try {
 
             if (Categoria::where('nombre', $san['nombre'])->exists()) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe una categoría con este nombre'
                 );
             }
@@ -85,10 +84,8 @@ class CategoriaController
                 'Categoría creada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -106,7 +103,7 @@ class CategoriaController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -116,7 +113,7 @@ class CategoriaController
             $categoria = Categoria::find($san['id']);
 
             if (!$categoria) {
-                Response::notFound('Categoría no encontrada');
+                throw new NotFoundException('Categoría no encontrada');
             }
 
             if (
@@ -124,7 +121,7 @@ class CategoriaController
                     ->where('id', '!=', $san['id'])
                     ->exists()
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe otra categoría con este nombre'
                 );
             }
@@ -139,10 +136,8 @@ class CategoriaController
                 'Categoría actualizada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -153,7 +148,7 @@ class CategoriaController
         $validacion = CategoriaValidator::validarIdCategoria($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError([
+            throw new ValidationException([
                 'id' => [$validacion['error']]
             ]);
         }
@@ -163,11 +158,11 @@ class CategoriaController
             $categoria = Categoria::find($idSan);
 
             if (!$categoria) {
-                Response::notFound('Categoría no encontrada');
+                throw new NotFoundException('Categoría no encontrada');
             }
 
             if ($categoria->propiedades()->exists()) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'No se puede eliminar porque tiene propiedades asociadas'
                 );
             }
@@ -180,10 +175,8 @@ class CategoriaController
                 'Categoría eliminada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }   

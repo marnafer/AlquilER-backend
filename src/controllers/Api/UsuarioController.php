@@ -3,11 +3,14 @@
 namespace App\Controllers\Api;
 
 use App\Models\Usuario;
-use App\Helpers\JwtHelper;
 use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\UnauthorizedException;
+use App\Exceptions\BadRequestException;
 
 
 class UsuarioController
@@ -22,7 +25,7 @@ class UsuarioController
 
         if ($user->rol_id != 3) {
             if ($user->rol_id != 3) {
-                Response::unauthorized('Solo administradores');
+                throw new UnauthorizedException('Solo administradores');
             }
         }
 
@@ -34,8 +37,8 @@ class UsuarioController
                 'total' => $usuarios->count()
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -49,20 +52,20 @@ class UsuarioController
         $idSan = (int)$id;
 
         if ($user->rol_id != 3 && $user->sub != $idSan) {
-            Response::unauthorized('No autorizado');
+            throw new UnauthorizedException('No autorizado');
         }
 
         try {
             $usuario = Usuario::find($idSan);
 
             if (!$usuario) {
-                Response::notFound('Usuario no encontrado');
+                throw new NotFoundException('Usuario no encontrado');
             }
 
             Response::success($usuario);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -74,7 +77,7 @@ class UsuarioController
         $user = AutenticadorMiddleware::verificar();
 
         if ($user->rol_id != 3) {
-            Response::unauthorized('Solo administradores');
+            throw new UnauthorizedException('Solo administradores');
         }
 
         try {
@@ -82,17 +85,15 @@ class UsuarioController
             $usuario = Usuario::find((int)$id);
 
             if (!$usuario) {
-                Response::notFound('Usuario no encontrado');
+                throw new NotFoundException('Usuario no encontrado');
             }
 
             $usuario->delete();
 
             Response::success([], 200, 'Usuario eliminado');
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -107,14 +108,14 @@ class UsuarioController
 
         if ($user->rol_id != 3 && $user->sub != $id) {
             if ($user->rol_id != 3 && $user->sub != $id) {
-                Response::unauthorized('No autorizado');
+                throw new UnauthorizedException('No autorizado');
             }
         }
 
         $raw = json_decode(file_get_contents('php://input'), true);
 
         if (!is_array($raw)) {
-            Response::badRequest('Datos inválidos');
+            throw new BadRequestException('Datos inválidos');
         }
 
         $data = UsuarioSanitizer::sanitizarUsuario($raw);
@@ -122,7 +123,7 @@ class UsuarioController
 
         if (!$validacion['success']) {
             if (!$validacion['success']) {
-                Response::validationError($validacion['errors']);
+                throw new ValidationException($validacion['errors']);
             }
         }
 
@@ -131,7 +132,7 @@ class UsuarioController
 
             if (!$usuario) {
                 if (!$usuario) {
-                    Response::notFound('Usuario no encontrado');
+                    throw new NotFoundException('Usuario no encontrado');
                 }
             }
 
@@ -143,8 +144,8 @@ class UsuarioController
 
             Response::success([], 200, 'Usuario actualizado correctamente');
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -157,7 +158,7 @@ class UsuarioController
             $usuario = Usuario::onlyTrashed()->find($id);
 
             if (!$usuario) {
-                Response::notFound('Usuario eliminado no encontrado');
+                throw new NotFoundException('Usuario eliminado no encontrado');
             }
 
             $usuario->restore();
@@ -168,10 +169,8 @@ class UsuarioController
                 'Usuario restaurado correctamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -182,7 +181,7 @@ class UsuarioController
         $usuario = Usuario::find($user->sub);
 
         if (!$usuario) {
-            Response::notFound('Usuario no encontrado');
+            throw new NotFoundException('Usuario no encontrado');
         }
 
         $rolNombre = match ((int)$usuario->rol_id) {

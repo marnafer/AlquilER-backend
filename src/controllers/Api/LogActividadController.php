@@ -8,6 +8,10 @@ use App\Sanitizers\LogActividadSanitizer;
 use App\Validators\LogActividadValidator;
 use App\Helpers\Response;
 use Exception;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
+
 
 class LogActividadController
 {
@@ -24,8 +28,8 @@ class LogActividadController
                 200,
                 'Lista de logs obtenida correctamente'
             );
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -36,19 +40,19 @@ class LogActividadController
     {
         $val = LogActividadValidator::validarSoloId($id);
         if (!$val['success']) {
-            Response::validationError($val['errors']);
+            throw new ValidationException($val['errors']);
         }
 
         try {
             $log = LogActividad::getById($id);
 
             if (!$log) {
-                Response::notFound('Log no encontrado');
+                throw new NotFoundException('Log no encontrado');
             }
 
             Response::success($log);
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -58,7 +62,7 @@ class LogActividadController
     public function getByUsuario($usuarioId)
     {
         if (!is_numeric($usuarioId) || $usuarioId <= 0) {
-            Response::validationError([
+            throw new ValidationException([
                 'usuario_id' => 'Debe ser un número positivo'
             ]);
         }   
@@ -68,7 +72,7 @@ class LogActividadController
             $usuario = Usuario::find($usuarioId);
 
             if (!$usuario) {
-                Response::notFound('Usuario no encontrado');
+                throw new NotFoundException('Usuario no encontrado');
             }
 
             // 2. obtener logs
@@ -80,8 +84,8 @@ class LogActividadController
                 'usuario_id' => (int)$usuarioId
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -94,11 +98,11 @@ class LogActividadController
         $hasta = $_GET['hasta'] ?? null;
 
         if (!$desde || !$hasta) {
-            Response::badRequest('Las fechas desde y hasta son requeridas');
+            throw new BadRequestException('Las fechas desde y hasta son requeridas');
         }
 
         if (!strtotime($desde) || !strtotime($hasta)) {
-            Response::validationError([
+            throw new ValidationException([
                 'fecha' => 'Formato de fecha inválido (YYYY-MM-DD)'
             ]);
         }
@@ -112,8 +116,8 @@ class LogActividadController
                 'total' => count($logs),
                 'items' => $logs
             ]);
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -125,7 +129,7 @@ class LogActividadController
         $q = $_GET['q'] ?? null;
 
         if (!$q) {
-            return Response::badRequest('El término de búsqueda es requerido');
+            return throw new BadRequestException('El término de búsqueda es requerido');
         }
 
         $q = trim($q);
@@ -140,8 +144,8 @@ class LogActividadController
                 'busqueda' => $q
             ]);
 
-        } catch (Exception $e) {
-            return Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -154,8 +158,8 @@ class LogActividadController
             $data = LogActividad::getEstadisticas();
 
             Response::success($data);
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -167,7 +171,7 @@ class LogActividadController
         $data = json_decode(file_get_contents('php://input'), true);
 
         if (!is_array($data)) {
-            Response::badRequest('JSON inválido');
+            throw new BadRequestException('JSON inválido');
         }
 
         $ipOriginal = $data['ip_address'] ?? null;
@@ -177,7 +181,7 @@ class LogActividadController
         $validacion = LogActividadValidator::validarCrear($san);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         if (
@@ -185,13 +189,13 @@ class LogActividadController
             $ipOriginal !== '' &&
             !filter_var($ipOriginal, FILTER_VALIDATE_IP)
         ) {
-            Response::validationError([
+            throw new ValidationException([
                 'ip_address' => 'La dirección IP no es válida'
             ]);
         }
 
         if (!Usuario::find($san['usuario_id'])) {
-            Response::validationError([
+            throw new ValidationException([
                 'usuario_id' => 'El usuario indicado no existe'
             ]);
         }
@@ -211,10 +215,8 @@ class LogActividadController
                 'Log registrado correctamente'
             );
 
-        } catch (Exception $e) {
-
-            Response::serverError($e->getMessage());
-
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -228,7 +230,7 @@ class LogActividadController
         $validacion = LogActividadValidator::validarDias($dias);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         $dias = (int)$dias;
@@ -243,8 +245,8 @@ class LogActividadController
                 'eliminados' => $eliminados
             ], 200, "Se eliminaron {$eliminados} logs");
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -256,13 +258,13 @@ class LogActividadController
         $validacion = LogActividadValidator::validarSoloId($usuarioId);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         $usuario = Usuario::find((int)$usuarioId);
 
         if (!$usuario) {
-            Response::notFound('Usuario no encontrado');
+            throw new NotFoundException('Usuario no encontrado');
         }
 
         try {
@@ -273,8 +275,8 @@ class LogActividadController
                 'eliminados' => $eliminados
             ], 200, 'Logs del usuario eliminados');
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -285,21 +287,21 @@ class LogActividadController
     {
         $val = LogActividadValidator::validarSoloId($id);
         if (!$val['success']) {
-            Response::validationError($val['errors']);
+            throw new ValidationException($val['errors']);
         }
 
         try {
             $log = LogActividad::find($id);
 
             if (!$log) {
-                Response::notFound('Log no encontrado');
+                throw new NotFoundException('Log no encontrado');
             }
 
             $log->delete();
 
             Response::success([], 200, 'Log eliminado correctamente');
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

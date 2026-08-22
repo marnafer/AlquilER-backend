@@ -3,7 +3,8 @@
 namespace App\Middlewares;
 
 use App\Helpers\JwtHelper;
-use App\Helpers\Response;
+use App\Exceptions\UnauthorizedException;
+use App\Exceptions\ForbiddenException;
 
 class AutenticadorMiddleware
 {
@@ -15,28 +16,28 @@ class AutenticadorMiddleware
 
         // 1. Verificar que exista
         if (!$authHeader) {
-            Response::unauthorized('Token requerido');
+            throw new UnauthorizedException('Token requerido');
         }
 
         // 2. Verificar formato Bearer
         $authHeader = trim($authHeader);
 
         if (!str_starts_with($authHeader, 'Bearer ')) {
-            Response::unauthorized('Formato de token inválido');
+            throw new UnauthorizedException('Formato de token inválido');
         }
 
         // 3. Extraer token
         $token = trim(substr($authHeader, 7));
 
         if ($token === '') {
-            Response::unauthorized('Token requerido');
+            throw new UnauthorizedException('Token requerido');
         }
 
         // 4. Validar token
         $user = JwtHelper::verificarToken($token);
 
         if (!$user) {
-            Response::unauthorized('Token inválido o expirado');
+            throw new UnauthorizedException('Token inválido o expirado');
         }
 
         return $user;
@@ -50,7 +51,7 @@ class AutenticadorMiddleware
         $user = self::verificar();
 
         if ((int) $user->rol_id !== 2) {
-            Response::forbidden('Solo administradores');
+            throw new ForbiddenException('Solo administradores');
         }
 
         return $user;

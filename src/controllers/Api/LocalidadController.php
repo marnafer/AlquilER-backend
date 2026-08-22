@@ -3,10 +3,12 @@
 namespace App\Controllers\Api;
 
 use App\Models\Localidad;
-use App\Models\Provincia;
 use App\Sanitizers\LocalidadSanitizer;
 use App\Validators\LocalidadValidator;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class LocalidadController
 {
@@ -24,9 +26,8 @@ class LocalidadController
                 'total' => $localidades->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -40,7 +41,7 @@ class LocalidadController
         $validacion = LocalidadValidator::validarSoloIdLocalidad($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -50,16 +51,15 @@ class LocalidadController
             $localidad = Localidad::find($idSan);
 
             if (!$localidad) {
-                Response::notFound('Localidad no encontrada');
+                throw new NotFoundException('Localidad no encontrada');
             }
 
             Response::success([
                 'data' => $localidad
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -71,7 +71,7 @@ class LocalidadController
         $raw = json_decode(file_get_contents('php://input'), true);
 
         if (!is_array($raw)) {
-            Response::badRequest('JSON inválido');
+            throw new BadRequestException('JSON inválido');
         }
 
         $san = LocalidadSanitizer::sanitizarLocalidad($raw);
@@ -79,7 +79,7 @@ class LocalidadController
         $validacion = LocalidadValidator::validarCrearLocalidad($san);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -90,7 +90,7 @@ class LocalidadController
                 Localidad::where('nombre', $san['nombre'])
                     ->exists()
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe una localidad con ese nombre'
                 );
             }
@@ -102,9 +102,8 @@ class LocalidadController
                 'Localidad creada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -116,7 +115,7 @@ class LocalidadController
         $raw = json_decode(file_get_contents('php://input'), true);
 
         if (!is_array($raw)) {
-            Response::badRequest('JSON inválido');
+            throw new BadRequestException('JSON inválido');
         }
 
         $raw['id'] = $id;
@@ -126,7 +125,7 @@ class LocalidadController
         $validacion = LocalidadValidator::validarActualizarLocalidad($san);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -136,7 +135,7 @@ class LocalidadController
             $localidad = Localidad::find($san['id']);
 
         if (!$localidad) {
-            Response::notFound(
+            throw new NotFoundException(
                 'Localidad no encontrada'
             );
         }
@@ -146,7 +145,7 @@ class LocalidadController
                 ->where('id', '!=', $san['id'])
                 ->exists()
         ) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'Ya existe otra localidad con ese nombre'
             );
         }
@@ -161,9 +160,8 @@ class LocalidadController
             'data' => $localidad->fresh()
         ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -177,7 +175,7 @@ class LocalidadController
         $validacion = LocalidadValidator::validarSoloIdLocalidad($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -187,7 +185,7 @@ class LocalidadController
             $localidad = Localidad::find($idSan);
 
             if (!$localidad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Localidad no encontrada'
                 );
             }
@@ -199,9 +197,8 @@ class LocalidadController
                 'message' => 'Localidad eliminada exitosamente'
             ], 200);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

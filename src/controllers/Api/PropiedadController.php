@@ -7,6 +7,10 @@ use App\Helpers\Response;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\BadRequestException;
 
 class PropiedadController
 {
@@ -24,9 +28,8 @@ class PropiedadController
                 'total' => $propiedades->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -42,7 +45,7 @@ class PropiedadController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -52,16 +55,15 @@ class PropiedadController
             $propiedad = Propiedad::find($idSan);
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
 
             Response::success($propiedad);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -78,7 +80,7 @@ class PropiedadController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -92,7 +94,7 @@ class PropiedadController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -110,9 +112,8 @@ class PropiedadController
                 'Propiedad creada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -129,7 +130,7 @@ class PropiedadController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -145,7 +146,7 @@ class PropiedadController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -157,7 +158,7 @@ class PropiedadController
             );
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -166,7 +167,7 @@ class PropiedadController
                 (int) $user->rol_id !== 2 &&
                 (int) $propiedad->usuario_id !== (int) $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No tienes permiso para modificar esta propiedad'
                 );
             }
@@ -188,9 +189,8 @@ class PropiedadController
 
             Response::success($propiedad->fresh());
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -210,7 +210,7 @@ class PropiedadController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -222,7 +222,7 @@ class PropiedadController
             );
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -231,7 +231,7 @@ class PropiedadController
                 (int) $user->rol_id !== 2 &&
                 (int) $propiedad->usuario_id !== (int) $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No tienes permiso para eliminar esta propiedad'
                 );
             }
@@ -244,9 +244,8 @@ class PropiedadController
                 'Propiedad eliminada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -266,7 +265,7 @@ class PropiedadController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -277,7 +276,7 @@ class PropiedadController
                 ->find($idSan);
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -286,13 +285,13 @@ class PropiedadController
                 (int) $user->rol_id !== 2 &&
                 (int) $propiedad->usuario_id !== (int) $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No tienes permiso para restaurar esta propiedad'
                 );
             }
 
             if ($propiedad->deleted_at === null) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'La propiedad no está eliminada'
                 );
             }
@@ -305,9 +304,8 @@ class PropiedadController
                 'Propiedad restaurada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

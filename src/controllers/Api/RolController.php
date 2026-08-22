@@ -6,6 +6,9 @@ use App\Models\Rol;
 use App\Sanitizers\RolSanitizer;
 use App\Validators\RolValidator;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class RolController
 {
@@ -23,9 +26,8 @@ class RolController
                 'total' => $roles->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -43,9 +45,8 @@ class RolController
                 'total' => $roles->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -59,7 +60,7 @@ class RolController
         $validacion = RolValidator::validarSoloIdRol($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -69,7 +70,7 @@ class RolController
             $rol = Rol::find($idSan);
 
             if (!$rol) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Rol no encontrado'
                 );
             }
@@ -78,9 +79,8 @@ class RolController
                 'data' => $rol
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -95,7 +95,7 @@ class RolController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -105,7 +105,7 @@ class RolController
         $validacion = RolValidator::validarCrearRol($san);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -113,7 +113,7 @@ class RolController
         try {
 
             if (Rol::existsByNombre($san['nombre'])) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe un rol con ese nombre'
                 );
             }
@@ -125,9 +125,8 @@ class RolController
                 'Rol creado exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -142,7 +141,7 @@ class RolController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -154,7 +153,7 @@ class RolController
         $validacion = RolValidator::validarActualizarRol($san);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -164,7 +163,7 @@ class RolController
             $rol = Rol::find($san['id']);
 
             if (!$rol) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Rol no encontrado'
                 );
             }
@@ -173,7 +172,7 @@ class RolController
                 $san['nombre'],
                 $san['id']
             )) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe otro rol con ese nombre'
                 );
             }
@@ -186,9 +185,8 @@ class RolController
                 'data' => $rol->fresh()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -202,7 +200,7 @@ class RolController
         $validacion = RolValidator::validarSoloIdRol($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -212,13 +210,13 @@ class RolController
             $rol = Rol::find($idSan);
 
             if (!$rol) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Rol no encontrado'
                 );
             }
 
             if ($rol->hasUsuarios()) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'No se puede eliminar el rol porque tiene usuarios asociados'
                 );
             }
@@ -229,9 +227,8 @@ class RolController
                 'message' => 'Rol eliminado exitosamente'
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

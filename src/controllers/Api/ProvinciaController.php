@@ -6,6 +6,9 @@ use App\Models\Provincia;
 use App\Validators\ProvinciaValidator;
 use App\Sanitizers\ProvinciaSanitizer;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class ProvinciaController
 {
@@ -23,9 +26,8 @@ class ProvinciaController
                 'total' => $provincias->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -43,9 +45,8 @@ class ProvinciaController
                 'total' => $provincias->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -59,7 +60,7 @@ class ProvinciaController
         $validacion = ProvinciaValidator::validarSoloIdProvincia($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -69,14 +70,13 @@ class ProvinciaController
             $provincia = Provincia::find($idSan);
 
             if (!$provincia) {
-                Response::notFound('Provincia no encontrada');
+                throw new NotFoundException('Provincia no encontrada');
             }
 
             Response::success($provincia);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -88,7 +88,7 @@ class ProvinciaController
         $raw = json_decode(file_get_contents('php://input'), true);
 
         if (!is_array($raw)) {
-            Response::badRequest('JSON inválido');
+            throw new BadRequestException('JSON inválido');
         }
 
         $san = ProvinciaSanitizer::sanitizarProvincia($raw);
@@ -96,7 +96,7 @@ class ProvinciaController
         $validacion = ProvinciaValidator::validarCrearProvincia($san);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -104,7 +104,7 @@ class ProvinciaController
         try {
 
             if (Provincia::where('nombre', $san['nombre'])->exists()) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe una provincia con este nombre'
                 );
             }
@@ -116,11 +116,8 @@ class ProvinciaController
                 'Provincia creada exitosamente'
             );
 
-        } catch (\Exception $e) {
-            Response::json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -132,7 +129,7 @@ class ProvinciaController
         $raw = json_decode(file_get_contents('php://input'), true);
 
         if (!is_array($raw)) {
-            Response::badRequest('JSON inválido');
+            throw new BadRequestException('JSON inválido');
         }
 
         $raw['id'] = $id;
@@ -142,7 +139,7 @@ class ProvinciaController
         $validacion = ProvinciaValidator::validarActualizarProvincia($san);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -152,7 +149,7 @@ class ProvinciaController
             $provincia = Provincia::find($san['id']);
 
             if (!$provincia) {
-                Response::notFound('Provincia no encontrada');
+                throw new NotFoundException('Provincia no encontrada');
             }
 
             if (
@@ -160,7 +157,7 @@ class ProvinciaController
                     ->where('id', '!=', $san['id'])
                     ->exists()
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe otra provincia con este nombre'
                 );
             }
@@ -173,9 +170,8 @@ class ProvinciaController
                 'Provincia actualizada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -189,7 +185,7 @@ class ProvinciaController
         $validacion = ProvinciaValidator::validarSoloIdProvincia($idSan);
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -199,11 +195,11 @@ class ProvinciaController
             $provincia = Provincia::find($idSan);
 
             if (!$provincia) {
-                Response::notFound('Provincia no encontrada');
+                throw new NotFoundException('Provincia no encontrada');
             }
 
             if ($provincia->localidades()->exists()) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'No se puede eliminar la provincia porque tiene localidades asociadas'
                 );
             }
@@ -216,9 +212,8 @@ class ProvinciaController
                 'Provincia eliminada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

@@ -8,6 +8,10 @@ use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Sanitizers\ReservaSanitizer;
 use App\Validators\ReservaValidator;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\BadRequestException;
 
 class ReservaController
 {
@@ -28,8 +32,8 @@ class ReservaController
                 'total' => $reservas->count()
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -45,7 +49,7 @@ class ReservaController
             $validacion = ReservaValidator::validarSoloId($id);
 
             if (!$validacion['success']) {
-                Response::validationError(
+                throw new ValidationException(
                     $validacion['errors']
                 );
             }
@@ -53,7 +57,7 @@ class ReservaController
             $reserva = Reserva::find($id);
 
             if (!$reserva) {
-                Response::notFound('Reserva no encontrada');
+                throw new NotFoundException('Reserva no encontrada');
             }
 
             $propiedad = Propiedad::find(
@@ -73,13 +77,13 @@ class ReservaController
                 !$esPropietario &&
                 !$esUsuario
             ) {
-                Response::forbidden();
+                throw new ForbiddenException();
             }
 
             Response::success($reserva);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -102,8 +106,8 @@ class ReservaController
                 'total' => $reservas->count()
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -119,7 +123,7 @@ class ReservaController
             $propiedad = Propiedad::find($propiedadId);
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -128,7 +132,7 @@ class ReservaController
                 $user->rol_id != 3 &&
                 $propiedad->usuario_id != $user->sub
             ) {
-                Response::forbidden();
+                throw new ForbiddenException();
             }
 
             $reservas = Reserva::where(
@@ -141,8 +145,8 @@ class ReservaController
                 'total' => $reservas->count()
             ]);
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -159,7 +163,7 @@ class ReservaController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -174,7 +178,7 @@ class ReservaController
             );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -186,7 +190,7 @@ class ReservaController
             );
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -212,8 +216,8 @@ class ReservaController
                 'Reserva creada correctamente'
             );
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -229,7 +233,7 @@ class ReservaController
             $reserva = Reserva::find($id);
 
             if (!$reserva) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Reserva no encontrada'
                 );
             }
@@ -242,13 +246,13 @@ class ReservaController
                 $user->rol_id != 3 &&
                 $propiedad->usuario_id != $user->sub
             ) {
-                Response::forbidden();
+                throw new ForbiddenException();
             }
 
             if (
                 $reserva->estado !== 'pendiente'
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'La reserva no puede aprobarse'
                 );
             }
@@ -262,8 +266,8 @@ class ReservaController
                 'Reserva aprobada'
             );
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -279,7 +283,7 @@ class ReservaController
             $reserva = Reserva::find($id);
 
             if (!$reserva) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Reserva no encontrada'
                 );
             }
@@ -292,13 +296,13 @@ class ReservaController
                 $user->rol_id != 3 &&
                 $propiedad->usuario_id != $user->sub
             ) {
-                Response::forbidden();
+                throw new ForbiddenException();
             }
 
             if (
                 $reserva->estado !== 'pendiente'
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'La reserva no puede rechazarse'
                 );
             }
@@ -312,8 +316,8 @@ class ReservaController
                 'Reserva rechazada'
             );
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -329,7 +333,7 @@ class ReservaController
             $reserva = Reserva::find($id);
 
             if (!$reserva) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Reserva no encontrada'
                 );
             }
@@ -338,7 +342,7 @@ class ReservaController
                 $user->rol_id != 3 &&
                 $reserva->usuario_id != $user->sub
             ) {
-                Response::forbidden();
+                throw new ForbiddenException();
             }
 
             if (
@@ -347,7 +351,7 @@ class ReservaController
                     ['pendiente', 'aprobada']
                 )
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'La reserva no puede cancelarse'
                 );
             }
@@ -361,8 +365,8 @@ class ReservaController
                 'Reserva cancelada'
             );
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -378,7 +382,7 @@ class ReservaController
             $reserva = Reserva::find($id);
 
             if (!$reserva) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Reserva no encontrada'
                 );
             }
@@ -391,13 +395,13 @@ class ReservaController
                 $user->rol_id != 3 &&
                 $propiedad->usuario_id != $user->sub
             ) {
-                Response::forbidden();
+                throw new ForbiddenException();
             }
 
             if (
                 $reserva->estado !== 'aprobada'
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'La reserva no puede finalizarse'
                 );
             }
@@ -411,8 +415,8 @@ class ReservaController
                 'Reserva finalizada'
             );
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -428,7 +432,7 @@ class ReservaController
             $reserva = Reserva::find($id);
 
             if (!$reserva) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Reserva no encontrada'
                 );
             }
@@ -441,8 +445,8 @@ class ReservaController
                 'Reserva eliminada'
             );
 
-        } catch (\Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

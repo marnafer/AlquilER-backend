@@ -7,7 +7,9 @@ use App\Models\Servicio;
 use App\Sanitizers\PropiedadServicioSanitizer;
 use App\Validators\PropiedadServicioValidator;
 use App\Helpers\Response;
-use Exception;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class PropiedadServicioController
 {
@@ -24,8 +26,8 @@ class PropiedadServicioController
                 'total' => $relaciones->count()
             ]);
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -37,7 +39,7 @@ class PropiedadServicioController
         $validacion = PropiedadServicioValidator::validarSoloId($id);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         try {
@@ -45,13 +47,13 @@ class PropiedadServicioController
                 ->find($id);
 
             if (!$relacion) {
-                Response::notFound('Relación no encontrada');
+                throw new NotFoundException('Relación no encontrada');
             }
 
             Response::success($relacion);
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -67,7 +69,7 @@ class PropiedadServicioController
         $val = PropiedadServicioValidator::validarCrear($san);
 
         if (!$val['success']) {
-            Response::validationError($val['errors']);
+            throw new ValidationException($val['errors']);
         }
 
         try {
@@ -77,7 +79,7 @@ class PropiedadServicioController
                     ->where('servicio_id', $san['servicio_id'])
                     ->exists()
             ) {
-                Response::badRequest('Esta propiedad ya tiene ese servicio');
+                throw new BadRequestException('Esta propiedad ya tiene ese servicio');
             }
 
             $relacion = PropiedadServicio::create($san);
@@ -87,8 +89,8 @@ class PropiedadServicioController
                 'Servicio asignado a la propiedad correctamente'
             );
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -100,22 +102,22 @@ class PropiedadServicioController
         $validacion = PropiedadServicioValidator::validarSoloId($id);
 
         if (!$validacion['success']) {
-            Response::validationError($validacion['errors']);
+            throw new ValidationException($validacion['errors']);
         }
 
         try {
             $relacion = PropiedadServicio::find($id);
 
             if (!$relacion) {
-                Response::notFound('Relación no encontrada');
+                throw new NotFoundException('Relación no encontrada');
             }
 
             $relacion->delete();
 
             Response::success([], 200, 'Relación eliminada correctamente');
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -135,8 +137,8 @@ class PropiedadServicioController
                 'total' => $relaciones->count()
             ]);
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -156,8 +158,8 @@ class PropiedadServicioController
                 'total' => $relaciones->count()
             ]);
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -169,7 +171,7 @@ class PropiedadServicioController
         $data = json_decode(file_get_contents('php://input'), true);
 
         if (!isset($data['servicios_ids']) || !is_array($data['servicios_ids'])) {
-            Response::badRequest('Debe enviar un array de servicios_ids');
+            throw new BadRequestException('Debe enviar un array de servicios_ids');
         }
 
         try {
@@ -185,7 +187,7 @@ class PropiedadServicioController
             $faltantes = array_diff($serviciosIds, $serviciosExistentes);
 
             if (!empty($faltantes)) {
-                Response::validationError([
+                throw new ValidationException([
                     'servicios' => 'Existen servicios inválidos: ' . implode(',', $faltantes)
                 ]);
             }
@@ -206,9 +208,8 @@ class PropiedadServicioController
                 'total' => count($serviciosIds)
             ], 200, 'Servicios sincronizados correctamente');
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -234,8 +235,8 @@ class PropiedadServicioController
                 'por_servicio' => $porServicio
             ]);
 
-        } catch (Exception $e) {
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

@@ -10,6 +10,10 @@ use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Sanitizers\ResenaSanitizer;
 use App\Validators\ResenaValidator;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\BadRequestException;
 
 class ResenaController
 {
@@ -27,11 +31,8 @@ class ResenaController
                 'total' => count($resenas)
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError(
-                $e->getMessage()
-            );
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -46,7 +47,7 @@ class ResenaController
             );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -57,7 +58,7 @@ class ResenaController
                 Resena::getById($id);
 
             if (!$resena) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Reseña no encontrada'
                 );
             }
@@ -66,11 +67,8 @@ class ResenaController
                 $resena
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError(
-                $e->getMessage()
-            );
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -84,7 +82,7 @@ class ResenaController
     $validacion = ResenaValidator::validarSoloId($idSan);
 
     if (!$validacion['success']) {
-        Response::validationError(
+        throw new ValidationException(
             $validacion['errors']
         );
     }
@@ -94,7 +92,7 @@ class ResenaController
         $propiedad = Propiedad::find($idSan);
 
         if (!$propiedad) {
-            Response::notFound(
+            throw new NotFoundException(
                 'Propiedad no encontrada'
             );
         }
@@ -114,11 +112,8 @@ class ResenaController
             'propiedad_id' => $idSan
         ]);
 
-    } catch (\Exception $e) {
-
-        Response::serverError(
-            $e->getMessage()
-        );
+    } catch (\Throwable $exception) {
+        throw $exception;
     }
 }
 
@@ -132,7 +127,7 @@ class ResenaController
     $validacion = ResenaValidator::validarSoloId($idSan);
 
     if (!$validacion['success']) {
-        Response::validationError(
+        throw new ValidationException(
             $validacion['errors']
         );
     }
@@ -142,7 +137,7 @@ class ResenaController
         $usuario = Usuario::find($idSan);
 
         if (!$usuario) {
-            Response::notFound(
+            throw new NotFoundException(
                 'Usuario no encontrado'
             );
         }
@@ -157,11 +152,8 @@ class ResenaController
             'usuario_id' => $idSan
         ]);
 
-    } catch (\Exception $e) {
-
-        Response::serverError(
-            $e->getMessage()
-        );
+    } catch (\Throwable $exception) {
+        throw $exception;
     }
 }
 
@@ -179,11 +171,8 @@ class ResenaController
                 $estadisticas
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError(
-                $e->getMessage()
-            );
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -203,7 +192,7 @@ class ResenaController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -220,7 +209,7 @@ class ResenaController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -234,7 +223,7 @@ class ResenaController
 
             if (!$reserva) {
 
-                Response::notFound(
+                throw new NotFoundException(
                     'Reserva no encontrada'
                 );
             }
@@ -243,7 +232,7 @@ class ResenaController
                 $reserva->usuario_id !=
                 $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'La reserva no pertenece al usuario autenticado'
                 );
             }
@@ -252,7 +241,7 @@ class ResenaController
                 $reserva->estado !==
                 'finalizada'
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'La reserva debe estar finalizada para poder reseñarla'
                 );
             }
@@ -262,7 +251,7 @@ class ResenaController
                     $reserva->id
                 )
             ) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'Ya existe una reseña para esta reserva'
                 );
             }
@@ -284,11 +273,8 @@ class ResenaController
                 'Reseña creada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError(
-                $e->getMessage()
-            );
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     } 
     
@@ -308,7 +294,7 @@ class ResenaController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -327,7 +313,7 @@ class ResenaController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -341,7 +327,7 @@ class ResenaController
 
             if (!$resena) {
 
-                Response::notFound(
+                throw new NotFoundException(
                     'Reseña no encontrada'
                 );
             }
@@ -358,7 +344,7 @@ class ResenaController
                 !$esAdmin &&
                 !$esPropietario
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No tiene permisos para modificar esta reseña'
                 );
             }
@@ -383,11 +369,8 @@ class ResenaController
                 'Reseña actualizada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError(
-                $e->getMessage()
-            );
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -406,7 +389,7 @@ class ResenaController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -420,7 +403,7 @@ class ResenaController
 
             if (!$resena) {
 
-                Response::notFound(
+                throw new NotFoundException(
                     'Reseña no encontrada'
                 );
             }
@@ -437,7 +420,7 @@ class ResenaController
                 !$esAdmin &&
                 !$esPropietario
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No tiene permisos para eliminar esta reseña'
                 );
             }
@@ -452,11 +435,8 @@ class ResenaController
                 'Reseña eliminada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError(
-                $e->getMessage()
-            );
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

@@ -8,6 +8,10 @@ use App\Sanitizers\ConsultaSanitizer;
 use App\Validators\ConsultaValidator;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\BadRequestException;
 
 class ConsultaController
 {
@@ -27,9 +31,8 @@ class ConsultaController
                 'total' => $consultas->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -47,7 +50,7 @@ class ConsultaController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -57,7 +60,7 @@ class ConsultaController
             $consulta = Consulta::find($idSan);
 
             if (!$consulta) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Consulta no encontrada'
                 );
             }
@@ -66,7 +69,7 @@ class ConsultaController
                 $user->rol_id != 3 &&
                 $consulta->usuario_id != $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No autorizado'
                 );
             }
@@ -75,9 +78,8 @@ class ConsultaController
                 'consulta' => $consulta
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -97,7 +99,7 @@ class ConsultaController
             $propiedad = Propiedad::find($idSan);
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -106,7 +108,7 @@ class ConsultaController
                 $user->rol_id != 3 &&
                 $propiedad->usuario_id != $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No autorizado'
                 );
             }
@@ -121,9 +123,8 @@ class ConsultaController
                 'total' => $consultas->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -144,7 +145,7 @@ class ConsultaController
                 $user->rol_id != 3 &&
                 $user->sub != $idSan
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No autorizado'
                 );
             }
@@ -159,9 +160,8 @@ class ConsultaController
                 'total' => $consultas->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -178,7 +178,7 @@ class ConsultaController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -192,7 +192,7 @@ class ConsultaController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -204,7 +204,7 @@ class ConsultaController
             );
 
             if (!$propiedad) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Propiedad no encontrada'
                 );
             }
@@ -223,9 +223,8 @@ class ConsultaController
                 'Consulta creada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -242,7 +241,7 @@ class ConsultaController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -258,7 +257,7 @@ class ConsultaController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -270,7 +269,7 @@ class ConsultaController
             );
 
             if (!$consulta) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Consulta no encontrada'
                 );
             }
@@ -279,7 +278,7 @@ class ConsultaController
                 $user->rol_id != 3 &&
                 $consulta->usuario_id != $user->sub
             ) {
-                Response::forbidden(
+                throw new ForbiddenException(
                     'No autorizado'
                 );
             }
@@ -292,9 +291,8 @@ class ConsultaController
                 'data' => $consulta->fresh()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -314,7 +312,7 @@ class ConsultaController
         );
 
         if (!$validacion['success']) {
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -326,7 +324,7 @@ class ConsultaController
             );
 
             if (!$consulta) {
-                Response::notFound(
+                throw new NotFoundException(
                     'Consulta no encontrada'
                 );
             }
@@ -339,9 +337,8 @@ class ConsultaController
                 'Consulta eliminada exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

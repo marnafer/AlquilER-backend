@@ -7,12 +7,12 @@ namespace App\Exceptions;
 use RuntimeException;
 use Throwable;
 
-class NotFoundException extends RuntimeException
+class MethodNotAllowedException extends RuntimeException
 {
     public function __construct(
-        string $message = 'Recurso no encontrado',
+        string $message = 'Método no permitido',
         ?Throwable $previous = null
     ) {
-        parent::__construct($message, 404, $previous);
+        parent::__construct($message, 405, $previous);
     }
 }

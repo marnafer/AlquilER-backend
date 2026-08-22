@@ -6,6 +6,9 @@ use App\Models\Favorito;
 use App\Sanitizers\FavoritoSanitizer;
 use App\Validators\FavoritoValidator;
 use App\Helpers\Response;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class FavoritoController
 {
@@ -26,9 +29,8 @@ class FavoritoController
                 'total' => $favoritos->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -51,7 +53,7 @@ class FavoritoController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 [
                     'usuario_id' =>
                         $validacion['error']
@@ -73,9 +75,8 @@ class FavoritoController
                 'total' => $favoritos->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -90,7 +91,7 @@ class FavoritoController
         );
 
         if (!is_array($raw)) {
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -107,7 +108,7 @@ class FavoritoController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -127,9 +128,8 @@ class FavoritoController
                 'Favorito creado exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -145,7 +145,7 @@ class FavoritoController
 
         if (!is_array($raw)) {
 
-            Response::badRequest(
+            throw new BadRequestException(
                 'JSON inválido'
             );
         }
@@ -162,7 +162,7 @@ class FavoritoController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -185,9 +185,8 @@ class FavoritoController
                 'message' => 'Favorito eliminado exitosamente'
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -210,7 +209,7 @@ class FavoritoController
 
         if (!$validacion['success']) {
 
-            Response::validationError(
+            throw new ValidationException(
                 $validacion['errors']
             );
         }
@@ -224,7 +223,7 @@ class FavoritoController
 
             if (!$favorito) {
 
-                Response::notFound(
+                throw new NotFoundException(
                     'Favorito no encontrado'
                 );
             }
@@ -235,9 +234,8 @@ class FavoritoController
                 'message' => 'Favorito eliminado exitosamente'
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError();
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

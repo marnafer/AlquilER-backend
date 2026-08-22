@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Routes;
 
-use App\Helpers\Response;
+use App\Exceptions\MethodNotAllowedException;
+use App\Exceptions\NotFoundException;
 
 class Router
 {
@@ -69,7 +70,7 @@ class Router
 
                 $instance = new $controller();
 
-                // 🔥 FIX REAL: pasar parámetros al controller
+                // pasar parámetros al controller
                 $instance->$action(...$matches);
 
                 return;
@@ -77,9 +78,8 @@ class Router
         }
 
         // 3. Método incorrecto
-        foreach ($this->routes as $httpMethod => $routes) {
-            foreach ($routes as $route => $handler) {
-
+        foreach ($this->routes as $routes) {
+            foreach (array_keys($routes) as $route) {
                 $pattern = preg_replace(
                     '#\{([a-zA-Z_][a-zA-Z0-9_]*)\}#',
                     '([^/]+)',
@@ -89,12 +89,11 @@ class Router
                 $pattern = '#^' . $pattern . '$#';
 
                 if (preg_match($pattern, $path)) {
-                    Response::methodNotAllowed();
-                    return;
+                    throw new MethodNotAllowedException();
                 }
             }
         }
 
-        Response::notFound();
+        throw new NotFoundException();
     }
 }

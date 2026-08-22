@@ -6,6 +6,9 @@ use App\Models\Servicio;
 use App\Helpers\Response;
 use App\Sanitizers\ServicioSanitizer;
 use App\Validators\ServicioValidator;
+use App\Exceptions\ValidationException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\BadRequestException;
 
 class ServicioController
 {
@@ -20,9 +23,8 @@ class ServicioController
                 'total' => $servicios->count()
             ]);
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -33,7 +35,7 @@ class ServicioController
         $val = ServicioValidator::validarIdServicio($idSan);
 
         if (!$val['success']) {
-            Response::validationError([
+            throw new ValidationException([
                 'id' => [$val['error']]
             ]);
         }
@@ -43,14 +45,13 @@ class ServicioController
             $servicio = Servicio::find($idSan);
 
             if (!$servicio) {
-                Response::notFound('Servicio no encontrado');
+                throw new NotFoundException('Servicio no encontrado');
             }
 
             Response::success($servicio);
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -63,13 +64,13 @@ class ServicioController
         $val = ServicioValidator::validarServicio($san);
 
         if (!$val['success']) {
-            Response::validationError($val['errors']);
+            throw new ValidationException($val['errors']);
         }
 
         try {
 
             if (Servicio::where('nombre', $san['nombre'])->exists()) {
-                Response::badRequest('Ya existe un servicio con este nombre');
+                throw new BadRequestException('Ya existe un servicio con este nombre');
             }
 
             $servicio = Servicio::create([
@@ -81,9 +82,8 @@ class ServicioController
                 'Servicio creado exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -98,7 +98,7 @@ class ServicioController
         $val = ServicioValidator::validarServicio($san, true);
 
         if (!$val['success']) {
-            Response::validationError($val['errors']);
+            throw new ValidationException($val['errors']);
         }
 
         try {
@@ -106,7 +106,7 @@ class ServicioController
             $servicio = Servicio::find($san['id']);
 
             if (!$servicio) {
-                Response::notFound('Servicio no encontrado');
+                throw new NotFoundException('Servicio no encontrado');
             }
 
             if (
@@ -114,7 +114,7 @@ class ServicioController
                     ->where('id', '!=', $san['id'])
                     ->exists()
             ) {
-                Response::badRequest('Ya existe otro servicio con este nombre');
+                throw new BadRequestException('Ya existe otro servicio con este nombre');
             }
 
             $servicio->update([
@@ -127,9 +127,8 @@ class ServicioController
                 'Servicio actualizado exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 
@@ -140,7 +139,7 @@ class ServicioController
         $val = ServicioValidator::validarIdServicio($idSan);
 
         if (!$val['success']) {
-            Response::validationError([
+            throw new ValidationException([
                 'id' => [$val['error']]
             ]);
         }
@@ -150,11 +149,11 @@ class ServicioController
             $servicio = Servicio::find($idSan);
 
             if (!$servicio) {
-                Response::notFound('Servicio no encontrado');
+                throw new NotFoundException('Servicio no encontrado');
             }
 
             if ($servicio->propiedades()->exists()) {
-                Response::badRequest(
+                throw new BadRequestException(
                     'No se puede eliminar el servicio porque está asociado a propiedades'
                 );
             }
@@ -167,9 +166,8 @@ class ServicioController
                 'Servicio eliminado exitosamente'
             );
 
-        } catch (\Exception $e) {
-
-            Response::serverError($e->getMessage());
+        } catch (\Throwable $exception) {
+            throw $exception;
         }
     }
 }

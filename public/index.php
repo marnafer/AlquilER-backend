@@ -2,6 +2,12 @@
 
     require_once __DIR__ . '/../vendor/autoload.php';
 
+    use App\Exceptions\GlobalExceptionHandler;
+
+    set_exception_handler(
+        [GlobalExceptionHandler::class, 'handle']
+    );
+
     $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
     $dotenv->load();
 
@@ -11,7 +17,7 @@
 
     use App\Helpers\Response;
     use App\Routes\Router;
-
+    
     date_default_timezone_set('America/Argentina/Buenos_Aires');
     error_reporting(E_ALL);
 
@@ -19,7 +25,10 @@
 
     define('BASE_URL', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/')); // Esto es útil para generar URLs relativas a la raíz del proyecto, 
                                                                     // especialmente si no está en la raíz del servidor web.  
-    ini_set('display_errors', 1);
+    ini_set(
+        'display_errors',
+        ($_ENV['APP_ENV'] ?? 'development') === 'development' ? '1' : '0'
+    );
 
     // ============================================
     // CORS

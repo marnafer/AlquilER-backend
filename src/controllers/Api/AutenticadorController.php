@@ -7,6 +7,8 @@ use App\Helpers\JwtHelper;
 use App\Helpers\Response;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
+use App\Exceptions\ValidationException;
+use App\Exceptions\UnauthorizedException;
 
 class AutenticadorController {
 
@@ -19,7 +21,7 @@ class AutenticadorController {
 
         // 1. Validar que vengan los datos
         if (!$email || !$password) {
-        Response::validationError([
+        throw new ValidationException([
             'credenciales' => [
                 'Email y contraseña son obligatorios'
             ]
@@ -32,13 +34,13 @@ class AutenticadorController {
         $validacionEmail = UsuarioValidator::validarEmailLoginUsuario($email);
 
         if (!$validacionEmail['success']) {
-            Response::validationError($validacionEmail['errors']);
+            throw new ValidationException($validacionEmail['errors']);
         }
 
         $usuario = Usuario::where('email', $email)->first();
 
         if (!$usuario || !password_verify($password, $usuario->contrasena)) {
-            Response::unauthorized('Credenciales inválidas');
+            throw new UnauthorizedException('Credenciales inválidas');
         }
 
         $token = JwtHelper::generarToken($usuario);
@@ -60,12 +62,12 @@ class AutenticadorController {
         $val = UsuarioValidator::validarCrearUsuario($san);
 
         if (!$val['success']) {
-            Response::validationError($val['errors']);
+            throw new ValidationException($val['errors']);
         }
 
         // 3. Validación de negocio (email único)
         if (Usuario::where('email', $san['email'])->exists()) {
-            Response::validationError([
+            throw new ValidationException([
                 'email' => 'El usuario ya existe'
             ]);
         }
