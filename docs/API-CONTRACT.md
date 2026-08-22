@@ -18,11 +18,12 @@
 
 **Estructura Estándar:**
 * **Éxito:** `{ "success": true, "data": {...}, "message": "..." }` *(Para colecciones, `data` incluye `items` y `total`)*.
-* **Error:** `{ "success": false, "message": "...", "errors": {...} }`
+* **Error:** `{ "success": false, "error": "...", "validation_errors": {...} }`
 
 **Códigos HTTP:**
 * `200` OK | `201` Created
-* `400` Bad Request | `401` Unauthorized | `403` Forbidden | `404` Not Found
+* `400` Bad Request | `401` Unauthorized | `403` Forbidden  
+* `404` Not Found | `405` Method Not Allowed
 * `409` Conflict (Restricciones de integridad) | `422` Unprocessable Entity (Validación) | `500` Internal Error
 
 **Arquitectura de Eliminación:**
@@ -48,10 +49,10 @@
 | `GET /api/usuarios` | Lista usuarios. | Sí - Admin | • Solo admin; • no expone password |
 | `GET /api/usuarios/{id}` | Consulta un usuario. | Sí - Usr/Admin | • Usuario solo ve su perfil; • admin ve todos |
 | `GET /api/usuarios/me` | Devuelve usuario actual. | Sí - Usuario | • Identifica por JWT |
-| `PUT /api/usuarios/{id}` | Actualiza datos. | Sí - Usr/Admin | • No permite cambiar `rol_id`; • email único |
+`PUT /api/usuarios/{id}` | Actualiza datos. | Sí - Usr/Admin | • Admite actualización parcial o total; • no permite cambiar `rol_id`; • email único |
 | `DELETE /api/usuarios/{id}` | Elimina usuario. | Sí - Usr/Admin | • SoftDeletes; • propio o admin |
 | `POST /api/usuarios/{id}/restaurar` | Restaura usuario. | Sí - Admin | • SoftDeletes; • solo admin |
-
+**Actualización de usuarios:** El endpoint `PUT /api/usuarios/{id}` admite tanto actualizaciones parciales como totales. Los campos omitidos conservan su valor actual. El campo `rol_id` no puede modificarse mediante este endpoint.
 ---
 
 ## 6. Propiedades
