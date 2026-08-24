@@ -14,17 +14,62 @@
 * **Seguridad:** Tokens JWT requeridos en endpoints protegidos.
 * **Header requerido:** `Authorization: Bearer {token}`
 
+### Cuerpo de las solicitudes
+
+Las solicitudes que reciben datos deben utilizar:
+
+```http
+Content-Type: application/json
+```
+
+El cuerpo debe ser un objeto JSON válido.
+
+* Cuerpo vacío o ausente: `400 Bad Request`.
+* JSON mal formado: `400 Bad Request`.
+* JSON válido pero con campos faltantes o inválidos: `422 Unprocessable Entity`.
+
 ## 3. Convenciones de Respuesta y Arquitectura
 
-**Estructura Estándar:**
-* **Éxito:** `{ "success": true, "data": {...}, "message": "..." }` *(Para colecciones, `data` incluye `items` y `total`)*.
-* **Error:** `{ "success": false, "error": "...", "validation_errors": {...} }`
+Todas las respuestas de la API utilizan formato JSON y mantienen una estructura uniforme.
 
-**Códigos HTTP:**
-* `200` OK | `201` Created
-* `400` Bad Request | `401` Unauthorized | `403` Forbidden  
-* `404` Not Found | `405` Method Not Allowed
-* `409` Conflict (Restricciones de integridad) | `422` Unprocessable Entity (Validación) | `500` Internal Error
+### Respuestas exitosas
+
+Las operaciones exitosas utilizan:
+
+* `success: true` para indicar que la operación terminó correctamente.
+* `data` para contener el resultado de la operación.
+* `message` de forma opcional para informar el resultado al cliente.
+
+En respuestas de colecciones, `data` contiene:
+
+* `items`: registros obtenidos.
+* `total`: cantidad total de registros.
+
+Las operaciones de creación utilizan `201 Created`. Las consultas, actualizaciones, eliminaciones y demás operaciones exitosas utilizan `200 OK`.
+
+### Respuestas de error
+
+Las operaciones fallidas utilizan:
+
+* `success: false` para indicar que la operación no pudo completarse.
+* `error` para describir el motivo general del error.
+* `validation_errors` opcionalmente, cuando el error corresponde a datos inválidos o incompletos.
+
+El campo `validation_errors` contiene los errores agrupados por campo y solo se incluye cuando corresponde a una validación.
+
+### Códigos HTTP
+
+* `200 OK`: operación exitosa.
+* `201 Created`: recurso creado correctamente.
+* `204 No Content`: operación exitosa sin contenido de respuesta.
+* `400 Bad Request`: solicitud mal formada, cuerpo vacío o JSON inválido.
+* `401 Unauthorized`: falta autenticación o el token no es válido.
+* `403 Forbidden`: el usuario está autenticado, pero no tiene permisos suficientes.
+* `404 Not Found`: recurso inexistente o eliminado.
+* `405 Method Not Allowed`: método HTTP no permitido para la ruta.
+* `409 Conflict`: conflicto con el estado actual o restricciones de integridad.
+* `422 Unprocessable Entity`: datos válidos en formato, pero incorrectos según las reglas de negocio.
+* `500 Internal Server Error`: error inesperado del servidor.
 
 **Arquitectura de Eliminación:**
 * **SoftDeletes:** Aplicado por defecto a entidades principales (Usuarios, Propiedades, Categorías, Reservas, etc.). Las peticiones `GET` públicas excluyen registros eliminados automáticamente.
