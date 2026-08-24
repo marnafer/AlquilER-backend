@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Exceptions\BadRequestException;
 use App\Exceptions\ForbiddenException;
 use App\Helpers\Response;
+use App\Helpers\Request;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Repositories\UsuarioRepository;
 use App\Services\UsuarioService;
@@ -85,16 +85,10 @@ class UsuarioController
             throw new ForbiddenException('No autorizado');
         }
 
-        $rawData = json_decode(
-            file_get_contents('php://input'),
-            true
+        $this->service->actualizar(
+            $id,
+            Request::json()
         );
-
-        if (!is_array($rawData)) {
-            throw new BadRequestException('Datos inválidos');
-        }
-
-        $this->service->actualizar($id, $rawData);
 
         Response::success(
             [],
