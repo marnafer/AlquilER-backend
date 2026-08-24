@@ -64,5 +64,14 @@ class UsuarioRepository
             ->first();
     }
 
+    public function createWithRole(array $data, int $rolId): Usuario
+    {
+        $usuario = new Usuario($data);
+        $usuario->rol_id = $rolId;
+        $usuario->save();
+
+        return $usuario;
+    }
+
     
 }

@@ -103,28 +103,80 @@ class UsuarioValidator
         return ['success' => true, 'error' => null];
     }
 
-    public static function validarTelefonoUsuario($telefono) {
+    public static function validarTelefonoUsuario($telefono): array
+    {
+        if ($telefono === null || $telefono === '') {
+            return [
+                'success' => false,
+                'error' => 'El teléfono es requerido'
+            ];
+        }
+
+        if (!is_string($telefono)) {
+            return [
+                'success' => false,
+                'error' => 'El teléfono no es válido'
+            ];
+        }
+
         $telefono = preg_replace('/[^0-9]/', '', $telefono);
 
-        if (strlen($telefono) < 6)
-            return ['success' => false, 'error' => 'El teléfono debe tener al menos 6 dígitos'];
+        if (strlen($telefono) < 6) {
+            return [
+                'success' => false,
+                'error' => 'El teléfono debe tener al menos 6 dígitos'
+            ];
+        }
 
-        if (strlen($telefono) > 15)
-            return ['success' => false, 'error' => 'El teléfono no puede exceder los 15 dígitos'];
+        if (strlen($telefono) > 15) {
+            return [
+                'success' => false,
+                'error' => 'El teléfono no puede exceder los 15 dígitos'
+            ];
+        }
 
-        return ['success' => true, 'error' => null];
+        return [
+            'success' => true,
+            'error' => null
+        ];
     }
 
-    public static function validarDomicilioUsuario($domicilio) {
+    public static function validarDomicilioUsuario($domicilio): array
+    {
+        if ($domicilio === null || $domicilio === '') {
+            return [
+                'success' => false,
+                'error' => 'El domicilio es requerido'
+            ];
+        }
+
+        if (!is_string($domicilio)) {
+            return [
+                'success' => false,
+                'error' => 'El domicilio no es válido'
+            ];
+        }
+
         $domicilio = trim($domicilio);
 
-        if (strlen($domicilio) < 5)
-            return ['success' => false, 'error' => 'El domicilio debe tener al menos 5 caracteres'];
+        if (strlen($domicilio) < 5) {
+            return [
+                'success' => false,
+                'error' => 'El domicilio debe tener al menos 5 caracteres'
+            ];
+        }
 
-        if (strlen($domicilio) > 100)
-            return ['success' => false, 'error' => 'El domicilio no puede exceder los 100 caracteres'];
+        if (strlen($domicilio) > 100) {
+            return [
+                'success' => false,
+                'error' => 'El domicilio no puede exceder los 100 caracteres'
+            ];
+        }
 
-        return ['success' => true, 'error' => null];
+        return [
+            'success' => true,
+            'error' => null
+        ];
     }
 
     public static function validarContrasenaUsuario($contrasena) {
@@ -151,7 +203,7 @@ class UsuarioValidator
     }
 
     public static function validarCrearUsuario($data) {
-        return self::validarUsuario($data, false, true);
+        return self::validarRegistro($data);
     }
 
     public static function validarActualizarUsuario($data, $requerirContrasena = false) {
@@ -214,6 +266,33 @@ class UsuarioValidator
                 if (!$resultado['success']) {
                     $errores[$campo] = $resultado['error'];
                 }
+            }
+        }
+
+        return [
+            'success' => empty($errores),
+            'errors' => $errores,
+        ];
+    }
+
+    public static function validarRegistro(array $data): array
+    {
+        $errores = [];
+
+        $validaciones = [
+            'nombre' => 'validarNombreUsuario',
+            'apellido' => 'validarApellidoUsuario',
+            'email' => 'validarEmailUsuario',
+            'telefono' => 'validarTelefonoUsuario',
+            'domicilio' => 'validarDomicilioUsuario',
+            'contrasena' => 'validarContrasenaUsuario',
+        ];
+
+        foreach ($validaciones as $campo => $metodo) {
+            $resultado = self::$metodo($data[$campo] ?? null);
+
+            if (!$resultado['success']) {
+                $errores[$campo] = $resultado['error'];
             }
         }
 
