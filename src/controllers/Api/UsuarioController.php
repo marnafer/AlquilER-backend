@@ -8,18 +8,15 @@ use App\Exceptions\ForbiddenException;
 use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Middlewares\AutenticadorMiddleware;
-use App\Repositories\UsuarioRepository;
 use App\Services\UsuarioService;
 
 class UsuarioController
 {
-    private UsuarioService $service;
+    private ?UsuarioService $service = null;
 
-    public function __construct()
+    public function __construct(UsuarioService $service)
     {
-        $this->service = new UsuarioService(
-            new UsuarioRepository()
-        );
+        $this->service = $service;
     }
 
     /**

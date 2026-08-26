@@ -6,8 +6,8 @@ namespace App\Services;
 
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\ValidationException;
-use App\Helpers\JwtHelper;
-use App\Repositories\UsuarioRepository;
+use App\Helpers\TokenProviderInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
 use App\Models\Usuario;
@@ -15,7 +15,8 @@ use App\Models\Usuario;
 class AutenticadorService
 {
     public function __construct(
-        private readonly UsuarioRepository $usuarioRepository
+        private readonly UsuarioRepositoryInterface $usuarioRepository,
+        private readonly TokenProviderInterface $tokenProvider
     ) {
     }
 
@@ -50,7 +51,7 @@ class AutenticadorService
         }
 
         return [
-            'token' => JwtHelper::generarToken($usuario),
+            'token' => $this->tokenProvider->generate($usuario),
             'rol_id' => $usuario->rol_id,
         ];
     }

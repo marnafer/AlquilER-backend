@@ -2,12 +2,20 @@
 
 namespace App\Middlewares;
 
-use App\Helpers\JwtHelper;
+use App\Helpers\JwtProvider;
+use App\Helpers\TokenProviderInterface;
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\ForbiddenException;
 
 class AutenticadorMiddleware
 {
+    private static ?TokenProviderInterface $tokenProvider = null;
+
+    public static function configure(TokenProviderInterface $provider): void
+    {
+        self::$tokenProvider = $provider;
+    }
+
     public static function verificar()
     {
         $authHeader = $_SERVER['HTTP_AUTHORIZATION']
@@ -34,7 +42,15 @@ class AutenticadorMiddleware
         }
 
         // 4. Validar token
-        $user = JwtHelper::verificarToken($token);
+        $provider = self::$tokenProvider;
+
+        if ($provider === null) {
+            throw new \LogicException(
+                'El proveedor de tokens no fue configurado'
+            );
+        }
+
+        $user = $provider->validate($token);
 
         if (!$user) {
             throw new UnauthorizedException('Token inválido o expirado');

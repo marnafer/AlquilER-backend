@@ -45,7 +45,10 @@ class Router
 
             [$controller, $action] = $handler;
 
-            $instance = new $controller();
+            $instance = is_object($controller)
+                ? $controller
+                : new $controller();
+                
             $instance->$action();
 
             return;
@@ -68,7 +71,9 @@ class Router
 
                 [$controller, $action] = $handler;
 
-                $instance = new $controller();
+                $instance = is_object($controller)
+                    ? $controller
+                    : new $controller();
 
                 // pasar parámetros al controller
                 $instance->$action(...$matches);

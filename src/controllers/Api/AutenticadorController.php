@@ -7,18 +7,15 @@ namespace App\Controllers\Api;
 use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Middlewares\AutenticadorMiddleware;
-use App\Repositories\UsuarioRepository;
 use App\Services\AutenticadorService;
 
 class AutenticadorController
 {
-    private AutenticadorService $service;
+    private ?AutenticadorService $service = null;
 
-    public function __construct()
+    public function __construct(AutenticadorService $service)
     {
-        $this->service = new AutenticadorService(
-            new UsuarioRepository()
-        );
+        $this->service = $service;
     }
 
     public function login(): void

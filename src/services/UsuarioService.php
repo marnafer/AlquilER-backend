@@ -8,14 +8,14 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\BadRequestException;
 use App\Models\Usuario;
-use App\Repositories\UsuarioRepository;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
 
 class UsuarioService
 {
     public function __construct(
-        private readonly UsuarioRepository $repository
+        private readonly UsuarioRepositoryInterface $repository
     ) {
     }
 

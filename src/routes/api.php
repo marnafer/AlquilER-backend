@@ -15,6 +15,33 @@ use App\Controllers\Api\ServicioController;
 use App\Controllers\Api\PropiedadServicioController;
 use App\Controllers\Api\LogActividadController;
 use App\Controllers\Api\PropiedadController;
+use App\Helpers\JwtProvider;
+use App\Middlewares\AutenticadorMiddleware;
+use App\Repositories\EloquentUsuarioRepository;
+use App\Services\AutenticadorService;
+use App\Services\UsuarioService;
+
+$usuarioRepository = new EloquentUsuarioRepository();
+$tokenProvider = new JwtProvider();
+
+$autenticadorService = new AutenticadorService(
+    $usuarioRepository,
+    $tokenProvider
+);
+
+$usuarioService = new UsuarioService(
+    $usuarioRepository
+);
+
+$autenticadorController = new AutenticadorController(
+    $autenticadorService
+);
+
+$usuarioController = new UsuarioController(
+    $usuarioService
+);
+
+AutenticadorMiddleware::configure($tokenProvider);
 
 /*
 |--------------------------------------------------------------------------
@@ -22,11 +49,11 @@ use App\Controllers\Api\PropiedadController;
 |--------------------------------------------------------------------------
 */
 
-$router->post('/api/autenticador/login', [AutenticadorController::class, 'login']);
+$router->post('/api/autenticador/login', [$autenticadorController, 'login']);
 
-$router->post('/api/autenticador/register', [AutenticadorController::class, 'register']);
+$router->post('/api/autenticador/register', [$autenticadorController, 'register']);
 
-$router->post('/api/autenticador/logout', [AutenticadorController::class, 'logout']);
+$router->post('/api/autenticador/logout', [$autenticadorController, 'logout']);
 
 /*
 |--------------------------------------------------------------------------
@@ -34,17 +61,17 @@ $router->post('/api/autenticador/logout', [AutenticadorController::class, 'logou
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/usuarios', [UsuarioController::class, 'index']);
+$router->get('/api/usuarios', [$usuarioController, 'index']);
 
-$router->get('/api/usuarios/{id}', [UsuarioController::class, 'show']);
+$router->get('/api/usuarios/{id}', [$usuarioController, 'show']);
 
-$router->get('/api/usuarios/me',[UsuarioController::class, 'profile']);
+$router->get('/api/usuarios/me', [$usuarioController, 'profile']);
 
-$router->put('/api/usuarios/{id}', [UsuarioController::class, 'update']);
+$router->put('/api/usuarios/{id}', [$usuarioController, 'update']);
 
-$router->delete('/api/usuarios/{id}', [UsuarioController::class, 'delete']);
+$router->delete('/api/usuarios/{id}', [$usuarioController, 'delete']);
 
-$router->post('/api/usuarios/{id}/restaurar', [UsuarioController::class, 'restore']);
+$router->post('/api/usuarios/{id}/restaurar', [$usuarioController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
