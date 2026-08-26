@@ -12,7 +12,7 @@ El sistema está desarrollado utilizando una arquitectura de API REST y las sigu
 * **MySQL** como sistema gestor de base de datos.
 * **Eloquent ORM** mediante `illuminate/database` para el acceso y manejo de datos.
 * **Composer** para la gestión de dependencias.
-* **JWT (JSON Web Token)** mediante `firebase/php-jwt` para la autenticación.
+* **JWT (JSON Web Token)** mediante `firebase/php-jwt`, encapsulado detrás de `TokenProviderInterface` y `JwtProvider`.
 * **PHP dotenv** para la gestión segura de variables de entorno.
 * **Swagger/OpenAPI** mediante `swagger-php` para la documentación de la API.
 * **Apache/XAMPP** como entorno de desarrollo local.
@@ -64,7 +64,12 @@ La estructura del backend se organiza mediante diferentes capas y responsabilida
 | `src/sanitizers/` | BLL / Sanitización |
 | `src/middlewares/` | Autenticación / Autorización |
 | `src/helpers/Response.php` | API / Respuestas HTTP |
-| `src/helpers/JwtHelper.php` | Autenticación |
+| `src/helpers/TokenProviderInterface.php` | Contrato de autenticación |
+| `src/helpers/JwtProvider.php` | Implementación JWT |
+| `src/helpers/JwtHelper.php` | Soporte técnico JWT |
+| `src/repositories/UsuarioRepositoryInterface.php` | Contrato de persistencia |
+| `src/repositories/EloquentUsuarioRepository.php` | Implementación del repositorio |
+| `src/services/` | Lógica de negocio |
 | `src/database.php` | DAL / Configuración de acceso a datos |
 | `config/config.php` | Configuración |
 | `.env` | Configuración de entorno |
@@ -96,12 +101,27 @@ Durante el análisis inicial del sistema se detectaron diferentes situaciones en
 ### 3.3. Responsabilidades relacionadas con autenticación distribuidas
 * **Archivos:** `src/middlewares/`, `src/helpers/JwtHelper.php` y controladores relacionados con autenticación.
 * **Problema:** La autenticación requiere diferentes tareas: generación y validación de tokens, extracción del token de la petición, comprobación de permisos y aplicación de restricciones según el rol. Si estas responsabilidades se mezclan con la lógica propia de los controladores, aumenta el acoplamiento y se dificulta reutilizar los mecanismos de seguridad.
-* **Propuesta preliminar:** Mantener la generación y validación de JWT dentro de los componentes de autenticación y utilizar middleware para controlar el acceso a los endpoints protegidos, dejando a los controladores únicamente la lógica correspondiente a la operación solicitada.
+* **Solución implementada:** La generación y validación de tokens se abstrae mediante `TokenProviderInterface`. `JwtProvider` implementa este contrato y delega actualmente en `JwtHelper`. El middleware utiliza el proveedor configurado desde el wiring centralizado para validar los tokens y controlar el acceso según la autenticación y el rol del usuario.
 
 ### 3.4. Construcción de respuestas HTTP dentro de la lógica de las operaciones
 * **Archivo:** `src/helpers/Response.php` y controladores.
 * **Problema:** La API necesita mantener una estructura uniforme para las respuestas exitosas y los errores. Si cada controlador construye manualmente las respuestas, pueden aparecer diferencias en nombres de campos, códigos HTTP y estructuras JSON.
 * **Propuesta preliminar:** Centralizar la construcción de respuestas HTTP mediante el helper `Response`, manteniendo una estructura uniforme para respuestas exitosas, errores de validación, autenticación, autorización, recursos inexistentes y conflictos.
+
+### 3.5. Dependencias acopladas a implementaciones concretas
+
+* **Archivos:** `src/services/`, `src/controllers/Api/` y `src/routes/api.php`.
+* **Problema:** Los servicios y controladores pueden quedar acoplados a implementaciones concretas, como `UsuarioRepository` o `JwtHelper`. Esto dificulta reemplazar componentes y realizar pruebas unitarias aisladas.
+* **Solución implementada:** Los servicios dependen de interfaces (`UsuarioRepositoryInterface` y `TokenProviderInterface`) en lugar de clases concretas. `EloquentUsuarioRepository` implementa la interfaz de persistencia y `JwtProvider` implementa la interfaz de tokens.
+* **Wiring:** Las implementaciones concretas se construyen y conectan en `src/routes/api.php`, que centraliza la creación de repositorios, proveedores, servicios y controladores.
+
+El flujo de dependencias queda organizado de la siguiente manera:
+
+`AutenticadorController` → `AutenticadorService` → `UsuarioRepositoryInterface` / `TokenProviderInterface`
+
+`UsuarioRepositoryInterface` → `EloquentUsuarioRepository`
+
+`TokenProviderInterface` → `JwtProvider` → `JwtHelper`
 
 ---
 
