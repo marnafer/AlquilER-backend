@@ -18,11 +18,24 @@ use App\Controllers\Api\PropiedadController;
 use App\Helpers\JwtProvider;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Repositories\EloquentUsuarioRepository;
+use App\Repositories\EloquentCategoriaRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
+use App\Services\CategoriaService;
+
+
+// TOKEN PROVIDER
+
+$tokenProvider = new JwtProvider();
+
+AutenticadorMiddleware::configure($tokenProvider);
+
+// REPOSITORIES
 
 $usuarioRepository = new EloquentUsuarioRepository();
-$tokenProvider = new JwtProvider();
+$categoriaRepository = new EloquentCategoriaRepository();
+
+// SERVICES
 
 $autenticadorService = new AutenticadorService(
     $usuarioRepository,
@@ -33,6 +46,12 @@ $usuarioService = new UsuarioService(
     $usuarioRepository
 );
 
+$categoriaService = new CategoriaService(
+    $categoriaRepository
+);
+
+// CONTROLLERS
+
 $autenticadorController = new AutenticadorController(
     $autenticadorService
 );
@@ -41,7 +60,10 @@ $usuarioController = new UsuarioController(
     $usuarioService
 );
 
-AutenticadorMiddleware::configure($tokenProvider);
+$categoriaController = new CategoriaController(
+    $categoriaService
+);
+
 
 /*
 |--------------------------------------------------------------------------
@@ -79,17 +101,17 @@ $router->post('/api/usuarios/{id}/restaurar', [$usuarioController, 'restore']);
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/categorias',[CategoriaController::class, 'index']);
+$router->get('/api/categorias',[$categoriaController, 'index']);
 
-$router->post('/api/categorias',[CategoriaController::class, 'store']);
+$router->post('/api/categorias',[$categoriaController, 'store']);
 
-$router->get('/api/categorias/{id}',[CategoriaController::class, 'show']);
+$router->get('/api/categorias/{id}',[$categoriaController, 'show']);
 
-$router->put('/api/categorias/{id}',[CategoriaController::class, 'update']);
+$router->put('/api/categorias/{id}',[$categoriaController, 'update']);
 
-$router->delete('/api/categorias/{id}',[CategoriaController::class, 'delete']);
+$router->delete('/api/categorias/{id}',[$categoriaController, 'delete']);
 
-$router->post('/api/categorias/{id}/restaurar', [CategoriaController::class, 'restore']);
+$router->post('/api/categorias/{id}/restaurar', [$categoriaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
