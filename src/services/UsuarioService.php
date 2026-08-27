@@ -29,8 +29,18 @@ class UsuarioService
         ];
     }
 
-    public function obtener(int $id): Usuario
+    public function obtener($rawId): Usuario
     {
+        $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
+
+        $validacion = UsuarioValidator::validarSoloIdUsuario($id);
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'id' => [$validacion['error']]
+            ]);
+        }
+
         $usuario = $this->repository->findById($id);
 
         if (!$usuario) {
@@ -40,16 +50,44 @@ class UsuarioService
         return $usuario;
     }
 
-    public function eliminar(int $id): void
+    public function eliminar($rawId): void
     {
-        $usuario = $this->obtener($id);
+        $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
+
+        $validacion = UsuarioValidator::validarSoloIdUsuario($id);
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'id' => [$validacion['error']]
+            ]);
+        }
+
+        $usuario = $this->repository->findById($id);
+
+        if (!$usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
 
         $this->repository->delete($usuario);
     }
 
-    public function actualizar(int $id, array $rawData): void
+    public function actualizar($rawId, array $rawData): void
     {
-        $usuario = $this->obtener($id);
+        $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
+
+        $validacion = UsuarioValidator::validarSoloIdUsuario($id);
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'id' => [$validacion['error']]
+            ]);
+        }
+
+        $usuario = $this->repository->findById($id);
+
+        if (!$usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
 
         if ($rawData === []) {
             throw new BadRequestException(
@@ -115,13 +153,31 @@ class UsuarioService
         $this->repository->update($usuario, $data);
     }
 
-    public function restaurar(int $id): void
+    public function restaurar($rawId): void
     {
+        $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
+
+        $validacion = UsuarioValidator::validarSoloIdUsuario($id);
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'id' => [$validacion['error']]
+            ]);
+        }
+
         $usuario = $this->repository->findDeletedById($id);
 
         if (!$usuario) {
             throw new NotFoundException(
                 'Usuario eliminado no encontrado'
+            );
+        }
+
+        $usuario = $this->repository->existsByEmail($usuario->email) ? null : $usuario;
+
+        if (!$usuario) {
+            throw new BadRequestException(
+                'No se puede restaurar el usuario porque el email ya está registrado'
             );
         }
 

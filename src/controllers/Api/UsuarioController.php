@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Exceptions\ForbiddenException;
 use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Middlewares\AutenticadorMiddleware;
@@ -12,7 +11,7 @@ use App\Services\UsuarioService;
 
 class UsuarioController
 {
-    private ?UsuarioService $service = null;
+    private readonly UsuarioService $service;
 
     public function __construct(UsuarioService $service)
     {
@@ -24,11 +23,7 @@ class UsuarioController
      */
     public function index(): void
     {
-        $user = AutenticadorMiddleware::verificar();
-
-        if ((int) $user->rol_id !== 2) {
-            throw new ForbiddenException('Solo administradores');
-        }
+        AutenticadorMiddleware::soloAdmin();
 
         Response::success(
             $this->service->listar()
@@ -40,15 +35,7 @@ class UsuarioController
      */
     public function show($id): void
     {
-        $user = AutenticadorMiddleware::verificar();
-        $id = (int) $id;
-
-        if (
-            (int) $user->rol_id !== 2
-            && (int) $user->sub !== $id
-        ) {
-            throw new ForbiddenException('No autorizado');
-        }
+        AutenticadorMiddleware::verificarPropietarioOAdmin($id);
 
         Response::success(
             $this->service->obtener($id)
@@ -72,15 +59,7 @@ class UsuarioController
      */
     public function update($id): void
     {
-        $user = AutenticadorMiddleware::verificar();
-        $id = (int) $id;
-
-        if (
-            (int) $user->rol_id !== 2
-            && (int) $user->sub !== $id
-        ) {
-            throw new ForbiddenException('No autorizado');
-        }
+        AutenticadorMiddleware::verificarPropietarioOAdmin($id);
 
         $this->service->actualizar(
             $id,
@@ -99,15 +78,7 @@ class UsuarioController
      */
     public function delete($id): void
     {
-        $user = AutenticadorMiddleware::verificar();
-        $id = (int) $id;
-
-        if (
-            (int) $user->rol_id !== 2
-            && (int) $user->sub !== $id
-        ) {
-            throw new ForbiddenException('No autorizado');
-        }
+        AutenticadorMiddleware::verificarPropietarioOAdmin($id);
 
         $this->service->eliminar($id);
 
@@ -123,13 +94,9 @@ class UsuarioController
      */
     public function restore($id): void
     {
-        $user = AutenticadorMiddleware::verificar();
+        AutenticadorMiddleware::soloAdmin();
 
-        if ((int) $user->rol_id !== 2) {
-            throw new ForbiddenException('Solo administradores');
-        }
-
-        $this->service->restaurar((int) $id);
+        $this->service->restaurar($id);
 
         Response::success(
             [],
