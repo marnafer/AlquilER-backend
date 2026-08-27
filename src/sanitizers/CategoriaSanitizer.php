@@ -9,19 +9,31 @@ class CategoriaSanitizer
      */
     public static function sanitizarIdCategoria($id): ?int
     {
-        if ($id === null || $id === '') {
+        if (
+            !is_string($id)
+            && !is_int($id)
+        ) {
             return null;
         }
-        $val = filter_var($id, FILTER_SANITIZE_NUMBER_INT);
-        return $val === false ? null : (int)$val;
+
+        if (
+            is_string($id)
+            && !ctype_digit($id)
+        ) {
+            return null;
+        }
+
+        $id = (int) $id;
+
+        return $id > 0 ? $id : null;
     }
 
     /**
     * Sanitiza un nombre de categoría
      */
-    public static function sanitizarNombre($nombre)
+    public static function sanitizarNombre($nombre): ?string
     {
-        if (!$nombre) {
+        if (!is_string($nombre)) {
             return null;
         }
 
@@ -29,15 +41,7 @@ class CategoriaSanitizer
         $nombre = preg_replace('/\s+/u', ' ', $nombre);
         $nombre = mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
 
-        return substr(
-            htmlspecialchars(
-                $nombre,
-                ENT_QUOTES | ENT_SUBSTITUTE,
-                'UTF-8'
-            ),
-            0,
-            50
-        );
+        return mb_substr($nombre, 0, 50);
     }
 
     /**
@@ -47,7 +51,17 @@ class CategoriaSanitizer
     {
         return [
             'id' => self::sanitizarIdCategoria($data['id'] ?? null),
-            'nombre' => isset($data['nombre']) && $data['nombre'] !== '' ? self::sanitizarNombre((string)$data['nombre']) : null,
+            'nombre' => isset($data['nombre']) && $data['nombre'] !== '' 
+                ? self::sanitizarNombre((string)$data['nombre']) : null,
+        ];
+    }
+
+    public static function sanitizarActualizacionCategoria(array $data): array
+    {
+        return [
+            'nombre' => isset($data['nombre'])
+                ? self::sanitizarNombre((string) $data['nombre'])
+                : null,
         ];
     }
 }
