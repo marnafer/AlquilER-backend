@@ -8,10 +8,18 @@ use RuntimeException;
 
 class ValidationException extends RuntimeException
 {
+    private readonly array $errors;
+
     public function __construct(
-        private readonly array $errors,
+        array $errors,
         string $message = 'Error de validación'
     ) {
+        $this->errors = array_map(
+            static fn ($error): array =>
+                is_array($error) ? $error : [$error],
+            $errors
+        );
+
         parent::__construct($message, 422);
     }
 

@@ -55,7 +55,19 @@ Las operaciones fallidas utilizan:
 * `error` para describir el motivo general del error.
 * `validation_errors` opcionalmente, cuando el error corresponde a datos inválidos o incompletos.
 
-El campo `validation_errors` contiene los errores agrupados por campo y solo se incluye cuando corresponde a una validación.
+Cada campo dentro de `validation_errors` contiene un arreglo de mensajes,
+incluso cuando solo existe un error.
+
+Ejemplo de respuesta de validación:
+
+{
+  "success": false,
+  "error": "Error de validación",
+  "validation_errors": {
+    "id": ["El ID de servicio es requerido"],
+    "nombre": ["El nombre del servicio es requerido"]
+  }
+}
 
 ### Códigos HTTP
 
