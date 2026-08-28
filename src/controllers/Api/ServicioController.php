@@ -2,172 +2,95 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\Servicio;
+use App\Services\ServicioService;
 use App\Helpers\Response;
-use App\Sanitizers\ServicioSanitizer;
-use App\Validators\ServicioValidator;
-use App\Exceptions\ValidationException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\BadRequestException;
+use App\Helpers\Request;
+use App\Middlewares\AutenticadorMiddleware;
 
 class ServicioController
 {
-    public function listar()
+
+    private readonly ServicioService $service;
+
+    public function __construct(ServicioService $service)
     {
-        try {
-
-            $servicios = Servicio::all();
-
-            Response::success([
-                'items' => $servicios,
-                'total' => $servicios->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        $this->service = $service;
     }
 
-    public function obtener($id)
+    // GET /api/servicios
+    public function index()
     {
-        $idSan = ServicioSanitizer::sanitizarIdServicio($id);
+        Response::success(
+            $this->service->listar()
+        );
 
-        $val = ServicioValidator::validarIdServicio($idSan);
-
-        if (!$val['success']) {
-            throw new ValidationException([
-                'id' => [$val['error']]
-            ]);
-        }
-
-        try {
-
-            $servicio = Servicio::find($idSan);
-
-            if (!$servicio) {
-                throw new NotFoundException('Servicio no encontrado');
-            }
-
-            Response::success($servicio);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
     }
 
-    public function crear()
+    // GET /api/servicios/{id}
+    public function show($id)
     {
-        $raw = json_decode(file_get_contents('php://input'), true) ?? [];
-
-        $san = ServicioSanitizer::sanitizarServicio($raw);
-
-        $val = ServicioValidator::validarServicio($san);
-
-        if (!$val['success']) {
-            throw new ValidationException($val['errors']);
-        }
-
-        try {
-
-            if (Servicio::where('nombre', $san['nombre'])->exists()) {
-                throw new BadRequestException('Ya existe un servicio con este nombre');
-            }
-
-            $servicio = Servicio::create([
-                'nombre' => $san['nombre']
-            ]);
-
-            Response::created(
-                $servicio,
-                'Servicio creado exitosamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->obtener($id)
+        );
     }
 
-    public function actualizar($id)
+    // POST /api/servicios
+    public function store()
     {
-        $raw = json_decode(file_get_contents('php://input'), true) ?? [];
+           
+        AutenticadorMiddleware::soloAdmin();
+        
+        $servicio = $this->service->crear(Request::json());
+    
+        Response::created(
+            $servicio,
+            'Servicio creado exitosamente'
+        );
 
-        $raw['id'] = $id;
-
-        $san = ServicioSanitizer::sanitizarServicio($raw);
-
-        $val = ServicioValidator::validarServicio($san, true);
-
-        if (!$val['success']) {
-            throw new ValidationException($val['errors']);
-        }
-
-        try {
-
-            $servicio = Servicio::find($san['id']);
-
-            if (!$servicio) {
-                throw new NotFoundException('Servicio no encontrado');
-            }
-
-            if (
-                Servicio::where('nombre', $san['nombre'])
-                    ->where('id', '!=', $san['id'])
-                    ->exists()
-            ) {
-                throw new BadRequestException('Ya existe otro servicio con este nombre');
-            }
-
-            $servicio->update([
-                'nombre' => $san['nombre']
-            ]);
-
-            Response::success(
-                $servicio,
-                200,
-                'Servicio actualizado exitosamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
     }
 
-    public function eliminar($id)
+    // PUT /api/servicios/{id}
+    public function update($id)
     {
-        $idSan = ServicioSanitizer::sanitizarIdServicio($id);
+        AutenticadorMiddleware::soloAdmin();
 
-        $val = ServicioValidator::validarIdServicio($idSan);
+        $this->service->actualizar($id, Request::json());
 
-        if (!$val['success']) {
-            throw new ValidationException([
-                'id' => [$val['error']]
-            ]);
-        }
+        Response::success(
+            [],
+            200,
+            'Servicio actualizado exitosamente'
+         );
+    }
 
-        try {
+    // DELETE /api/servicios/{id}
+    public function delete($id)
+    {
+            
+        AutenticadorMiddleware::soloAdmin();
 
-            $servicio = Servicio::find($idSan);
+        $this->service->eliminar($id);
 
-            if (!$servicio) {
-                throw new NotFoundException('Servicio no encontrado');
-            }
+        Response::success(
+             [],
+            200,
+            'Servicio eliminado exitosamente'
+         );
+    }
 
-            if ($servicio->propiedades()->exists()) {
-                throw new BadRequestException(
-                    'No se puede eliminar el servicio porque está asociado a propiedades'
-                );
-            }
+    // POST /api/servicios/{id}/restore
+    public function restore($id)
+    {
+            
+        AutenticadorMiddleware::soloAdmin();
 
-            $servicio->delete();
+        $this->service->restaurar($id);
 
-            Response::success(
-                [],
-                200,
-                'Servicio eliminado exitosamente'
-            );
+        Response::success(
+            [],
+            200,
+            'Servicio restaurado exitosamente'
+        );
 
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
     }
 }

@@ -9,15 +9,23 @@ class ServicioSanitizer
      */
     public static function sanitizarIdServicio($id): ?int
     {
-        if ($id === null || $id === '') {
+        if (
+            !is_string($id)
+            && !is_int($id)
+        ) {
             return null;
         }
 
-        if (!is_numeric($id)) {
+        if (
+            is_string($id)
+            && !ctype_digit($id)
+        ) {
             return null;
         }
 
-        return (int) $id;
+        $id = (int) $id;
+
+        return $id > 0 ? $id : null;
     }
 
     /**
@@ -43,6 +51,18 @@ class ServicioSanitizer
         return [
             'id' => self::sanitizarIdServicio($data['id'] ?? null),
             'nombre' => self::sanitizarNombre($data['nombre'] ?? null),
+        ];
+    }
+
+    /**
+     * Sanitiza payload de actualización de servicio
+     */
+    public static function sanitizarActualizacionServicio(array $data): array 
+    {
+        return [
+            'nombre' => isset($data['nombre'])
+                ? self::sanitizarNombre($data['nombre'])
+                : null,
         ];
     }
 }

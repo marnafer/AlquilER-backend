@@ -19,9 +19,11 @@ use App\Helpers\JwtProvider;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Repositories\EloquentUsuarioRepository;
 use App\Repositories\EloquentCategoriaRepository;
+use App\Repositories\EloquentServicioRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
+use App\Services\ServicioService;
 
 
 // TOKEN PROVIDER
@@ -34,6 +36,7 @@ AutenticadorMiddleware::configure($tokenProvider);
 
 $usuarioRepository = new EloquentUsuarioRepository();
 $categoriaRepository = new EloquentCategoriaRepository();
+$servicioRepository = new EloquentServicioRepository();
 
 // SERVICES
 
@@ -50,6 +53,10 @@ $categoriaService = new CategoriaService(
     $categoriaRepository
 );
 
+$servicioService = new ServicioService(
+    $servicioRepository
+);
+
 // CONTROLLERS
 
 $autenticadorController = new AutenticadorController(
@@ -62,6 +69,10 @@ $usuarioController = new UsuarioController(
 
 $categoriaController = new CategoriaController(
     $categoriaService
+);
+
+$servicioController = new ServicioController(
+    $servicioService
 );
 
 
@@ -255,17 +266,17 @@ $router->delete('/api/resenas/{id}', [ResenaController::class, 'delete']);
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/servicios', [ServicioController::class, 'index']);
+$router->get('/api/servicios', [$servicioController, 'index']);
 
-$router->get('/api/servicios/{id}', [ServicioController::class, 'show']);
+$router->get('/api/servicios/{id}', [$servicioController, 'show']);
 
-$router->post('/api/servicios', [ServicioController::class, 'store']);
+$router->post('/api/servicios', [$servicioController, 'store']);
 
-$router->put('/api/servicios/{id}', [ServicioController::class, 'update']);
+$router->put('/api/servicios/{id}', [$servicioController, 'update']);
 
-$router->delete('/api/servicios/{id}', [ServicioController::class, 'delete']);
+$router->delete('/api/servicios/{id}', [$servicioController, 'delete']);
 
-$router->post('/api/servicios/{id}/restaurar', [ServicioController::class, 'restore']);
+$router->post('/api/servicios/{id}/restaurar', [$servicioController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
