@@ -20,10 +20,12 @@ use App\Middlewares\AutenticadorMiddleware;
 use App\Repositories\EloquentUsuarioRepository;
 use App\Repositories\EloquentCategoriaRepository;
 use App\Repositories\EloquentServicioRepository;
+use App\Repositories\EloquentProvinciaRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
 use App\Services\ServicioService;
+use App\Services\ProvinciaService;
 
 
 // TOKEN PROVIDER
@@ -37,6 +39,7 @@ AutenticadorMiddleware::configure($tokenProvider);
 $usuarioRepository = new EloquentUsuarioRepository();
 $categoriaRepository = new EloquentCategoriaRepository();
 $servicioRepository = new EloquentServicioRepository();
+$provinciaRepository = new EloquentProvinciaRepository();
 
 // SERVICES
 
@@ -57,6 +60,10 @@ $servicioService = new ServicioService(
     $servicioRepository
 );
 
+$provinciaService = new ProvinciaService(
+    $provinciaRepository
+);
+
 // CONTROLLERS
 
 $autenticadorController = new AutenticadorController(
@@ -75,6 +82,9 @@ $servicioController = new ServicioController(
     $servicioService
 );
 
+$provinciaController = new ProvinciaController(
+    $provinciaService
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -130,17 +140,17 @@ $router->post('/api/categorias/{id}/restaurar', [$categoriaController, 'restore'
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/provincias', [ProvinciaController::class, 'index']);
+$router->get('/api/provincias', [$provinciaController, 'index']);
 
-$router->get('/api/provincias/{id}',[ProvinciaController::class, 'show']);
+$router->get('/api/provincias/{id}', [$provinciaController, 'show']);
 
-$router->post('/api/provincias',[ProvinciaController::class, 'store']);
+$router->post('/api/provincias', [$provinciaController, 'store']);
 
-$router->put('/api/provincias/{id}',[ProvinciaController::class, 'update']);
+$router->put('/api/provincias/{id}',[$provinciaController, 'update']);
 
-$router->delete('/api/provincias/{id}',[ProvinciaController::class, 'delete']);
+$router->delete('/api/provincias/{id}',[$provinciaController, 'delete']);
 
-$router->post('/api/provincias/{id}/restaurar', [ProvinciaController::class, 'restore']);
+$router->post('/api/provincias/{id}/restaurar', [$provinciaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------	

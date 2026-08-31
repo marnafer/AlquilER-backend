@@ -2,52 +2,29 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\Provincia;
-use App\Validators\ProvinciaValidator;
-use App\Sanitizers\ProvinciaSanitizer;
+use App\Services\ProvinciaService;
 use App\Helpers\Response;
-use App\Exceptions\ValidationException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\BadRequestException;
+use App\Helpers\Request;
+use App\Middlewares\AutenticadorMiddleware;
 
 class ProvinciaController
 {
+
+    private readonly ProvinciaService $service;
+
+    public function __construct(ProvinciaService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * GET /api/provincias
      */
     public function index()
     {
-        try {
-
-            $provincias = Provincia::all();
-
-            Response::success([
-                'items' => $provincias,
-                'total' => $provincias->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
-    }
-
-    /**
-     * GET /api/provincias/con-localidades
-     */
-    public function indexWithCount()
-    {
-        try {
-
-            $provincias = Provincia::withCount('localidades')->get();
-
-            Response::success([
-                'items' => $provincias,
-                'total' => $provincias->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->listar()
+        );
     }
 
     /**
@@ -55,70 +32,24 @@ class ProvinciaController
      */
     public function show($id)
     {
-        $idSan = ProvinciaSanitizer::sanitizarIdProvincia($id);
-
-        $validacion = ProvinciaValidator::validarSoloIdProvincia($idSan);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        try {
-
-            $provincia = Provincia::find($idSan);
-
-            if (!$provincia) {
-                throw new NotFoundException('Provincia no encontrada');
-            }
-
-            Response::success($provincia);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->obtener($id)
+        );
     }
 
     /**
      * POST /api/provincias
      */
     public function store()
-    {
-        $raw = json_decode(file_get_contents('php://input'), true);
+    { 
+        AutenticadorMiddleware::soloAdmin();
 
-        if (!is_array($raw)) {
-            throw new BadRequestException('JSON inválido');
-        }
+        $provincia = $this->service->crear(Request::json());
 
-        $san = ProvinciaSanitizer::sanitizarProvincia($raw);
-
-        $validacion = ProvinciaValidator::validarCrearProvincia($san);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        try {
-
-            if (Provincia::where('nombre', $san['nombre'])->exists()) {
-                throw new BadRequestException(
-                    'Ya existe una provincia con este nombre'
-                );
-            }
-
-            $provincia = Provincia::create($san);
-
-            Response::created(
-                $provincia->toArray(),
-                'Provincia creada exitosamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::created(
+            $provincia,
+            'Provincia creada exitosamente'
+        );
     }
 
     /**
@@ -126,53 +57,16 @@ class ProvinciaController
      */
     public function update($id)
     {
-        $raw = json_decode(file_get_contents('php://input'), true);
+        AutenticadorMiddleware::soloAdmin();
 
-        if (!is_array($raw)) {
-            throw new BadRequestException('JSON inválido');
-        }
+        $this->service->actualizar($id, Request::json());
 
-        $raw['id'] = $id;
+        Response::success(
+            [],
+             200,
+            'Provincia actualizada exitosamente'
+         );
 
-        $san = ProvinciaSanitizer::sanitizarProvincia($raw);
-
-        $validacion = ProvinciaValidator::validarActualizarProvincia($san);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        try {
-
-            $provincia = Provincia::find($san['id']);
-
-            if (!$provincia) {
-                throw new NotFoundException('Provincia no encontrada');
-            }
-
-            if (
-                Provincia::where('nombre', $san['nombre'])
-                    ->where('id', '!=', $san['id'])
-                    ->exists()
-            ) {
-                throw new BadRequestException(
-                    'Ya existe otra provincia con este nombre'
-                );
-            }
-
-            $provincia->update($san);
-
-            Response::success(
-                $provincia,
-                200,
-                'Provincia actualizada exitosamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
     }
 
     /**
@@ -180,40 +74,30 @@ class ProvinciaController
      */
     public function delete($id)
     {
-        $idSan = ProvinciaSanitizer::sanitizarIdProvincia($id);
+        AutenticadorMiddleware::soloAdmin();
 
-        $validacion = ProvinciaValidator::validarSoloIdProvincia($idSan);
+        $this->service->eliminar($id);
 
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
+        Response::success(
+            [],
+            200,
+            'Provincia eliminada exitosamente'
+        );
+    }
 
-        try {
+    /**
+     * POST /api/provincias/{id}/restaurar
+     */
+    public function restore($id)
+    {
+        AutenticadorMiddleware::soloAdmin();
 
-            $provincia = Provincia::find($idSan);
+       $this->service->restaurar($id);
 
-            if (!$provincia) {
-                throw new NotFoundException('Provincia no encontrada');
-            }
-
-            if ($provincia->localidades()->exists()) {
-                throw new BadRequestException(
-                    'No se puede eliminar la provincia porque tiene localidades asociadas'
-                );
-            }
-
-            $provincia->delete();
-
-            Response::success(
-                null,
-                200,
-                'Provincia eliminada exitosamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+       Response::success(
+            [],
+            200,
+            'Provincia restaurada exitosamente'
+        );
     }
 }
