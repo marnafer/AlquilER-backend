@@ -4,68 +4,87 @@ namespace App\Sanitizers;
 
 class LocalidadSanitizer
 {
-    public static function sanitizarLocalidad($data): array
+    public static function sanitizarLocalidad(array $data): array
     {
         return [
             'id' => self::sanitizarIdLocalidad($data['id'] ?? null),
             'nombre' => self::sanitizarNombreLocalidad($data['nombre'] ?? null),
             'codigo_postal' => self::sanitizarCodigoPostal($data['codigo_postal'] ?? null),
-            'provincia_id' => self::sanitizarProvinciaId($data['provincia_id'] ?? null)
+            'provincia_id' => self::sanitizarProvinciaId($data['provincia_id'] ?? null),
         ];
     }
 
-    public static function sanitizarIdLocalidad($id)
+    public static function sanitizarActualizacionLocalidad(array $data): array
+    {
+        $resultado = [];
+
+        if (array_key_exists('nombre', $data)) {
+            $resultado['nombre'] = self::sanitizarNombreLocalidad($data['nombre']);
+        }
+
+        if (array_key_exists('codigo_postal', $data)) {
+            $resultado['codigo_postal'] = self::sanitizarCodigoPostal($data['codigo_postal']);
+        }
+
+        if (array_key_exists('provincia_id', $data)) {
+            $resultado['provincia_id'] = self::sanitizarProvinciaId($data['provincia_id']);
+        }
+
+        return $resultado;
+    }
+
+    public static function sanitizarIdLocalidad($id): ?int
     {
         if ($id === null || $id === '') {
             return null;
         }
 
-        $id = filter_var($id, FILTER_VALIDATE_INT);
+        $idSanitizado = filter_var($id, FILTER_VALIDATE_INT);
 
-        return ($id !== false && $id > 0)
-            ? $id
+        return ($idSanitizado !== false && $idSanitizado > 0)
+            ? $idSanitizado
             : null;
     }
 
-    public static function sanitizarNombreLocalidad($nombre)
+    public static function sanitizarNombreLocalidad($nombre): ?string
     {
-        if (!$nombre) {
+        if (!is_string($nombre)) {
             return null;
         }
 
         $nombre = trim($nombre);
-        $nombre = preg_replace('/\s+/', ' ', $nombre);
-        $nombre = ucwords(strtolower($nombre));
-        $nombre = htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8');
+        $nombre = preg_replace('/\s+/u', ' ', $nombre);
+        $nombre = mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
 
-        return substr($nombre, 0, 150);
+        return mb_substr($nombre, 0, 150);
     }
 
-    public static function sanitizarCodigoPostal($cp)
+    public static function sanitizarCodigoPostal($codigoPostal): ?string
     {
-        if (!$cp) {
+        if (!is_string($codigoPostal) && $codigoPostal !== null) {
+            $codigoPostal = (string) $codigoPostal;
+        }
+
+        if ($codigoPostal === null || trim((string) $codigoPostal) === '') {
             return null;
         }
 
-        $cp = trim($cp);
-        $cp = htmlspecialchars($cp, ENT_QUOTES, 'UTF-8');
+        $codigoPostal = trim((string) $codigoPostal);
+        $codigoPostal = preg_replace('/\s+/u', ' ', $codigoPostal);
 
-        return substr($cp, 0, 20);
+        return mb_substr($codigoPostal, 0, 20);
     }
 
-    public static function sanitizarProvinciaId($provinciaId)
+    public static function sanitizarProvinciaId($provinciaId): ?int
     {
         if ($provinciaId === null || $provinciaId === '') {
             return null;
         }
 
-        $provinciaId = filter_var(
-            $provinciaId,
-            FILTER_VALIDATE_INT
-        );
+        $provinciaIdSanitizado = filter_var($provinciaId, FILTER_VALIDATE_INT);
 
-        return ($provinciaId !== false && $provinciaId > 0)
-            ? $provinciaId
+        return ($provinciaIdSanitizado !== false && $provinciaIdSanitizado > 0)
+            ? $provinciaIdSanitizado
             : null;
     }
 }
