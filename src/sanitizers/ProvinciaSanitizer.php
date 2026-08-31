@@ -8,7 +8,7 @@ class ProvinciaSanitizer
     {
         return [
             'id' => self::sanitizarIdProvincia($data['id'] ?? null),
-            'nombre' => self::sanitizarNombreProvincia($data['nombre'] ?? null)
+            'nombre' => self::sanitizarNombre($data['nombre'] ?? null)
         ];
     }
 
@@ -25,9 +25,9 @@ class ProvinciaSanitizer
             : null;
     }
 
-    public static function sanitizarNombreProvincia(?string $nombre): ?string
+    public static function sanitizarNombre($nombre): ?string
     {
-        if (!$nombre) {
+        if (!is_string($nombre)) {
             return null;
         }
 
@@ -35,10 +35,15 @@ class ProvinciaSanitizer
         $nombre = preg_replace('/\s+/u', ' ', $nombre);
         $nombre = mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
 
-        return htmlspecialchars(
-            $nombre,
-            ENT_QUOTES | ENT_SUBSTITUTE,
-            'UTF-8'
-        );
+        return mb_substr($nombre, 0, 100);
+    }
+
+    public static function sanitizarActualizacionProvincia(array $data): array
+    {
+        return [
+            'nombre' => isset($data['nombre'])
+                ? self::sanitizarNombre((string) $data['nombre'])
+                : null,
+        ];
     }
 }

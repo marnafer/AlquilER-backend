@@ -2,203 +2,82 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\Localidad;
-use App\Sanitizers\LocalidadSanitizer;
-use App\Validators\LocalidadValidator;
+use App\Helpers\Request;
 use App\Helpers\Response;
-use App\Exceptions\ValidationException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\BadRequestException;
+use App\Middlewares\AutenticadorMiddleware;
+use App\Services\LocalidadService;
 
 class LocalidadController
 {
-    /**
-     * GET /api/localidades
-     */
+    private readonly LocalidadService $service;
+
+    public function __construct(LocalidadService $service)
+    {
+        $this->service = $service;
+    }
+
     public function index()
     {
-        try {
-
-            $localidades = Localidad::all();
-
-            Response::success([
-                'items' => $localidades,
-                'total' => $localidades->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->listar()
+        );
     }
 
-    /**
-     * GET /api/localidades/{id}
-     */
     public function show($id)
     {
-        $idSan = LocalidadSanitizer::sanitizarIdLocalidad($id);
-
-        $validacion = LocalidadValidator::validarSoloIdLocalidad($idSan);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        try {
-
-            $localidad = Localidad::find($idSan);
-
-            if (!$localidad) {
-                throw new NotFoundException('Localidad no encontrada');
-            }
-
-            Response::success([
-                'data' => $localidad
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            $this->service->obtener($id)
+        );
     }
 
-    /**
-     * POST /api/localidades
-     */
     public function store()
     {
-        $raw = json_decode(file_get_contents('php://input'), true);
+        AutenticadorMiddleware::soloAdmin();
 
-        if (!is_array($raw)) {
-            throw new BadRequestException('JSON inválido');
-        }
+        $localidad = $this->service->crear(Request::json());
 
-        $san = LocalidadSanitizer::sanitizarLocalidad($raw);
-
-        $validacion = LocalidadValidator::validarCrearLocalidad($san);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        try {
-
-            if (
-                Localidad::where('nombre', $san['nombre'])
-                    ->exists()
-            ) {
-                throw new BadRequestException(
-                    'Ya existe una localidad con ese nombre'
-                );
-            }
-
-            $localidad = Localidad::create($san);
-
-            Response::created(
-                $localidad->toArray(),
-                'Localidad creada exitosamente'
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::created(
+            $localidad,
+            'Localidad creada exitosamente'
+        );
     }
 
-    /**
-     * PUT /api/localidades/{id}
-     */
-   public function update($id)
+    public function update($id)
     {
-        $raw = json_decode(file_get_contents('php://input'), true);
+        AutenticadorMiddleware::soloAdmin();
 
-        if (!is_array($raw)) {
-            throw new BadRequestException('JSON inválido');
-        }
+        $this->service->actualizar($id, Request::json());
 
-        $raw['id'] = $id;
-
-        $san = LocalidadSanitizer::sanitizarLocalidad($raw);
-
-        $validacion = LocalidadValidator::validarActualizarLocalidad($san);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        try {
-
-            $localidad = Localidad::find($san['id']);
-
-        if (!$localidad) {
-            throw new NotFoundException(
-                'Localidad no encontrada'
-            );
-        }
-
-        if (
-            Localidad::where('nombre', $san['nombre'])
-                ->where('id', '!=', $san['id'])
-                ->exists()
-        ) {
-            throw new BadRequestException(
-                'Ya existe otra localidad con ese nombre'
-            );
-        }
-
-        $localidad->update([
-            'nombre' => $san['nombre'],
-            'codigo_postal' => $san['codigo_postal'],
-            'provincia_id' => $san['provincia_id']
-        ]);
-
-        Response::success([
-            'data' => $localidad->fresh()
-        ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            [],
+            200,
+            'Localidad actualizada exitosamente'
+        );
     }
 
-    /**
-     * DELETE /api/localidades/{id}
-     */
     public function delete($id)
     {
-        $idSan = LocalidadSanitizer::sanitizarIdLocalidad($id);
+        AutenticadorMiddleware::soloAdmin();
 
-        $validacion = LocalidadValidator::validarSoloIdLocalidad($idSan);
+        $this->service->eliminar($id);
 
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
+        Response::success(
+            [],
+            200,
+            'Localidad eliminada exitosamente'
+        );
+    }
 
-        try {
+    public function restore($id)
+    {
+        AutenticadorMiddleware::soloAdmin();
 
-            $localidad = Localidad::find($idSan);
+        $this->service->restaurar($id);
 
-            if (!$localidad) {
-                throw new NotFoundException(
-                    'Localidad no encontrada'
-                );
-            }
-
-            $localidad->delete();
-
-            Response::json([
-                'success' => true,
-                'message' => 'Localidad eliminada exitosamente'
-            ], 200);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
+        Response::success(
+            [],
+            200,
+            'Localidad restaurada exitosamente'
+        );
     }
 }
