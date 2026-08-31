@@ -22,12 +22,14 @@ use App\Repositories\EloquentCategoriaRepository;
 use App\Repositories\EloquentServicioRepository;
 use App\Repositories\EloquentProvinciaRepository;
 use App\Repositories\EloquentLocalidadRepository;
+use App\Repositories\EloquentRolRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
 use App\Services\ServicioService;
 use App\Services\ProvinciaService;
 use App\Services\LocalidadService;
+use App\Services\RolService;
 
 
 // TOKEN PROVIDER
@@ -43,6 +45,7 @@ $categoriaRepository = new EloquentCategoriaRepository();
 $servicioRepository = new EloquentServicioRepository();
 $provinciaRepository = new EloquentProvinciaRepository();
 $localidadRepository = new EloquentLocalidadRepository();
+$rolRepository = new EloquentRolRepository();
 
 // SERVICES
 
@@ -71,6 +74,10 @@ $localidadService = new LocalidadService(
     $localidadRepository
 );
 
+$rolService = new RolService(
+    $rolRepository
+);
+
 // CONTROLLERS
 
 $autenticadorController = new AutenticadorController(
@@ -95,6 +102,10 @@ $provinciaController = new ProvinciaController(
 
 $localidadController = new LocalidadController(
     $localidadService
+);
+
+$rolController = new RolController(
+    $rolService
 );
 
 /*
@@ -187,17 +198,17 @@ $router->post('/api/localidades/{id}/restaurar', [$localidadController, 'restore
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/roles', [RolController::class, 'index']);
+$router->get('/api/roles', [$rolController, 'index']);
 
-$router->get('/api/roles/{id}', [RolController::class, 'show']);
+$router->get('/api/roles/{id}', [$rolController, 'show']);
 
-$router->post('/api/roles', [RolController::class, 'store']);
+$router->post('/api/roles', [$rolController, 'store']);
 
-$router->put('/api/roles/{id}', [RolController::class, 'update']);
+$router->put('/api/roles/{id}', [$rolController, 'update']);
 
-$router->delete('/api/roles/{id}', [RolController::class, 'delete']);
+$router->delete('/api/roles/{id}', [$rolController, 'delete']);
 
-$router->post('/api/roles/{id}/restaurar', [RolController::class, 'restore']);
+$router->post('/api/roles/{id}/restaurar', [$rolController, 'restore']);
 
 /*	
 |--------------------------------------------------------------------------
