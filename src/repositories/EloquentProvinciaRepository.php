@@ -35,7 +35,7 @@ class EloquentProvinciaRepository implements ProvinciaRepositoryInterface
 
     public function hasLocalities(Provincia $provincia): bool
     {
-        return $provincia->hasLocalities()->exists();
+        return $provincia->localidades()->exists();
     }
 
     public function create(array $data): Provincia
