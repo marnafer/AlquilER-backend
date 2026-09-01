@@ -100,12 +100,9 @@ class RolService
             );
         }
 
-        $data = RolSanitizer::sanitizarRol([
-            'id' => $rol->id,
-            ...$datosRecibidos,
-        ]);
+        $data = RolSanitizer::sanitizarActualizacionRol($datosRecibidos);
 
-        $validacion = RolValidator::validarActualizarRol($data);
+        $validacion = RolValidator::validarRol($data);
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
