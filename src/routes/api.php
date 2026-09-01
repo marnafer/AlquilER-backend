@@ -23,6 +23,7 @@ use App\Repositories\EloquentServicioRepository;
 use App\Repositories\EloquentProvinciaRepository;
 use App\Repositories\EloquentLocalidadRepository;
 use App\Repositories\EloquentRolRepository;
+use App\Repositories\EloquentPropiedadRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
@@ -30,6 +31,7 @@ use App\Services\ServicioService;
 use App\Services\ProvinciaService;
 use App\Services\LocalidadService;
 use App\Services\RolService;
+use App\Services\PropiedadService;
 
 
 // TOKEN PROVIDER
@@ -46,6 +48,7 @@ $servicioRepository = new EloquentServicioRepository();
 $provinciaRepository = new EloquentProvinciaRepository();
 $localidadRepository = new EloquentLocalidadRepository();
 $rolRepository = new EloquentRolRepository();
+$propiedadRepository = new EloquentPropiedadRepository();
 
 // SERVICES
 
@@ -78,6 +81,10 @@ $rolService = new RolService(
     $rolRepository
 );
 
+$propiedadService = new PropiedadService(
+    $propiedadRepository
+);
+
 // CONTROLLERS
 
 $autenticadorController = new AutenticadorController(
@@ -106,6 +113,10 @@ $localidadController = new LocalidadController(
 
 $rolController = new RolController(
     $rolService
+);
+
+$propiedadController = new PropiedadController(
+    $propiedadService
 );
 
 /*
@@ -340,14 +351,14 @@ $router->get('/api/logs-actividad/{id}', [LogActividadController::class, 'show']
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/propiedades', [PropiedadController::class, 'index']);
+$router->get('/api/propiedades', [$propiedadController, 'index']);
 
-$router->post('/api/propiedades', [PropiedadController::class, 'store']);
+$router->post('/api/propiedades', [$propiedadController, 'store']);
 
-$router->get('/api/propiedades/{id}', [PropiedadController::class, 'show']);
+$router->get('/api/propiedades/{id}', [$propiedadController, 'show']);
 
-$router->put('/api/propiedades/{id}', [PropiedadController::class, 'update']);
+$router->put('/api/propiedades/{id}', [$propiedadController, 'update']);
 
-$router->delete('/api/propiedades/{id}', [PropiedadController::class, 'delete']);
+$router->delete('/api/propiedades/{id}', [$propiedadController, 'delete']);
 
-$router->post('/api/propiedades/{id}/restaurar', [PropiedadController::class, 'restore']);
+$router->post('/api/propiedades/{id}/restaurar', [$propiedadController, 'restore']);
