@@ -17,12 +17,6 @@ class PropiedadValidator
 
         $errores = [];
 
-        /*
-        |--------------------------------------------------------------------------
-        | ID
-        |--------------------------------------------------------------------------
-        */
-
         if ($requerirId) {
 
             $resultado = self::validarIdRequerido(
@@ -34,12 +28,6 @@ class PropiedadValidator
                 $errores['id'] = $resultado['error'];
             }
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | TITULO
-        |--------------------------------------------------------------------------
-        */
 
         if (
             empty($data['titulo'])
@@ -53,12 +41,6 @@ class PropiedadValidator
                 'El título no puede superar los 150 caracteres';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | DIRECCION
-        |--------------------------------------------------------------------------
-        */
-
         if (
             empty($data['direccion'])
         ) {
@@ -71,12 +53,6 @@ class PropiedadValidator
                 'La dirección no puede superar los 125 caracteres';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | DESCRIPCION
-        |--------------------------------------------------------------------------
-        */
-
         if (
             isset($data['descripcion']) &&
             $data['descripcion'] !== null &&
@@ -85,12 +61,6 @@ class PropiedadValidator
             $errores['descripcion'] =
                 'La descripción no puede superar los 5000 caracteres';
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | PRECIO
-        |--------------------------------------------------------------------------
-        */
 
         if (
             !is_numeric($data['precio'])
@@ -104,12 +74,6 @@ class PropiedadValidator
                 'El precio debe ser mayor a 0';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | EXPENSAS
-        |--------------------------------------------------------------------------
-        */
-
         if (
             !is_numeric($data['expensas'])
         ) {
@@ -122,12 +86,6 @@ class PropiedadValidator
                 'Las expensas no pueden ser negativas';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | AMBIENTES
-        |--------------------------------------------------------------------------
-        */
-
         if (
             !is_numeric($data['cantidad_ambientes']) ||
             $data['cantidad_ambientes'] < 1
@@ -135,12 +93,6 @@ class PropiedadValidator
             $errores['cantidad_ambientes'] =
                 'La cantidad de ambientes debe ser mayor a 0';
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | DORMITORIOS
-        |--------------------------------------------------------------------------
-        */
 
         if (
             !is_numeric($data['cantidad_dormitorios']) ||
@@ -158,12 +110,6 @@ class PropiedadValidator
                 'Los dormitorios no pueden superar la cantidad de ambientes';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | BAÑOS
-        |--------------------------------------------------------------------------
-        */
-
         if (
             !is_numeric($data['cantidad_banos']) ||
             $data['cantidad_banos'] < 1
@@ -180,12 +126,6 @@ class PropiedadValidator
                 'Los baños no pueden superar la cantidad de ambientes';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | CAPACIDAD
-        |--------------------------------------------------------------------------
-        */
-
         if (
             isset($data['capacidad']) &&
             $data['capacidad'] !== null &&
@@ -194,12 +134,6 @@ class PropiedadValidator
             $errores['capacidad'] =
                 'La capacidad debe ser mayor a 0';
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | DISPONIBLE
-        |--------------------------------------------------------------------------
-        */
 
         if (
             !in_array(
@@ -211,12 +145,6 @@ class PropiedadValidator
             $errores['disponible'] =
                 'El estado de disponibilidad es inválido';
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | CATEGORIA
-        |--------------------------------------------------------------------------
-        */
 
         if (
             empty($data['categoria_id'])
@@ -235,12 +163,6 @@ class PropiedadValidator
                 'La categoría seleccionada no existe';
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | LOCALIDAD
-        |--------------------------------------------------------------------------
-        */
-
         if (
             empty($data['localidad_id'])
         ) {
@@ -257,12 +179,6 @@ class PropiedadValidator
             $errores['localidad_id'] =
                 'La localidad seleccionada no existe';
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESULTADO
-        |--------------------------------------------------------------------------
-        */
 
         if (!empty($errores)) {
 
