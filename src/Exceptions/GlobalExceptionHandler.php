@@ -12,7 +12,7 @@ class GlobalExceptionHandler
 {
     public static function handle(Throwable $exception): void
     {
-        $status = $exception->getCode();
+        $status = is_int($exception->getCode()) ? $exception->getCode() : 500;
 
         if ($status < 400 || $status > 599) {
             $status = 500;

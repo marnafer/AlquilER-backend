@@ -87,6 +87,24 @@ Ejemplo de respuesta de validación:
 * **SoftDeletes:** Aplicado por defecto a entidades principales (Usuarios, Propiedades, Categorías, Reservas, etc.). Las peticiones `GET` públicas excluyen registros eliminados automáticamente.
 * **Eliminación Física:** Usada estrictamente en Relaciones Intermedias (ej. Propiedad-Servicio), Favoritos y Reseñas.
 
+### Convención de actualización por entidad
+
+Las entidades con actualizaciones no parciales siguen el mismo patrón de validación y sanitización:
+
+* El ID del recurso se valida desde la URL y no se recibe como campo del *body*.
+* El *payload* recibido se filtra para los campos permitidos.
+* El nombre o datos de la entidad se sanitizan antes de validarse.
+* La validación se realiza sobre el *payload* ya normalizado.
+* La comprobación de conflictos de negocio se realiza luego de la validación.
+
+Este patrón aplica a entidades como **Categoría**, **Provincia**, **Localidad**, **Servicio** y **Rol**.
+
+Las actualizaciones parciales solo se permiten en casos donde la entidad admite cambios selectivos, como **Usuario** y **Propiedad**. En esos casos se usa un validador específico para actualización parcial y se restringen los campos modificables.
+
+**Regla general:**
+* Entidad "no parcial" → validador normal
+* Entidad "parcial" → validador específico
+
 ---
 
 ## 4. Autenticador

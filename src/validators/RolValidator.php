@@ -91,36 +91,36 @@ class RolValidator
         if ($nombre === null || $nombre === '') {
             return [
                 'success' => false,
-                'error' => 'El nombre del rol es requerido'
+                'error' => 'El nombre del rol es requerido',
             ];
         }
 
-        $nombre = trim($nombre);
+        $nombre = trim((string) $nombre);
 
-        if (strlen($nombre) < 3) {
+        if (mb_strlen($nombre) < 3) {
             return [
                 'success' => false,
-                'error' => 'El nombre debe tener al menos 3 caracteres'
+                'error' => 'El nombre debe tener al menos 3 caracteres',
             ];
         }
 
-        if (strlen($nombre) > 30) {
+        if (mb_strlen($nombre) > 30) {
             return [
                 'success' => false,
-                'error' => 'El nombre no puede exceder los 30 caracteres'
+                'error' => 'El nombre no puede exceder los 30 caracteres',
             ];
         }
 
-        if (!preg_match('/^[a-zA-ZáéíóúñÁÉÍÓÚ\s]+$/u', $nombre)) {
+        if (!preg_match('/^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$/u', $nombre)) {
             return [
                 'success' => false,
-                'error' => 'El nombre solo puede contener letras y espacios'
+                'error' => 'El nombre solo puede contener letras y espacios',
             ];
         }
 
         return [
             'success' => true,
-            'error' => null
+            'error' => null,
         ];
     }
 

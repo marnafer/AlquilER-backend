@@ -37,40 +37,17 @@ class RolSanitizer
     /**
      * Sanitizar nombre
      */
-    public static function sanitizarNombreRol($nombre)
-    {
-        if ($nombre === null || $nombre === '') {
-            return null;
-        }
-
-        $nombre = trim($nombre);
-
-        $nombre = preg_replace(
-            '/\s+/',
-            ' ',
-            $nombre
-        );
-
-        $nombre = strtolower($nombre);
-
-        $nombre = preg_replace(
-            '/[^a-záéíóúñ\s]/u',
-            '',
-            $nombre
-        );
-
-        $nombre = htmlspecialchars(
-            $nombre,
-            ENT_QUOTES,
-            'UTF-8'
-        );
-
-        if (strlen($nombre) > 30) {
-            $nombre = substr($nombre, 0, 30);
-        }
-
-        return $nombre;
+    public static function sanitizarNombreRol($nombre): ?string
+{
+    if ($nombre === null || $nombre === '') {
+        return null;
     }
+
+    $nombre = trim((string) $nombre);
+    $nombre = preg_replace('/\s+/', ' ', $nombre);
+
+    return $nombre !== '' ? $nombre : null;
+}
 
     /**
      * Sanitizar solo nombre
@@ -78,5 +55,14 @@ class RolSanitizer
     public static function sanitizarSoloNombreRol($nombre)
     {
         return self::sanitizarNombreRol($nombre);
+    }
+
+    public static function sanitizarActualizacionRol(array $data): array
+    {
+        return [
+            'nombre' => isset($data['nombre'])
+                ? self::sanitizarNombreRol((string) $data['nombre'])
+                : null,
+        ];
     }
 }
