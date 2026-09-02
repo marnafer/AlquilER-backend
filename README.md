@@ -69,6 +69,9 @@ La estructura del backend se organiza mediante diferentes capas y responsabilida
 | `src/helpers/JwtHelper.php` | Soporte técnico JWT |
 | `src/repositories/UsuarioRepositoryInterface.php` | Contrato de persistencia |
 | `src/repositories/EloquentUsuarioRepository.php` | Implementación del repositorio |
+| `src/repositories/LogActividadRepositoryInterface.php` | Contrato de consulta y persistencia de logs |
+| `src/repositories/EloquentLogActividadRepository.php` | Implementación del repositorio de logs |
+| `src/services/LogActividadService.php` | Lógica de consulta y registro de actividad |
 | `src/services/` | Lógica de negocio |
 | `src/database.php` | DAL / Configuración de acceso a datos |
 | `config/config.php` | Configuración |
@@ -76,11 +79,14 @@ La estructura del backend se organiza mediante diferentes capas y responsabilida
 | `src/debug/` | Soporte / Desarrollo |
 
 ### Organización general
+
 El flujo principal de una petición puede representarse de la siguiente manera:
 
-`Cliente` → `public/index.php` → `Router` → `Middleware` → `Controller` → `Model/BD` → `Response`
+`Cliente` → `public/index.php` → `Router` → `Middleware` → `Controller` → `Service` → `Repository / Provider` → `Model / BD` → `Response`
 
-De esta manera, cada componente tiene una responsabilidad definida dentro del procesamiento de las solicitudes.
+Los controladores coordinan la petición y delegan la lógica de negocio en los servicios. Los servicios utilizan repositorios para acceder a los datos y proveedores para resolver operaciones técnicas, como la generación y validación de tokens.
+
+Las implementaciones concretas se conectan actualmente en `src/routes/api.php`. Está previsto extraer este wiring a un archivo de bootstrap o contenedor independiente.
 
 ---
 
@@ -113,15 +119,30 @@ Durante el análisis inicial del sistema se detectaron diferentes situaciones en
 * **Archivos:** `src/services/`, `src/controllers/Api/` y `src/routes/api.php`.
 * **Problema:** Los servicios y controladores pueden quedar acoplados a implementaciones concretas, como `UsuarioRepository` o `JwtHelper`. Esto dificulta reemplazar componentes y realizar pruebas unitarias aisladas.
 * **Solución implementada:** Los servicios dependen de interfaces (`UsuarioRepositoryInterface` y `TokenProviderInterface`) en lugar de clases concretas. `EloquentUsuarioRepository` implementa la interfaz de persistencia y `JwtProvider` implementa la interfaz de tokens.
-* **Wiring:** Las implementaciones concretas se construyen y conectan en `src/routes/api.php`, que centraliza la creación de repositorios, proveedores, servicios y controladores.
+* **Wiring actual:** Las implementaciones concretas se construyen y conectan en `src/routes/api.php`, que actualmente centraliza la creación de repositorios, proveedores, servicios y controladores.
+* **Evolución prevista:** En una etapa posterior, este ensamblado se extraerá a un archivo de bootstrap o contenedor independiente, dejando `api.php` enfocado principalmente en el registro de rutas.
 
 El flujo de dependencias queda organizado de la siguiente manera:
 
-`AutenticadorController` → `AutenticadorService` → `UsuarioRepositoryInterface` / `TokenProviderInterface`
+`AutenticadorController` → `AutenticadorService` → `UsuarioRepositoryInterface` / `TokenProviderInterface` / `LogActividadService`
+
+`UsuarioController` → `UsuarioService` → `UsuarioRepositoryInterface` / `LogActividadService`
+
+`PropiedadService` → `PropiedadRepositoryInterface` / `LogActividadService`
+
+`PropiedadImagenService` → `PropiedadImagenRepositoryInterface` / `LogActividadService`
 
 `UsuarioRepositoryInterface` → `EloquentUsuarioRepository`
 
+`LogActividadRepositoryInterface` → `EloquentLogActividadRepository`
+
 `TokenProviderInterface` → `JwtProvider` → `JwtHelper`
+
+### 3.6. Registro centralizado de actividad
+
+El registro de actividad se concentra en `LogActividadService`. Los servicios de negocio informan las acciones auditables y este servicio se encarga de sanitizar, validar, completar la dirección IP y la fecha, y persistir el registro mediante `LogActividadRepositoryInterface`.
+
+Los logs se exponen únicamente mediante endpoints de consulta para administradores. No existe un CRUD público para crear, modificar o eliminar registros de actividad.
 
 ---
 
