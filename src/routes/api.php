@@ -24,6 +24,7 @@ use App\Repositories\EloquentProvinciaRepository;
 use App\Repositories\EloquentLocalidadRepository;
 use App\Repositories\EloquentRolRepository;
 use App\Repositories\EloquentPropiedadRepository;
+use App\Repositories\EloquentPropiedadImagenRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
@@ -32,6 +33,7 @@ use App\Services\ProvinciaService;
 use App\Services\LocalidadService;
 use App\Services\RolService;
 use App\Services\PropiedadService;
+use App\Services\PropiedadImagenService;
 
 
 // TOKEN PROVIDER
@@ -49,6 +51,7 @@ $provinciaRepository = new EloquentProvinciaRepository();
 $localidadRepository = new EloquentLocalidadRepository();
 $rolRepository = new EloquentRolRepository();
 $propiedadRepository = new EloquentPropiedadRepository();
+$propiedadImagenRepository = new EloquentPropiedadImagenRepository();
 
 // SERVICES
 
@@ -85,6 +88,11 @@ $propiedadService = new PropiedadService(
     $propiedadRepository
 );
 
+$propiedadImagenService = new PropiedadImagenService(
+    $propiedadImagenRepository, 
+    $propiedadService
+);
+
 // CONTROLLERS
 
 $autenticadorController = new AutenticadorController(
@@ -117,6 +125,10 @@ $rolController = new RolController(
 
 $propiedadController = new PropiedadController(
     $propiedadService
+);
+
+$propiedadImagenController = new PropiedadImagenController(
+    $propiedadImagenService
 );
 
 /*
@@ -227,15 +239,15 @@ $router->post('/api/roles/{id}/restaurar', [$rolController, 'restore']);
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'show']);
+$router->get('/api/propiedad-imagenes/{id}', [$propiedadImagenController, 'show']);
 
-$router->get('/api/propiedad-imagenes', [PropiedadImagenController::class, 'index']);
+$router->get('/api/propiedad-imagenes', [$propiedadImagenController, 'index']);
 
-$router->post('/api/propiedad-imagenes', [PropiedadImagenController::class, 'store']);
+$router->post('/api/propiedad-imagenes', [$propiedadImagenController, 'store']);
 
-$router->put('/api/propiedad-imagenes/{id}/principal', [PropiedadImagenController::class, 'setPrincipal']);
+$router->put('/api/propiedad-imagenes/{id}/principal', [$propiedadImagenController, 'setPrincipal']);
 
-$router->delete('/api/propiedad-imagenes/{id}', [PropiedadImagenController::class, 'delete']);
+$router->delete('/api/propiedad-imagenes/{id}', [$propiedadImagenController, 'delete']);
 
 /*	
 |--------------------------------------------------------------------------
