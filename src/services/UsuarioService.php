@@ -15,7 +15,8 @@ use App\Validators\UsuarioValidator;
 class UsuarioService
 {
     public function __construct(
-        private readonly UsuarioRepositoryInterface $repository
+        private readonly UsuarioRepositoryInterface $repository,
+        private readonly LogActividadService $logActividadService
     ) {
     }
 
@@ -67,6 +68,11 @@ class UsuarioService
         if (!$usuario) {
             throw new NotFoundException('Usuario no encontrado');
         }
+
+        $this->logActividadService->registrar(
+            $usuario->id,
+            'Eliminación de usuario'
+        );
 
         $this->repository->delete($usuario);
     }
@@ -149,6 +155,11 @@ class UsuarioService
                 PASSWORD_DEFAULT
             );
         }
+
+        $this->logActividadService->registrar(
+            $usuario->id,
+            'Actualización de usuario'
+        );
 
         $this->repository->update($usuario, $data);
     }

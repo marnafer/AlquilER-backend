@@ -16,7 +16,8 @@ use App\Validators\PropiedadValidator;
 class PropiedadService
 {
     public function __construct(
-        private readonly PropiedadRepositoryInterface $repository
+        private readonly PropiedadRepositoryInterface $repository,
+        private readonly LogActividadService $logActividadService
     ) {
     }
 
@@ -59,6 +60,11 @@ class PropiedadService
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
         }
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Creación de propiedad'
+        );
 
         return $this->repository->create($data);
     }
@@ -134,6 +140,11 @@ class PropiedadService
             throw new ValidationException($validacion['errors']);
         }
 
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Actualización de propiedad'
+        );
+
         $this->repository->update($propiedad, $data);
     }
 
@@ -146,6 +157,11 @@ class PropiedadService
                 'No tienes permiso para eliminar esta propiedad'
             );
         }
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Eliminación de propiedad'
+        );
 
         $this->repository->delete($propiedad);
     }
@@ -175,6 +191,11 @@ class PropiedadService
         if ($propiedad->deleted_at === null) {
             throw new BadRequestException('La propiedad no está eliminada');
         }
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Restauración de propiedad'
+        );
 
         $this->repository->restore($propiedad);
     }

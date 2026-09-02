@@ -25,6 +25,7 @@ use App\Repositories\EloquentLocalidadRepository;
 use App\Repositories\EloquentRolRepository;
 use App\Repositories\EloquentPropiedadRepository;
 use App\Repositories\EloquentPropiedadImagenRepository;
+use App\Repositories\EloquentLogActividadRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
@@ -34,6 +35,7 @@ use App\Services\LocalidadService;
 use App\Services\RolService;
 use App\Services\PropiedadService;
 use App\Services\PropiedadImagenService;
+use App\Services\LogActividadService;
 
 
 // TOKEN PROVIDER
@@ -52,16 +54,23 @@ $localidadRepository = new EloquentLocalidadRepository();
 $rolRepository = new EloquentRolRepository();
 $propiedadRepository = new EloquentPropiedadRepository();
 $propiedadImagenRepository = new EloquentPropiedadImagenRepository();
+$logActividadRepository = new EloquentLogActividadRepository();
 
 // SERVICES
 
+$logActividadService = new LogActividadService(
+    $logActividadRepository
+);
+
 $autenticadorService = new AutenticadorService(
     $usuarioRepository,
-    $tokenProvider
+    $tokenProvider,
+    $logActividadService
 );
 
 $usuarioService = new UsuarioService(
-    $usuarioRepository
+    $usuarioRepository,
+    $logActividadService
 );
 
 $categoriaService = new CategoriaService(
@@ -85,13 +94,16 @@ $rolService = new RolService(
 );
 
 $propiedadService = new PropiedadService(
-    $propiedadRepository
+    $propiedadRepository,
+    $logActividadService
 );
 
 $propiedadImagenService = new PropiedadImagenService(
     $propiedadImagenRepository, 
-    $propiedadService
+    $propiedadService,
+    $logActividadService
 );
+
 
 // CONTROLLERS
 
@@ -129,6 +141,10 @@ $propiedadController = new PropiedadController(
 
 $propiedadImagenController = new PropiedadImagenController(
     $propiedadImagenService
+);
+
+$logActividadController = new LogActividadController(
+    $logActividadService
 );
 
 /*
@@ -353,9 +369,9 @@ $router->delete('/api/propiedades/{id}/servicios/{servicio_id}', [PropiedadServi
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/logs-actividad', [LogActividadController::class, 'index']);
+$router->get('/api/logs-actividad', [$logActividadController, 'index']);
 
-$router->get('/api/logs-actividad/{id}', [LogActividadController::class, 'show']);
+$router->get('/api/logs-actividad/{id}', [$logActividadController, 'show']);
 
 /*
 |--------------------------------------------------------------------------
