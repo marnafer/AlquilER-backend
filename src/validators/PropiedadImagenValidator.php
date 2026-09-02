@@ -2,8 +2,6 @@
 
 namespace App\Validators;
 
-use App\Models\Propiedad;
-
 class PropiedadImagenValidator
 {
     private const MAX_SIZE = 5 * 1024 * 1024;
@@ -16,7 +14,17 @@ class PropiedadImagenValidator
                 'success' => false,
                 'message' => 'Error de validación',
                 'errors' => [
-                    'id' => 'El ID de imagen es requerido'
+                    'id' => 'Ingrese un ID de imagen valido'
+                ]
+            ];
+        }
+
+        if (!is_numeric($id) || (int) $id <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => [
+                    'id' => 'El ID de imagen debe ser un entero positivo'
                 ]
             ];
         }
@@ -34,14 +42,13 @@ class PropiedadImagenValidator
 
         if ($data['propiedad_id'] === null) {
             $errores['propiedad_id'] = 'El ID de propiedad es requerido';
-        } elseif (!Propiedad::find($data['propiedad_id'])) {
-            $errores['propiedad_id'] = 'La propiedad no existe';
+        } elseif (!is_numeric($data['propiedad_id']) || (int) $data['propiedad_id'] <= 0) {
+            $errores['propiedad_id'] = 'El ID de propiedad debe ser un entero positivo';
         }
 
         if (!$file || !isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
             $errores['imagen'] = 'Debe enviar una imagen';
         } else {
-
             if ($file['size'] > self::MAX_SIZE) {
                 $errores['imagen'] = 'La imagen supera 5MB';
             }
@@ -69,4 +76,5 @@ class PropiedadImagenValidator
             'errors' => null
         ];
     }
+
 }

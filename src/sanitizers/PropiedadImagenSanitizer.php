@@ -6,7 +6,7 @@ class PropiedadImagenSanitizer
 {
     public static function sanitizarIdPropiedadImagen($id): ?int
     {
-        if (!isset($id)) {
+        if ($id === null || $id === '') {
             return null;
         }
 
@@ -14,7 +14,9 @@ class PropiedadImagenSanitizer
             return null;
         }
 
-        return (int) $id;
+        $id = (int) $id;
+
+        return $id > 0 ? $id : null;
     }
 
     public static function sanitizarPropiedadImagen(array $data): array
