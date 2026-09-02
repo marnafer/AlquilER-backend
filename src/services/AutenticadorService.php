@@ -16,7 +16,8 @@ class AutenticadorService
 {
     public function __construct(
         private readonly UsuarioRepositoryInterface $usuarioRepository,
-        private readonly TokenProviderInterface $tokenProvider
+        private readonly TokenProviderInterface $tokenProvider,
+        private readonly LogActividadService $logActividadService
     ) {
     }
 
@@ -50,6 +51,11 @@ class AutenticadorService
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
+        $this->logActividadService->registrar(
+            $usuario->id,
+            'Inicio de sesión'
+        );
+
         return [
             'token' => $this->tokenProvider->generate($usuario),
             'rol_id' => $usuario->rol_id,
@@ -80,6 +86,11 @@ class AutenticadorService
         $data['contrasena'] = password_hash(
             $data['contrasena'],
             PASSWORD_DEFAULT
+        );
+
+        $this->logActividadService->registrar(
+            $data['id'],
+            'Registro de usuario'
         );
 
         return $this->usuarioRepository->createWithRole($data, 1);

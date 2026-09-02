@@ -20,7 +20,8 @@ class PropiedadImagenService
 
     public function __construct(
         private readonly PropiedadImagenRepositoryInterface $repository,
-        private readonly PropiedadService $propiedadService
+        private readonly PropiedadService $propiedadService,
+        private readonly LogActividadService $logActividadService
     ) {
     }
 
@@ -117,6 +118,11 @@ class PropiedadImagenService
 
         $cantidadImagenes = $this->repository->countByPropiedadId($propiedadId);
 
+        $this->logActividadService->registrar(
+            (int) $user->sub,
+            'Creación de imagen para propiedad ID: ' . $propiedadId
+        );
+
         return $this->repository->create([
             'propiedad_id' => $propiedadId,
             'ruta' => '/uploads/propiedades/' . $nombreArchivo,
@@ -150,5 +156,9 @@ class PropiedadImagenService
         }
 
         $this->repository->delete($imagen);
+        $this->logActividadService->registrar(
+            (int) $user->sub,
+            'Eliminación de imagen para propiedad ID: ' . $imagen->propiedad_id
+        );
     }
 }
