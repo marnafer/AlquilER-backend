@@ -9,4 +9,6 @@ node_modules/
 # Archivos subidos por los usuarios
 /public/uploads/
 
+# Archivos de cambios actuales y futuros
 Cambios.txt
+PLAN-SWAGGER.txt
