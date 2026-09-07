@@ -88,11 +88,13 @@ class AutenticadorService
             PASSWORD_DEFAULT
         );
 
+        $usuario = $this->usuarioRepository->createWithRole($data, 1);
+
         $this->logActividadService->registrar(
-            $data['id'],
+            $usuario->id,
             'Registro de usuario'
         );
 
-        return $this->usuarioRepository->createWithRole($data, 1);
+        return $usuario;
     }
 }
