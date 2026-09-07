@@ -7,7 +7,6 @@ use App\Controllers\Api\ProvinciaController;
 use App\Controllers\Api\LocalidadController;
 use App\Controllers\Api\RolController;
 use App\Controllers\Api\PropiedadImagenController;
-use App\Controllers\Api\FavoritoController;
 use App\Controllers\Api\ConsultaController;
 use App\Controllers\Api\ReservaController;
 use App\Controllers\Api\ResenaController;
@@ -26,6 +25,8 @@ use App\Repositories\EloquentRolRepository;
 use App\Repositories\EloquentPropiedadRepository;
 use App\Repositories\EloquentPropiedadImagenRepository;
 use App\Repositories\EloquentLogActividadRepository;
+use App\Repositories\EloquentFavoritoRepository;
+use App\Repositories\EloquentReservaRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
@@ -36,7 +37,9 @@ use App\Services\RolService;
 use App\Services\PropiedadService;
 use App\Services\PropiedadImagenService;
 use App\Services\LogActividadService;
-
+use App\Services\FavoritoService;
+use App\Services\ReservaService;
+use App\Controllers\Api\FavoritoController;
 
 // TOKEN PROVIDER
 
@@ -55,6 +58,8 @@ $rolRepository = new EloquentRolRepository();
 $propiedadRepository = new EloquentPropiedadRepository();
 $propiedadImagenRepository = new EloquentPropiedadImagenRepository();
 $logActividadRepository = new EloquentLogActividadRepository();
+$favoritoRepository = new EloquentFavoritoRepository();
+$reservaRepository = new EloquentReservaRepository();
 
 // SERVICES
 
@@ -104,6 +109,17 @@ $propiedadImagenService = new PropiedadImagenService(
     $logActividadService
 );
 
+$favoritoService = new FavoritoService(
+    $favoritoRepository,
+    $propiedadRepository,
+    $logActividadService
+);
+
+$reservaService = new ReservaService(
+    $reservaRepository,
+    $propiedadRepository,
+    $logActividadService
+);
 
 // CONTROLLERS
 
@@ -145,6 +161,14 @@ $propiedadImagenController = new PropiedadImagenController(
 
 $logActividadController = new LogActividadController(
     $logActividadService
+);
+
+$favoritoController = new FavoritoController(
+    $favoritoService
+);
+
+$reservaController = new ReservaController(
+    $reservaService
 );
 
 /*
@@ -271,13 +295,39 @@ $router->delete('/api/propiedad-imagenes/{id}', [$propiedadImagenController, 'de
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/favoritos', [FavoritoController::class, 'index']);
+$router->get('/api/favoritos', [$favoritoController, 'index']);
 
-$router->post('/api/favoritos', [FavoritoController::class, 'store']);
+$router->post('/api/favoritos', [$favoritoController, 'store']);
 
-$router->get('/api/usuarios/{id}/favoritos', [FavoritoController::class, 'indexByUsuario']);
+$router->get('/api/usuarios/{id}/favoritos', [$favoritoController, 'indexByUsuario']);
 
-$router->delete('/api/favoritos/propiedad/{propiedad_id}', [FavoritoController::class, 'deleteByPropiedad']);
+$router->delete('/api/favoritos/propiedad/{propiedad_id}', [$favoritoController, 'deleteByPropiedad']);
+
+/*
+|--------------------------------------------------------------------------
+| RESERVAS
+|--------------------------------------------------------------------------
+*/
+
+$router->get('/api/reservas', [$reservaController, 'index']);
+
+$router->get('/api/reservas/{id}', [$reservaController, 'show']);
+
+$router->post('/api/reservas', [$reservaController, 'store']);
+
+$router->put('/api/reservas/{id}', [$reservaController, 'update']);
+
+$router->delete('/api/reservas/{id}', [$reservaController, 'delete']);
+
+$router->post('/api/reservas/{id}/restaurar', [$reservaController, 'restore']);
+
+$router->get('/api/reservas/usuario/{usuarioId}', [$reservaController, 'getByUsuario']);
+
+$router->get('/api/reservas/propiedad/{propiedadId}', [$reservaController, 'getByPropiedad']);
+
+$router->patch('/api/reservas/{id}/estado', [$reservaController, 'cambiarEstado']);
+
+$router->get('/api/reservas/verificar-disponibilidad', [$reservaController, 'verificarDisponibilidad']);
 
 /*
 |--------------------------------------------------------------------------
@@ -296,24 +346,6 @@ $router->put('/api/consultas/{id}', [ConsultaController::class, 'update']);
 $router->delete('/api/consultas/{id}', [ConsultaController::class, 'delete']);
 
 $router->post('/api/consultas/{id}/restaurar', [ConsultaController::class, 'restore']);
-
-/*
-|--------------------------------------------------------------------------
-| RESERVAS
-|--------------------------------------------------------------------------
-*/
-
-$router->get('/api/reservas', [ReservaController::class, 'index']);
-
-$router->get('/api/reservas/{id}', [ReservaController::class, 'show']);
-
-$router->post('/api/reservas', [ReservaController::class, 'store']);
-
-$router->put('/api/reservas/{id}', [ReservaController::class, 'update']);
-
-$router->delete('/api/reservas/{id}', [ReservaController::class, 'delete']);
-
-$router->post('/api/reservas/{id}/restaurar', [ReservaController::class, 'restore']);   
 
 /*
 |--------------------------------------------------------------------------
