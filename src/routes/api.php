@@ -91,7 +91,8 @@ $provinciaService = new ProvinciaService(
 );
 
 $localidadService = new LocalidadService(
-    $localidadRepository
+    $localidadRepository,
+    $provinciaRepository
 );
 
 $rolService = new RolService(

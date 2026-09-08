@@ -2,8 +2,6 @@
 
 namespace App\Validators;
 
-use App\Models\Provincia;
-
 class LocalidadValidator
 {
     public static function validarLocalidad(array $data, bool $requerirId = false): array
@@ -175,13 +173,6 @@ class LocalidadValidator
             return [
                 'success' => false,
                 'error' => 'Provincia inválida',
-            ];
-        }
-
-        if (!Provincia::find((int) $provinciaId)) {
-            return [
-                'success' => false,
-                'error' => 'La provincia no existe',
             ];
         }
 
