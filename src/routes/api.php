@@ -39,6 +39,7 @@ use App\Services\PropiedadImagenService;
 use App\Services\LogActividadService;
 use App\Services\FavoritoService;
 use App\Services\ReservaService;
+use App\Services\LocalFileUploader;
 use App\Controllers\Api\FavoritoController;
 
 // TOKEN PROVIDER
@@ -104,10 +105,13 @@ $propiedadService = new PropiedadService(
     $logActividadService
 );
 
+$fileUploader = new LocalFileUploader();
+
 $propiedadImagenService = new PropiedadImagenService(
-    $propiedadImagenRepository, 
+    $propiedadImagenRepository,
     $propiedadService,
-    $logActividadService
+    $logActividadService,
+    $fileUploader
 );
 
 $favoritoService = new FavoritoService(
