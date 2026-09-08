@@ -37,9 +37,7 @@ class UsuarioService
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']]
-            ]);
+            throw new ValidationException($validacion['errors']);
         }
 
         $usuario = $this->repository->findById($id);
@@ -58,9 +56,7 @@ class UsuarioService
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']]
-            ]);
+            throw new ValidationException($validacion['errors']);
         }
 
         $usuario = $this->repository->findById($id);
@@ -84,9 +80,7 @@ class UsuarioService
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']]
-            ]);
+            throw new ValidationException($validacion['errors']);
         }
 
         $usuario = $this->repository->findById($id);
@@ -171,9 +165,7 @@ class UsuarioService
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']]
-            ]);
+            throw new ValidationException($validacion['errors']);
         }
 
         $usuario = $this->repository->findDeletedById($id);
