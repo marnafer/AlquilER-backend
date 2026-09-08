@@ -10,19 +10,21 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Localidad;
 use App\Repositories\LocalidadRepositoryInterface;
+use App\Repositories\ProvinciaRepositoryInterface;
 use App\Sanitizers\LocalidadSanitizer;
 use App\Validators\LocalidadValidator;
 
 class LocalidadService
 {
     public function __construct(
-        private readonly LocalidadRepositoryInterface $repository
+        private readonly LocalidadRepositoryInterface $localidadRepository,
+        private readonly ProvinciaRepositoryInterface $provinciaRepository
     ) {
     }
 
     public function listar(): array
     {
-        $localidades = $this->repository->all();
+        $localidades = $this->localidadRepository->all();
 
         return [
             'items' => $localidades,
@@ -42,7 +44,7 @@ class LocalidadService
             ]);
         }
 
-        $localidad = $this->repository->findById($id);
+        $localidad = $this->localidadRepository->findById($id);
 
         if (!$localidad) {
             throw new NotFoundException('Localidad no encontrada');
@@ -61,8 +63,14 @@ class LocalidadService
             throw new ValidationException($validacion['errors']);
         }
 
+        if (!$this->provinciaRepository->findById($data['provincia_id'])) {
+            throw new ValidationException([
+                'provincia_id' => ['La provincia no existe'],
+            ]);
+        }
+
         if (
-            $this->repository->existsByNameInProvince(
+            $this->localidadRepository->existsByNameInProvince(
                 $data['nombre'],
                 $data['provincia_id']
             )
@@ -72,7 +80,7 @@ class LocalidadService
             );
         }
 
-        return $this->repository->create($data);
+        return $this->localidadRepository->create($data);
     }
 
     public function actualizar($rawId, array $rawData): void
@@ -118,8 +126,17 @@ class LocalidadService
         $provinciaId = $data['provincia_id'] ?? $localidad->provincia_id;
 
         if (
+            array_key_exists('provincia_id', $data)
+            && !$this->provinciaRepository->findById($provinciaId)
+        ) {
+            throw new ValidationException([
+                'provincia_id' => ['La provincia no existe'],
+            ]);
+        }
+
+        if (
             array_key_exists('nombre', $data)
-            && $this->repository->existsByNameInProvince(
+            && $this->localidadRepository->existsByNameInProvince(
                 $data['nombre'],
                 $provinciaId,
                 $localidad->id
@@ -130,20 +147,20 @@ class LocalidadService
             );
         }
 
-        $this->repository->update($localidad, $data);
+        $this->localidadRepository->update($localidad, $data);
     }
 
     public function eliminar($rawId): void
     {
         $localidad = $this->obtener($rawId);
 
-        if ($this->repository->hasProperties($localidad)) {
+        if ($this->localidadRepository->hasProperties($localidad)) {
             throw new ConflictException(
                 'No se puede eliminar porque tiene propiedades asociadas'
             );
         }
 
-        $this->repository->delete($localidad);
+        $this->localidadRepository->delete($localidad);
     }
 
     public function restaurar($rawId): void
@@ -158,14 +175,14 @@ class LocalidadService
             ]);
         }
 
-        $localidad = $this->repository->findDeletedById($id);
+        $localidad = $this->localidadRepository->findDeletedById($id);
 
         if (!$localidad) {
             throw new NotFoundException('Localidad eliminada no encontrada');
         }
 
         if (
-            $this->repository->existsByNameInProvince(
+            $this->localidadRepository->existsByNameInProvince(
                 $localidad->nombre,
                 $localidad->provincia_id,
                 $localidad->id
@@ -176,6 +193,6 @@ class LocalidadService
             );
         }
 
-        $this->repository->restore($localidad);
+        $this->localidadRepository->restore($localidad);
     }
 }

@@ -11,6 +11,7 @@ use App\Exceptions\ValidationException;
 use App\Models\PropiedadImagen;
 use App\Models\Propiedad;
 use App\Repositories\PropiedadImagenRepositoryInterface;
+use App\Services\FileUploaderInterface;
 use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\PropiedadImagenValidator;
 use App\Services\PropiedadService;
@@ -21,7 +22,8 @@ class PropiedadImagenService
     public function __construct(
         private readonly PropiedadImagenRepositoryInterface $repository,
         private readonly PropiedadService $propiedadService,
-        private readonly LogActividadService $logActividadService
+        private readonly LogActividadService $logActividadService,
+        private readonly FileUploaderInterface $fileUploader
     ) {
     }
 
@@ -104,17 +106,10 @@ class PropiedadImagenService
 
         $uploadDir = dirname(__DIR__, 2) . '/public/uploads/propiedades';
 
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $nombreArchivo = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
-        $destino = $uploadDir . '/' . $nombreArchivo;
-
-        if (!move_uploaded_file($file['tmp_name'], $destino)) {
-            throw new BadRequestException('Error al guardar la imagen');
-        }
+        $nombreArchivo = $this->fileUploader->upload(
+            $file,
+            $uploadDir
+        );
 
         $cantidadImagenes = $this->repository->countByPropiedadId($propiedadId);
 
