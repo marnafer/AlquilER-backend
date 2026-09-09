@@ -2,241 +2,244 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\PropiedadServicio;
-use App\Models\Servicio;
-use App\Sanitizers\PropiedadServicioSanitizer;
-use App\Validators\PropiedadServicioValidator;
 use App\Helpers\Response;
-use App\Exceptions\ValidationException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\BadRequestException;
+use App\Services\PropiedadServicioService;
+use App\Middlewares\AutenticadorMiddleware;
 
 class PropiedadServicioController
 {
+    private PropiedadServicioService $service;
+    
+    public function __construct(PropiedadServicioService $service)
+    {
+        $this->service = $service;
+    }
+    
     /**
-     * GET /api/propiedades-servicios
+     * GET /api/propiedades/{id}/servicios
+     * Obtener servicios de una propiedad
      */
-    public function index()
+    public function index($request, $propiedadId)
     {
         try {
-            $relaciones = PropiedadServicio::with(['propiedad', 'servicio'])->get();
-
+            $user = AutenticadorMiddleware::verificar();
+            
+            $servicios = $this->service->obtenerServiciosPorPropiedad((int)$propiedadId);
+            
             Response::success([
-                'items' => $relaciones,
-                'total' => $relaciones->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+                'items' => $servicios,
+                'total' => count($servicios)
+            ], 200, 'Servicios de la propiedad obtenidos');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
     }
-
+    
     /**
-     * GET /api/propiedades-servicios/{id}
+     * GET /api/servicios/{id}/propiedades
+     * Obtener propiedades de un servicio (endpoint adicional)
      */
-    public function show($id)
+    public function getPropiedadesByServicio($request, $servicioId)
     {
-        $validacion = PropiedadServicioValidator::validarSoloId($id);
-
-        if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
-        }
-
         try {
-            $relacion = PropiedadServicio::with(['propiedad', 'servicio'])
-                ->find($id);
-
-            if (!$relacion) {
-                throw new NotFoundException('Relación no encontrada');
+            $propiedades = $this->service->obtenerPropiedadesPorServicio((int)$servicioId);
+            
+            Response::success([
+                'items' => $propiedades,
+                'total' => count($propiedades)
+            ], 200, 'Propiedades del servicio obtenidas');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
             }
-
-            Response::success($relacion);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
         }
     }
-
+    
     /**
-     * POST /api/propiedades-servicios
+     * POST /api/propiedades/{id}/servicios
+     * Asignar un servicio a una propiedad
+     * Body: { servicio_id: 1 }
      */
-    public function store()
+    public function store($request, $propiedadId)
     {
-        $data = json_decode(file_get_contents('php://input'), true) ?? [];
-
-        $san = PropiedadServicioSanitizer::sanitizar($data);
-
-        $val = PropiedadServicioValidator::validarCrear($san);
-
-        if (!$val['success']) {
-            throw new ValidationException($val['errors']);
-        }
-
         try {
-            // evitar duplicados
-            if (
-                PropiedadServicio::where('propiedad_id', $san['propiedad_id'])
-                    ->where('servicio_id', $san['servicio_id'])
-                    ->exists()
-            ) {
-                throw new BadRequestException('Esta propiedad ya tiene ese servicio');
+            $user = AutenticadorMiddleware::verificar();
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!is_array($data)) {
+                throw new \Exception("JSON inválido", 400);
             }
-
-            $relacion = PropiedadServicio::create($san);
-
-            Response::created(
-                $relacion,
-                'Servicio asignado a la propiedad correctamente'
+            
+            if (empty($data['servicio_id'])) {
+                throw new \Exception("El campo servicio_id es requerido", 400);
+            }
+            
+            $asignado = $this->service->asignarServicio(
+                (int)$propiedadId,
+                (int)$data['servicio_id'],
+                $user->sub
             );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
-    }
-
-    /**
-     * DELETE /api/propiedades-servicios/{id}
-     */
-    public function delete($id)
-    {
-        $validacion = PropiedadServicioValidator::validarSoloId($id);
-
-        if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
-        }
-
-        try {
-            $relacion = PropiedadServicio::find($id);
-
-            if (!$relacion) {
-                throw new NotFoundException('Relación no encontrada');
+            
+            if ($asignado) {
+                Response::created(
+                    [
+                        'propiedad_id' => (int)$propiedadId,
+                        'servicio_id' => (int)$data['servicio_id']
+                    ],
+                    'Servicio asignado correctamente'
+                );
+            } else {
+                Response::json([
+                    'success' => false,
+                    'error' => 'La propiedad ya tiene este servicio asignado'
+                ], 409);
             }
-
-            $relacion->delete();
-
-            Response::success([], 200, 'Relación eliminada correctamente');
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
-    }
-
-    /**
-     * GET /api/propiedades-servicios/propiedad/{id}
-     */
-    public function getByPropiedad($propiedadId)
-    {
-        try {
-            $relaciones = PropiedadServicio::with('servicio')
-                ->where('propiedad_id', $propiedadId)
-                ->get();
-
-            Response::success([
-                'propiedad_id' => (int)$propiedadId,
-                'servicios' => $relaciones,
-                'total' => $relaciones->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
-    }
-
-    /**
-     * GET /api/propiedades-servicios/servicio/{id}
-     */
-    public function getByServicio($servicioId)
-    {
-        try {
-            $relaciones = PropiedadServicio::with('propiedad')
-                ->where('servicio_id', $servicioId)
-                ->get();
-
-            Response::success([
-                'servicio_id' => (int)$servicioId,
-                'propiedades' => $relaciones,
-                'total' => $relaciones->count()
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
-        }
-    }
-
-    /**
-     * POST /api/propiedades-servicios/sync/{propiedadId}
-     */
-    public function sync($propiedadId)
-    {
-        $data = json_decode(file_get_contents('php://input'), true);
-
-        if (!isset($data['servicios_ids']) || !is_array($data['servicios_ids'])) {
-            throw new BadRequestException('Debe enviar un array de servicios_ids');
-        }
-
-        try {
-
-            $serviciosIds = array_values(array_unique($data['servicios_ids']));
-
-            // 1. Obtener servicios existentes en una sola consulta
-            $serviciosExistentes = Servicio::whereIn('id', $serviciosIds)
-                ->pluck('id')
-                ->toArray();
-
-            // 2. Detectar servicios inválidos
-            $faltantes = array_diff($serviciosIds, $serviciosExistentes);
-
-            if (!empty($faltantes)) {
-                throw new ValidationException([
-                    'servicios' => 'Existen servicios inválidos: ' . implode(',', $faltantes)
-                ]);
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 400) {
+                Response::badRequest($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
             }
-
-            // 3. Eliminar relaciones actuales
-            PropiedadServicio::where('propiedad_id', $propiedadId)->delete();
-
-            // 4. Insertar nuevas relaciones
-            foreach ($serviciosIds as $servicioId) {
-                PropiedadServicio::create([
-                    'propiedad_id' => $propiedadId,
-                    'servicio_id' => $servicioId
-                ]);
-            }
-
-            Response::success([
-                'propiedad_id' => (int)$propiedadId,
-                'total' => count($serviciosIds)
-            ], 200, 'Servicios sincronizados correctamente');
-
-        } catch (\Throwable $exception) {
-            throw $exception;
         }
     }
-
+    
     /**
-     * GET /api/propiedades-servicios/estadisticas
+     * POST /api/propiedades/{id}/servicios/multiple
+     * Asignar múltiples servicios a una propiedad
+     * Body: { servicio_ids: [1, 2, 3] }
      */
-    public function getEstadisticas()
+    public function storeMultiple($request, $propiedadId)
     {
         try {
-            $total = PropiedadServicio::count();
-
-            $porPropiedad = PropiedadServicio::selectRaw('propiedad_id, COUNT(*) as total')
-                ->groupBy('propiedad_id')
-                ->get();
-
-            $porServicio = PropiedadServicio::selectRaw('servicio_id, COUNT(*) as total')
-                ->groupBy('servicio_id')
-                ->get();
-
-            Response::success([
-                'total_relaciones' => $total,
-                'por_propiedad' => $porPropiedad,
-                'por_servicio' => $porServicio
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            $user = AutenticadorMiddleware::verificar();
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!is_array($data)) {
+                throw new \Exception("JSON inválido", 400);
+            }
+            
+            if (empty($data['servicio_ids']) || !is_array($data['servicio_ids'])) {
+                throw new \Exception("El campo servicio_ids es requerido y debe ser un array", 400);
+            }
+            
+            $resultados = $this->service->asignarMultiplesServicios(
+                (int)$propiedadId,
+                $data['servicio_ids'],
+                $user->sub
+            );
+            
+            Response::success(
+                $resultados,
+                200,
+                'Servicios asignados correctamente'
+            );
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 400) {
+                Response::badRequest($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
+        }
+    }
+    
+    /**
+     * PUT /api/propiedades/{id}/servicios
+     * Sincronizar servicios (reemplaza todos)
+     * Body: { servicio_ids: [1, 2, 3] }
+     */
+    public function update($request, $propiedadId)
+    {
+        try {
+            $user = AutenticadorMiddleware::verificar();
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!is_array($data)) {
+                throw new \Exception("JSON inválido", 400);
+            }
+            
+            if (!isset($data['servicio_ids']) || !is_array($data['servicio_ids'])) {
+                throw new \Exception("El campo servicio_ids es requerido y debe ser un array", 400);
+            }
+            
+            $resultados = $this->service->sincronizarServicios(
+                (int)$propiedadId,
+                $data['servicio_ids'],
+                $user->sub
+            );
+            
+            Response::success(
+                $resultados,
+                200,
+                'Servicios sincronizados correctamente'
+            );
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 400) {
+                Response::badRequest($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
+        }
+    }
+    
+    /**
+     * DELETE /api/propiedades/{id}/servicios/{servicio_id}
+     * Desasignar un servicio de una propiedad
+     */
+    public function delete($request, $propiedadId, $servicioId)
+    {
+        try {
+            $user = AutenticadorMiddleware::verificar();
+            
+            $this->service->desasignarServicio(
+                (int)$propiedadId,
+                (int)$servicioId,
+                $user->sub
+            );
+            
+            Response::success(
+                null,
+                200,
+                'Servicio desasignado correctamente'
+            );
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
     }
 }
