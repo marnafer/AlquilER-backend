@@ -10,6 +10,8 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Propiedad;
 use App\Repositories\PropiedadRepositoryInterface;
+use App\Repositories\CategoriaRepositoryInterface;
+use App\Repositories\LocalidadRepositoryInterface;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
 
@@ -17,7 +19,9 @@ class PropiedadService
 {
     public function __construct(
         private readonly PropiedadRepositoryInterface $repository,
-        private readonly LogActividadService $logActividadService
+        private readonly LogActividadService $logActividadService,
+        private readonly CategoriaRepositoryInterface $categoriaRepository,
+        private readonly LocalidadRepositoryInterface $localidadRepository
     ) {
     }
 
@@ -59,6 +63,30 @@ class PropiedadService
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
+        }
+
+        if (
+            !$this->categoriaRepository->findById(
+                (int) $data['categoria_id']
+            )
+        ) {
+            throw new ValidationException([
+                'categoria_id' => [
+                    'La categoría seleccionada no existe',
+                ],
+            ]);
+        }
+
+        if (
+            !$this->localidadRepository->findById(
+                (int) $data['localidad_id']
+            )
+        ) {
+            throw new ValidationException([
+                'localidad_id' => [
+                    'La localidad seleccionada no existe',
+                ],
+            ]);
         }
 
         $this->logActividadService->registrar(
@@ -138,6 +166,30 @@ class PropiedadService
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
+        }
+
+        if (
+            !$this->categoriaRepository->findById(
+                (int) $data['categoria_id']
+            )
+        ) {
+            throw new ValidationException([
+                'categoria_id' => [
+                    'La categoría seleccionada no existe',
+                ],
+            ]);
+        }
+
+        if (
+            !$this->localidadRepository->findById(
+                (int) $data['localidad_id']
+            )
+        ) {
+            throw new ValidationException([
+                'localidad_id' => [
+                    'La localidad seleccionada no existe',
+                ],
+            ]);
         }
 
         $this->logActividadService->registrar(
