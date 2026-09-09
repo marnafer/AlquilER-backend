@@ -2,441 +2,309 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\Resena;
-use App\Models\Reserva;
-use App\Models\Propiedad;
-use App\Models\Usuario;
 use App\Helpers\Response;
+use App\Services\ResenaService;
 use App\Middlewares\AutenticadorMiddleware;
-use App\Sanitizers\ResenaSanitizer;
-use App\Validators\ResenaValidator;
-use App\Exceptions\ValidationException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\ForbiddenException;
-use App\Exceptions\BadRequestException;
 
 class ResenaController
 {
+    private ResenaService $service;
+    private $ReservaRepository;
+    
+    public function __construct(ResenaService $service, $ReservaRepository)
+    {
+        $this->service = $service;
+        $this->ReservaRepository = $ReservaRepository;
+    }
+    
     /**
      * GET /api/resenas
+     * Listar todas las reseñas
      */
-    public function index()
+    public function index($request)
     {
         try {
-
-            $resenas = Resena::getAll();
-
+            $user = AutenticadorMiddleware::verificar();
+            
+            $filtros = [];
+            
+            if (isset($_GET['calificacion'])) {
+                $filtros['calificacion'] = (int)$_GET['calificacion'];
+            }
+            if (isset($_GET['calificacion_min'])) {
+                $filtros['calificacion_min'] = (int)$_GET['calificacion_min'];
+            }
+            if (isset($_GET['calificacion_max'])) {
+                $filtros['calificacion_max'] = (int)$_GET['calificacion_max'];
+            }
+            if (isset($_GET['reserva_id'])) {
+                $filtros['reserva_id'] = (int)$_GET['reserva_id'];
+            }
+            if (isset($_GET['propiedad_id'])) {
+                $filtros['propiedad_id'] = (int)$_GET['propiedad_id'];
+            }
+            if (isset($_GET['usuario_id'])) {
+                // Solo admin puede ver reseñas de otros usuarios
+                if ($user->rol_id != 3 && $user->sub != (int)$_GET['usuario_id']) {
+                    throw new \Exception("No autorizado", 403);
+                }
+                $filtros['usuario_id'] = (int)$_GET['usuario_id'];
+            }
+            if (isset($_GET['fecha_desde'])) {
+                $filtros['fecha_desde'] = $_GET['fecha_desde'];
+            }
+            if (isset($_GET['fecha_hasta'])) {
+                $filtros['fecha_hasta'] = $_GET['fecha_hasta'];
+            }
+            if (isset($_GET['incluir_eliminados']) && $_GET['incluir_eliminados'] === 'true') {
+                // Solo admin puede ver eliminados
+                if ($user->rol_id != 3) {
+                    throw new \Exception("No autorizado", 403);
+                }
+                $filtros['incluir_eliminados'] = true;
+            }
+            if (isset($_GET['solo_eliminados']) && $_GET['solo_eliminados'] === 'true') {
+                if ($user->rol_id != 3) {
+                    throw new \Exception("No autorizado", 403);
+                }
+                $filtros['solo_eliminados'] = true;
+            }
+            
+            $resenas = $this->service->listarResenas($filtros);
+            
             Response::success([
                 'items' => $resenas,
                 'total' => count($resenas)
-            ]);
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            ], 200, 'Reseñas obtenidas correctamente');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            Response::json(['success' => false, 'error' => $e->getMessage()], $status);
         }
     }
-
+    
     /**
      * GET /api/resenas/{id}
+     * Obtener una reseña por ID
      */
-    public function show($id)
+    public function show($request, $id)
     {
-        $validacion =
-            ResenaValidator::validarSoloId(
-                $id
-            );
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
         try {
-
-            $resena =
-                Resena::getById($id);
-
-            if (!$resena) {
-                throw new NotFoundException(
-                    'Reseña no encontrada'
-                );
+            $user = AutenticadorMiddleware::verificar();
+            
+            $resena = $this->service->obtenerResena((int)$id);
+            
+            // Verificar permisos (solo dueño de la reserva o admin)
+            if ($user->rol_id != 3 && $resena->reserva->usuario_id != $user->sub) {
+                throw new \Exception("No autorizado", 403);
             }
-
-            Response::success(
-                $resena
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            
+            Response::success([
+                'resena' => $resena
+            ], 200, 'Reseña encontrada');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 403) {
+                Response::forbidden($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
     }
-
+    
     /**
-     * GET /api/resenas/propiedad/{id}
+     * GET /api/resenas/reserva/{reservaId}
+     * Obtener reseñas por reserva
      */
-    public function getByPropiedad($id)
-{
-    $idSan = ResenaSanitizer::sanitizarId($id);
-
-    $validacion = ResenaValidator::validarSoloId($idSan);
-
-    if (!$validacion['success']) {
-        throw new ValidationException(
-            $validacion['errors']
-        );
-    }
-
-    try {
-
-        $propiedad = Propiedad::find($idSan);
-
-        if (!$propiedad) {
-            throw new NotFoundException(
-                'Propiedad no encontrada'
-            );
-        }
-
-        $resenas = Resena::getByPropiedad(
-            $idSan
-        );
-
-        $promedio = Resena::getPromedioByPropiedad(
-            $idSan
-        );
-
-        Response::success([
-            'items' => $resenas,
-            'promedio' => $promedio['promedio'],
-            'total_resenas' => $promedio['total'],
-            'propiedad_id' => $idSan
-        ]);
-
-    } catch (\Throwable $exception) {
-        throw $exception;
-    }
-}
-
-    /**
-     * GET /api/resenas/usuario/{id}
-     */
-    public function getByUsuario($id)
-{
-    $idSan = ResenaSanitizer::sanitizarId($id);
-
-    $validacion = ResenaValidator::validarSoloId($idSan);
-
-    if (!$validacion['success']) {
-        throw new ValidationException(
-            $validacion['errors']
-        );
-    }
-
-    try {
-
-        $usuario = Usuario::find($idSan);
-
-        if (!$usuario) {
-            throw new NotFoundException(
-                'Usuario no encontrado'
-            );
-        }
-
-        $resenas = Resena::getByUsuario(
-            $idSan
-        );
-
-        Response::success([
-            'items' => $resenas,
-            'total' => count($resenas),
-            'usuario_id' => $idSan
-        ]);
-
-    } catch (\Throwable $exception) {
-        throw $exception;
-    }
-}
-
-    /**
-     * GET /api/resenas/estadisticas
-     */
-    public function getEstadisticas()
+    public function getByReserva($request, $reservaId)
     {
         try {
-
-            $estadisticas =
-                Resena::getEstadisticas();
-
-            Response::success(
-                $estadisticas
-            );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            $user = AutenticadorMiddleware::verificar();
+            
+            $resenas = $this->service->obtenerResenasPorReserva((int)$reservaId);
+            
+            // Verificar permisos (solo dueño de la reserva o admin)
+            $reserva = $this->ReservaRepository->findById((int)$reservaId);
+            if ($user->rol_id != 3 && $reserva->usuario_id != $user->sub) {
+                throw new \Exception("No autorizado", 403);
+            }
+            
+            Response::success([
+                'items' => $resenas,
+                'total' => count($resenas)
+            ], 200, 'Reseñas de la reserva obtenidas');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 403) {
+                Response::forbidden($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
     }
-
+    
+    /**
+     * GET /api/resenas/propiedad/{propiedadId}
+     * Obtener reseñas por propiedad
+     */
+    public function getByPropiedad($request, $propiedadId)
+    {
+        try {
+            $resenas = $this->service->obtenerResenasPorPropiedad((int)$propiedadId);
+            
+            Response::success([
+                'items' => $resenas,
+                'total' => count($resenas),
+                'promedio' => $this->service->obtenerPromedioPropiedad((int)$propiedadId)
+            ], 200, 'Reseñas de la propiedad obtenidas');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
+        }
+    }
+    
     /**
      * POST /api/resenas
+     * Crear una nueva reseña
+     * Body: { reserva_id, calificacion, comentario? }
      */
-    public function store()
+    public function store($request)
     {
-        $user =
-            AutenticadorMiddleware::verificar();
-
-        $raw = json_decode(
-            file_get_contents(
-                'php://input'
-            ),
-            true
-        );
-
-        if (!is_array($raw)) {
-            throw new BadRequestException(
-                'JSON inválido'
-            );
-        }
-
-        $san =
-            ResenaSanitizer::sanitizarCrear(
-                $raw
-            );
-
-        $validacion =
-            ResenaValidator::validarCrear(
-                $san
-            );
-
-        if (!$validacion['success']) {
-
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
         try {
-
-            $reserva =
-                Reserva::find(
-                    $san['reserva_id']
-                );
-
-            if (!$reserva) {
-
-                throw new NotFoundException(
-                    'Reserva no encontrada'
-                );
+            $user = AutenticadorMiddleware::verificar();
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!is_array($data)) {
+                throw new \Exception("JSON inválido", 400);
             }
-
-            if (
-                $reserva->usuario_id !=
-                $user->sub
-            ) {
-                throw new ForbiddenException(
-                    'La reserva no pertenece al usuario autenticado'
-                );
+            
+            // Validar campos requeridos
+            $camposRequeridos = ['reserva_id', 'calificacion'];
+            $errores = [];
+            
+            foreach ($camposRequeridos as $campo) {
+                if (!isset($data[$campo]) || $data[$campo] === '') {
+                    $errores[] = "El campo '{$campo}' es requerido";
+                }
             }
-
-            if (
-                $reserva->estado !==
-                'finalizada'
-            ) {
-                throw new BadRequestException(
-                    'La reserva debe estar finalizada para poder reseñarla'
-                );
+            
+            if (!empty($errores)) {
+                throw new \Exception(implode(', ', $errores), 400);
             }
-
-            if (
-                Resena::existePorReserva(
-                    $reserva->id
-                )
-            ) {
-                throw new BadRequestException(
-                    'Ya existe una reseña para esta reserva'
-                );
-            }
-
-            $resena =
-                Resena::createResena([
-                    'reserva_id' =>
-                        $san['reserva_id'],
-
-                    'calificacion' =>
-                        $san['calificacion'],
-
-                    'comentario' =>
-                        $san['comentario']
-                ]);
-
+            
+            // Preparar datos
+            $datosResena = [
+                'reserva_id' => (int)$data['reserva_id'],
+                'calificacion' => (int)$data['calificacion'],
+                'comentario' => $data['comentario'] ?? null,
+                'fecha_publicacion' => date('Y-m-d H:i:s')
+            ];
+            
+            $id = $this->service->crearResena($datosResena);
+            
             Response::created(
-                $resena,
+                ['id' => $id],
                 'Reseña creada exitosamente'
             );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 400) {
+                Response::badRequest($e->getMessage());
+            } elseif ($status === 409) {
+                Response::json(['success' => false, 'error' => $e->getMessage()], 409);
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
-    } 
+    }
     
     /**
      * PUT /api/resenas/{id}
+     * Actualizar una reseña existente
+     * Body: { calificacion?, comentario? }
      */
-    public function update($id)
+    public function update($request, $id)
     {
-        $user =
-            AutenticadorMiddleware::verificar();
-
-        $raw = json_decode(
-            file_get_contents(
-                'php://input'
-            ),
-            true
-        );
-
-        if (!is_array($raw)) {
-            throw new BadRequestException(
-                'JSON inválido'
-            );
-        }
-
-        $raw['id'] = $id;
-
-        $san =
-            ResenaSanitizer::sanitizarActualizar(
-                $raw
-            );
-
-        $validacion =
-            ResenaValidator::validarActualizar(
-                $san
-            );
-
-        if (!$validacion['success']) {
-
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
         try {
-
-            $resena =
-                Resena::getWithReserva(
-                    $id
-                );
-
-            if (!$resena) {
-
-                throw new NotFoundException(
-                    'Reseña no encontrada'
-                );
+            $user = AutenticadorMiddleware::verificar();
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!is_array($data)) {
+                throw new \Exception("JSON inválido", 400);
             }
-
-            $esAdmin =
-                $user->rol_id == 3;
-
-            $esPropietario =
-                $resena->reserva &&
-                $resena->reserva->usuario_id ==
-                $user->sub;
-
-            if (
-                !$esAdmin &&
-                !$esPropietario
-            ) {
-                throw new ForbiddenException(
-                    'No tiene permisos para modificar esta reseña'
-                );
+            
+            if (empty($data)) {
+                throw new \Exception("No hay datos para actualizar", 400);
             }
-
-            Resena::updateResena(
-                $id,
-                [
-                    'calificacion' =>
-                        $san['calificacion'],
-
-                    'comentario' =>
-                        $san['comentario']
-                ]
-            );
-
-            $resenaActualizada =
-                Resena::getById($id);
-
+            
+            $this->service->actualizarResena((int)$id, $data, $user->sub);
+            
             Response::success(
-                $resenaActualizada,
+                null,
                 200,
-                'Reseña actualizada exitosamente'
+                'Reseña actualizada correctamente'
             );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 403) {
+                Response::forbidden($e->getMessage());
+            } elseif ($status === 400) {
+                Response::badRequest($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
     }
-
+    
     /**
      * DELETE /api/resenas/{id}
+     * Eliminar una reseña (solo admin)
      */
-    public function delete($id)
+    public function delete($request, $id)
     {
-        $user =
-            AutenticadorMiddleware::verificar();
-
-        $validacion =
-            ResenaValidator::validarSoloId(
-                $id
-            );
-
-        if (!$validacion['success']) {
-
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
         try {
-
-            $resena =
-                Resena::getWithReserva(
-                    $id
-                );
-
-            if (!$resena) {
-
-                throw new NotFoundException(
-                    'Reseña no encontrada'
-                );
-            }
-
-            $esAdmin =
-                $user->rol_id == 3;
-
-            $esPropietario =
-                $resena->reserva &&
-                $resena->reserva->usuario_id ==
-                $user->sub;
-
-            if (
-                !$esAdmin &&
-                !$esPropietario
-            ) {
-                throw new ForbiddenException(
-                    'No tiene permisos para eliminar esta reseña'
-                );
-            }
-
-            Resena::deleteResena(
-                $id
-            );
-
+            $user = AutenticadorMiddleware::verificar();
+            
+            $this->service->eliminarResena((int)$id, $user->sub);
+            
             Response::success(
                 null,
                 200,
                 'Reseña eliminada exitosamente'
             );
-
-        } catch (\Throwable $exception) {
-            throw $exception;
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } elseif ($status === 403) {
+                Response::forbidden($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
         }
     }
 }
