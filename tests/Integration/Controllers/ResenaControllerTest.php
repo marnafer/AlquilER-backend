@@ -19,29 +19,29 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarResenas')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_index_without_user()
+    public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -49,18 +49,18 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResena')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1, 'calificador_id' => 1, 'calificado_id' => 2]);
 
         ob_start();
-        $this->controller->show($request, 1);
+        $this->controller->obtener($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -73,12 +73,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResena')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Reseña no encontrada", 404));
 
         ob_start();
-        $this->controller->show($request, 999);
+        $this->controller->obtener($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -92,12 +92,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResena')
+            ->method('obtener')
             ->with(1)
             ->willThrowException(new \Exception("No autorizado", 403));
 
         ob_start();
-        $this->controller->show($request, 1);
+        $this->controller->obtener($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -105,7 +105,7 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_store_resena_propiedad()
+    public function it_can_crear_resena_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([
@@ -118,18 +118,18 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearResena')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_can_store_resena_inquilino()
+    public function it_can_crear_resena_inquilino()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([
@@ -142,25 +142,25 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearResena')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_fields()
+    public function it_returns_bad_request_when_crear_missing_fields()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -168,7 +168,7 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_tipo()
+    public function it_returns_bad_request_when_crear_missing_tipo()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([
@@ -178,7 +178,7 @@ class ResenaControllerTest extends TestCase
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -186,7 +186,7 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_store_without_user()
+    public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode([
@@ -197,7 +197,7 @@ class ResenaControllerTest extends TestCase
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -217,11 +217,11 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearResena')
+            ->method('crear')
             ->willThrowException(new \Exception("Esta reserva ya tiene una reseña de tipo 'propiedad'", 409));
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -229,7 +229,7 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update()
+    public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['calificacion' => 4]);
@@ -237,26 +237,26 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarResena')
+            ->method('actualizar')
             ->with(1, ['calificacion' => 4], 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_update_with_empty_data()
+    public function it_returns_bad_request_when_actualizar_with_empty_data()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -264,7 +264,7 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_forbidden_when_update_without_permission()
+    public function it_returns_forbidden_when_actualizar_without_permission()
     {
         $request = $this->createRequest(['usuario_id' => 2]);
         $input = json_encode(['calificacion' => 4]);
@@ -272,12 +272,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarResena')
+            ->method('actualizar')
             ->with(1, ['calificacion' => 4], 2)
             ->willThrowException(new \Exception("No autorizado", 403));
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -285,36 +285,36 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarResena')
+            ->method('eliminar')
             ->with(1, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_forbidden_when_delete_without_permission()
+    public function it_returns_forbidden_when_eliminar_without_permission()
     {
         $request = $this->createRequest(['usuario_id' => 2]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarResena')
+            ->method('eliminar')
             ->with(1, 2)
             ->willThrowException(new \Exception("No autorizado", 403));
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -322,18 +322,18 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_by_reserva()
+    public function it_can_listar_por_reserva()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorReserva')
+            ->method('listarPorReserva')
             ->with(1)
             ->willReturn([]);
 
         ob_start();
-        $this->controller->getByReserva($request, 1);
+        $this->controller->listarPorReserva($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -346,12 +346,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorReserva')
+            ->method('listarPorReserva')
             ->with(999)
             ->willThrowException(new \Exception("La reserva no existe", 404));
 
         ob_start();
-        $this->controller->getByReserva($request, 999);
+        $this->controller->listarPorReserva($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -359,13 +359,13 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_by_propiedad()
+    public function it_can_listar_por_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorPropiedad')
+            ->method('listarPorPropiedad')
             ->with(1)
             ->willReturn([]);
 
@@ -376,7 +376,7 @@ class ResenaControllerTest extends TestCase
             ->willReturn(4.5);
 
         ob_start();
-        $this->controller->getByPropiedad($request, 1);
+        $this->controller->listarPorPropiedad($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -390,12 +390,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorPropiedad')
+            ->method('listarPorPropiedad')
             ->with(999)
             ->willThrowException(new \Exception("La propiedad no existe", 404));
 
         ob_start();
-        $this->controller->getByPropiedad($request, 999);
+        $this->controller->listarPorPropiedad($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -403,13 +403,13 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_by_usuario()
+    public function it_can_listar_por_usuario()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorUsuario')
+            ->method('listarPorUsuario')
             ->with(1)
             ->willReturn([]);
 
@@ -420,7 +420,7 @@ class ResenaControllerTest extends TestCase
             ->willReturn(4.2);
 
         ob_start();
-        $this->controller->getByUsuario($request, 1);
+        $this->controller->listarPorUsuario($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -434,12 +434,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorUsuario')
+            ->method('listarPorUsuario')
             ->with(999)
             ->willThrowException(new \Exception("El usuario no existe", 404));
 
         ob_start();
-        $this->controller->getByUsuario($request, 999);
+        $this->controller->listarPorUsuario($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -447,18 +447,18 @@ class ResenaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_by_calificador()
+    public function it_can_listar_por_calificador()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorCalificador')
+            ->method('listarPorCalificador')
             ->with(1)
             ->willReturn([]);
 
         ob_start();
-        $this->controller->getByCalificador($request, 1);
+        $this->controller->listarPorCalificador($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -471,12 +471,12 @@ class ResenaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerResenasPorCalificador')
+            ->method('listarPorCalificador')
             ->with(999)
             ->willThrowException(new \Exception("El usuario no existe", 404));
 
         ob_start();
-        $this->controller->getByCalificador($request, 999);
+        $this->controller->listarPorCalificador($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);

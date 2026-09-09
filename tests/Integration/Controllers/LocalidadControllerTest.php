@@ -19,22 +19,22 @@ class LocalidadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $this->service
             ->expects($this->once())
-            ->method('listarLocalidades')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index();
+        $this->controller->listar();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_store()
+    public function it_can_crear()
     {
         $input = json_encode([
             'nombre' => 'Nueva Localidad',
@@ -45,24 +45,24 @@ class LocalidadControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearLocalidad')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_fields()
+    public function it_returns_bad_request_when_crear_missing_fields()
     {
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -70,16 +70,16 @@ class LocalidadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerLocalidad')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
         ob_start();
-        $this->controller->show(1);
+        $this->controller->obtener(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -90,12 +90,12 @@ class LocalidadControllerTest extends TestCase
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerLocalidad')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Localidad no encontrada", 404));
 
         ob_start();
-        $this->controller->show(999);
+        $this->controller->obtener(999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -103,51 +103,51 @@ class LocalidadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update()
+    public function it_can_actualizar()
     {
         $input = json_encode(['nombre' => 'Localidad Actualizada']);
         file_put_contents('php://input', $input);
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarLocalidad')
+            ->method('actualizar')
             ->with(1, ['nombre' => 'Localidad Actualizada'])
             ->willReturn(true);
 
         ob_start();
-        $this->controller->update(1);
+        $this->controller->actualizar(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $this->service
             ->expects($this->once())
-            ->method('eliminarLocalidad')
+            ->method('eliminar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete(1);
+        $this->controller->eliminar(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_restore()
+    public function it_can_restaurar()
     {
         $this->service
             ->expects($this->once())
-            ->method('restaurarLocalidad')
+            ->method('restaurar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->restore(1);
+        $this->controller->restaurar(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);

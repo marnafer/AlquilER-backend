@@ -19,29 +19,29 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarReservas')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_index_without_user()
+    public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -49,7 +49,7 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index_with_filters()
+    public function it_can_listar_with_filters()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $_GET['estado'] = 'pendiente';
@@ -57,30 +57,30 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('listarReservas')
+            ->method('listar')
             ->with(['estado' => 'pendiente', 'usuario_id' => 1])
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerReserva')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
         ob_start();
-        $this->controller->show($request, 1);
+        $this->controller->obtener($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -93,12 +93,12 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerReserva')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Reserva no encontrada", 404));
 
         ob_start();
-        $this->controller->show($request, 999);
+        $this->controller->obtener($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -106,7 +106,7 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_store()
+    public function it_can_crear()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([
@@ -119,25 +119,25 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearReserva')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_fields()
+    public function it_returns_bad_request_when_crear_missing_fields()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -145,7 +145,7 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_dates()
+    public function it_returns_bad_request_when_crear_missing_dates()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([
@@ -155,7 +155,7 @@ class ReservaControllerTest extends TestCase
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -163,7 +163,7 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_store_without_user()
+    public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode([
@@ -175,7 +175,7 @@ class ReservaControllerTest extends TestCase
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -196,11 +196,11 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearReserva')
+            ->method('crear')
             ->willThrowException(new \Exception("La propiedad no está disponible en ese rango de fechas", 409));
 
         ob_start();
-        $this->controller->store($request);
+        $this->controller->crear($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -208,7 +208,7 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update()
+    public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['fecha_fin_alquiler' => '2026-07-20']);
@@ -216,26 +216,26 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarReserva')
+            ->method('actualizar')
             ->with(1, ['fecha_fin_alquiler' => '2026-07-20'])
             ->willReturn(true);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_update_with_empty_data()
+    public function it_returns_bad_request_when_actualizar_with_empty_data()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -243,14 +243,14 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_update_without_user()
+    public function it_returns_unauthorized_when_actualizar_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode(['fecha_fin_alquiler' => '2026-07-20']);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -258,30 +258,30 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarReserva')
+            ->method('eliminar')
             ->with(1, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_delete_without_user()
+    public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -289,18 +289,18 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_forbidden_when_delete_confirmada_reserva()
+    public function it_returns_forbidden_when_eliminar_confirmada_reserva()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarReserva')
+            ->method('eliminar')
             ->with(1, 1)
             ->willThrowException(new \Exception("No se puede eliminar una reserva confirmada o finalizada", 400));
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -308,30 +308,30 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_restore()
+    public function it_can_restaurar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('restaurarReserva')
+            ->method('restaurar')
             ->with(1, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->restore($request, 1);
+        $this->controller->restaurar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_restore_without_user()
+    public function it_returns_unauthorized_when_restaurar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->restore($request, 1);
+        $this->controller->restaurar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -339,30 +339,30 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_by_usuario()
+    public function it_can_listar_por_usuario()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerReservasPorUsuario')
+            ->method('listarPorUsuario')
             ->with(1)
             ->willReturn([]);
 
         ob_start();
-        $this->controller->getByUsuario($request, 1);
+        $this->controller->listarPorUsuario($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_get_by_usuario_without_user()
+    public function it_returns_unauthorized_when_listar_por_usuario_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->getByUsuario($request, 1);
+        $this->controller->listarPorUsuario($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -370,30 +370,30 @@ class ReservaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_by_propiedad()
+    public function it_can_listar_por_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerReservasPorPropiedad')
+            ->method('listarPorPropiedad')
             ->with(1)
             ->willReturn([]);
 
         ob_start();
-        $this->controller->getByPropiedad($request, 1);
+        $this->controller->listarPorPropiedad($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_get_by_propiedad_without_user()
+    public function it_returns_unauthorized_when_listar_por_propiedad_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->getByPropiedad($request, 1);
+        $this->controller->listarPorPropiedad($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -409,7 +409,7 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('cambiarEstadoReserva')
+            ->method('cambiarEstado')
             ->with(1, 'confirmada', 1)
             ->willReturn(true);
 
@@ -459,7 +459,7 @@ class ReservaControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('cambiarEstadoReserva')
+            ->method('cambiarEstado')
             ->with(1, 'pendiente', 1)
             ->willThrowException(new \Exception("No se puede cambiar de 'finalizada' a 'pendiente'", 400));
 

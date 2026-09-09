@@ -19,29 +19,29 @@ class UsuarioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarUsuarios')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_index_without_user()
+    public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->index($request);
+        $this->controller->listar($request);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -49,18 +49,18 @@ class UsuarioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerUsuario')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
         ob_start();
-        $this->controller->show($request, 1);
+        $this->controller->obtener($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -73,12 +73,12 @@ class UsuarioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerUsuario')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Usuario no encontrado", 404));
 
         ob_start();
-        $this->controller->show($request, 999);
+        $this->controller->obtener($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -92,7 +92,7 @@ class UsuarioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerUsuario')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
@@ -117,7 +117,7 @@ class UsuarioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update()
+    public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['nombre' => 'Nombre Actualizado']);
@@ -125,32 +125,63 @@ class UsuarioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarUsuario')
+            ->method('actualizar')
             ->with(1, ['nombre' => 'Nombre Actualizado'])
             ->willReturn(true);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarUsuario')
+            ->method('eliminar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
+    }
+
+    /** @test */
+    public function it_can_restaurar()
+    {
+        $request = $this->createRequest(['usuario_id' => 1]);
+
+        $this->service
+            ->expects($this->once())
+            ->method('restaurar')
+            ->with(1)
+            ->willReturn(true);
+
+        ob_start();
+        $this->controller->restaurar($request, 1);
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('"success":true', $output);
+    }
+
+    /** @test */
+    public function it_returns_unauthorized_when_eliminar_without_user()
+    {
+        $request = $this->createRequest([]);
+
+        ob_start();
+        $this->controller->eliminar($request, 1);
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('"success":false', $output);
+        $this->assertStringContainsString('401', $output);
     }
 }

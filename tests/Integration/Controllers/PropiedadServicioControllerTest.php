@@ -19,30 +19,30 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerServiciosPorPropiedad')
+            ->method('listar')
             ->with(1)
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index($request, 1);
+        $this->controller->listar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_index_without_user()
+    public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->index($request, 1);
+        $this->controller->listar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -50,18 +50,18 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_not_found_when_property_not_exists_in_index()
+    public function it_returns_not_found_when_property_not_exists_in_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerServiciosPorPropiedad')
+            ->method('listar')
             ->with(999)
             ->willThrowException(new \Exception("La propiedad no existe", 404));
 
         ob_start();
-        $this->controller->index($request, 999);
+        $this->controller->listar($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -69,18 +69,18 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_propiedades_by_servicio()
+    public function it_can_listar_propiedades_por_servicio()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerPropiedadesPorServicio')
+            ->method('listarPropiedadesPorServicio')
             ->with(1)
             ->willReturn([]);
 
         ob_start();
-        $this->controller->getPropiedadesByServicio($request, 1);
+        $this->controller->listarPropiedadesPorServicio($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -93,12 +93,12 @@ class PropiedadServicioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerPropiedadesPorServicio')
+            ->method('listarPropiedadesPorServicio')
             ->with(999)
             ->willThrowException(new \Exception("El servicio no existe", 404));
 
         ob_start();
-        $this->controller->getPropiedadesByServicio($request, 999);
+        $this->controller->listarPropiedadesPorServicio($request, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -106,7 +106,7 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_store()
+    public function it_can_crear()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['servicio_id' => 2]);
@@ -114,26 +114,26 @@ class PropiedadServicioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('asignarServicio')
+            ->method('crear')
             ->with(1, 2, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->store($request, 1);
+        $this->controller->crear($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_servicio_id()
+    public function it_returns_bad_request_when_crear_missing_servicio_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request, 1);
+        $this->controller->crear($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -141,14 +141,14 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_store_without_user()
+    public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode(['servicio_id' => 2]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store($request, 1);
+        $this->controller->crear($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -164,12 +164,12 @@ class PropiedadServicioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('asignarServicio')
+            ->method('crear')
             ->with(1, 2, 1)
             ->willReturn(false);
 
         ob_start();
-        $this->controller->store($request, 1);
+        $this->controller->crear($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -177,7 +177,7 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_store_multiple()
+    public function it_can_crear_multiples()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['servicio_ids' => [1, 2, 3]]);
@@ -185,26 +185,26 @@ class PropiedadServicioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('asignarMultiplesServicios')
+            ->method('crearMultiples')
             ->with(1, [1, 2, 3], 1)
             ->willReturn(['asignados' => [1, 2], 'duplicados' => [3], 'errores' => []]);
 
         ob_start();
-        $this->controller->storeMultiple($request, 1);
+        $this->controller->crearMultiples($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_multiple_missing_servicio_ids()
+    public function it_returns_bad_request_when_crear_multiples_missing_servicio_ids()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->storeMultiple($request, 1);
+        $this->controller->crearMultiples($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -212,14 +212,14 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_multiple_servicio_ids_not_array()
+    public function it_returns_bad_request_when_crear_multiples_servicio_ids_not_array()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['servicio_ids' => 'not_an_array']);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->storeMultiple($request, 1);
+        $this->controller->crearMultiples($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -227,7 +227,7 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update_sync()
+    public function it_can_sincronizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['servicio_ids' => [1, 3]]);
@@ -235,7 +235,7 @@ class PropiedadServicioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('sincronizarServicios')
+            ->method('sincronizar')
             ->with(1, [1, 3], 1)
             ->willReturn([
                 'agregados' => [3],
@@ -244,21 +244,21 @@ class PropiedadServicioControllerTest extends TestCase
             ]);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->sincronizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_update_missing_servicio_ids()
+    public function it_returns_bad_request_when_sincronizar_missing_servicio_ids()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->sincronizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -266,14 +266,14 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_update_without_user()
+    public function it_returns_unauthorized_when_sincronizar_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode(['servicio_ids' => [1, 3]]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->sincronizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -281,36 +281,36 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('desasignarServicio')
+            ->method('eliminar')
             ->with(1, 2, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete($request, 1, 2);
+        $this->controller->eliminar($request, 1, 2);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_not_found_when_delete_servicio_not_assigned()
+    public function it_returns_not_found_when_eliminar_servicio_not_assigned()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('desasignarServicio')
+            ->method('eliminar')
             ->with(1, 999, 1)
             ->willThrowException(new \Exception("La propiedad no tiene este servicio asignado", 404));
 
         ob_start();
-        $this->controller->delete($request, 1, 999);
+        $this->controller->eliminar($request, 1, 999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -318,12 +318,12 @@ class PropiedadServicioControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_delete_without_user()
+    public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->delete($request, 1, 2);
+        $this->controller->eliminar($request, 1, 2);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
