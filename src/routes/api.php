@@ -14,6 +14,7 @@ use App\Controllers\Api\ServicioController;
 use App\Controllers\Api\PropiedadServicioController;
 use App\Controllers\Api\LogActividadController;
 use App\Controllers\Api\PropiedadController;
+use App\Controllers\Api\FavoritoController;
 use App\Helpers\JwtProvider;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Repositories\EloquentUsuarioRepository;
@@ -46,7 +47,8 @@ use App\Services\ConsultaService;
 use App\Services\ResenaService;
 use App\Services\PropiedadServicioService;
 use App\Services\LocalFileUploader;
-use App\Controllers\Api\FavoritoController;
+use App\Validators\ImageUploadValidator;
+
 
 // TOKEN PROVIDER
 
@@ -116,13 +118,20 @@ $propiedadService = new PropiedadService(
     $localidadRepository
 );
 
+// Inicializar el cargador de archivos
+
 $fileUploader = new LocalFileUploader();
+
+// Inicializar el validador de imágenes
+
+$imageUploadValidator = new ImageUploadValidator();
 
 $propiedadImagenService = new PropiedadImagenService(
     $propiedadImagenRepository,
     $propiedadService,
     $logActividadService,
-    $fileUploader
+    $fileUploader,
+    $imageUploadValidator
 );
 
 $favoritoService = new FavoritoService(
