@@ -102,7 +102,9 @@ $rolService = new RolService(
 
 $propiedadService = new PropiedadService(
     $propiedadRepository,
-    $logActividadService
+    $logActividadService,
+    $categoriaRepository,
+    $localidadRepository
 );
 
 $fileUploader = new LocalFileUploader();
