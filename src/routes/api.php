@@ -27,6 +27,9 @@ use App\Repositories\EloquentPropiedadImagenRepository;
 use App\Repositories\EloquentLogActividadRepository;
 use App\Repositories\EloquentFavoritoRepository;
 use App\Repositories\EloquentReservaRepository;
+use App\Repositories\EloquentConsultaRepository;
+use App\Repositories\EloquentResenaRepository;
+use App\Repositories\EloquentPropiedadServicioRepository;
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
@@ -39,6 +42,9 @@ use App\Services\PropiedadImagenService;
 use App\Services\LogActividadService;
 use App\Services\FavoritoService;
 use App\Services\ReservaService;
+use App\Services\ConsultaService;
+use App\Services\ResenaService;
+use App\Services\PropiedadServicioService;
 use App\Services\LocalFileUploader;
 use App\Controllers\Api\FavoritoController;
 
@@ -61,6 +67,9 @@ $propiedadImagenRepository = new EloquentPropiedadImagenRepository();
 $logActividadRepository = new EloquentLogActividadRepository();
 $favoritoRepository = new EloquentFavoritoRepository();
 $reservaRepository = new EloquentReservaRepository();
+$consultaRepository = new EloquentConsultaRepository();
+$resenaRepository = new EloquentResenaRepository();
+$propiedadServicioRepository = new EloquentPropiedadServicioRepository();
 
 // SERVICES
 
@@ -128,6 +137,28 @@ $reservaService = new ReservaService(
     $logActividadService
 );
 
+$consultaService = new ConsultaService(
+    $consultaRepository,
+    $propiedadRepository,
+    $usuarioRepository,
+    $logActividadService
+);
+
+$resenaService = new ResenaService(
+    $resenaRepository,
+    $reservaRepository,
+    $propiedadRepository,
+    $usuarioRepository,
+    $logActividadService
+);
+
+$propiedadServicioService = new PropiedadServicioService(
+    $propiedadServicioRepository,
+    $propiedadRepository,
+    $servicioRepository,
+    $logActividadService
+);
+
 // CONTROLLERS
 
 $autenticadorController = new AutenticadorController(
@@ -176,6 +207,18 @@ $favoritoController = new FavoritoController(
 
 $reservaController = new ReservaController(
     $reservaService
+);
+
+$consultaController = new ConsultaController(
+    $consultaService
+);
+
+$resenaController = new ResenaController(
+    $resenaService
+);
+
+$propiedadServicioController = new PropiedadServicioController(
+    $propiedadServicioService
 );
 
 /*
@@ -342,17 +385,19 @@ $router->get('/api/reservas/verificar-disponibilidad', [$reservaController, 'ver
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/consultas', [ConsultaController::class, 'index']);
+$router->get('/api/consultas', [$consultaController, 'index']);
 
-$router->get('/api/consultas/{id}', [ConsultaController::class, 'show']);
+$router->get('/api/consultas/{id}', [$consultaController, 'show']);
 
-$router->post('/api/consultas', [ConsultaController::class, 'store']);
+$router->get('/api/consultas/propiedad/{propiedadId}', [$consultaController, 'indexByPropiedad']);
 
-$router->put('/api/consultas/{id}', [ConsultaController::class, 'update']);
+$router->get('/api/consultas/usuario/{usuarioId}', [$consultaController, 'indexByUsuario']);
 
-$router->delete('/api/consultas/{id}', [ConsultaController::class, 'delete']);
+$router->post('/api/consultas', [$consultaController, 'store']);
 
-$router->post('/api/consultas/{id}/restaurar', [ConsultaController::class, 'restore']);
+$router->put('/api/consultas/{id}', [$consultaController, 'update']);
+
+$router->delete('/api/consultas/{id}', [$consultaController, 'delete']);
 
 /*
 |--------------------------------------------------------------------------
@@ -360,15 +405,23 @@ $router->post('/api/consultas/{id}/restaurar', [ConsultaController::class, 'rest
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/resenas', [ResenaController::class, 'index']);
+$router->get('/api/resenas', [$resenaController, 'index']);
 
-$router->get('/api/resenas/{id}', [ResenaController::class, 'show']);
+$router->get('/api/resenas/{id}', [$resenaController, 'show']);
 
-$router->post('/api/resenas', [ResenaController::class, 'store']);
+$router->get('/api/resenas/reserva/{reservaId}', [$resenaController, 'getByReserva']);
 
-$router->put('/api/resenas/{id}', [ResenaController::class, 'update']);
+$router->get('/api/resenas/propiedad/{propiedadId}', [$resenaController, 'getByPropiedad']);
 
-$router->delete('/api/resenas/{id}', [ResenaController::class, 'delete']);
+$router->get('/api/resenas/usuario/{usuarioId}', [$resenaController, 'getByUsuario']);
+
+$router->get('/api/resenas/calificador/{calificadorId}', [$resenaController, 'getByCalificador']);
+
+$router->post('/api/resenas', [$resenaController, 'store']);
+
+$router->put('/api/resenas/{id}', [$resenaController, 'update']);
+
+$router->delete('/api/resenas/{id}', [$resenaController, 'delete']);
 
 /*
 |--------------------------------------------------------------------------
@@ -394,13 +447,17 @@ $router->post('/api/servicios/{id}/restaurar', [$servicioController, 'restore'])
 |--------------------------------------------------------------------------
 */
 
-$router->get('/api/propiedades/{id}/servicios', [PropiedadServicioController::class, 'index']);
+$router->get('/api/propiedades/{propiedadId}/servicios', [$propiedadServicioController, 'index']);
 
-$router->post('/api/propiedades/{id}/servicios', [PropiedadServicioController::class, 'store']);
+$router->get('/api/servicios/{servicioId}/propiedades', [$propiedadServicioController, 'getPropiedadesByServicio']);
 
-$router->put('/api/propiedades/{id}/servicios', [PropiedadServicioController::class, 'update']);
+$router->post('/api/propiedades/{propiedadId}/servicios', [$propiedadServicioController, 'store']);
 
-$router->delete('/api/propiedades/{id}/servicios/{servicio_id}', [PropiedadServicioController::class, 'delete']);
+$router->post('/api/propiedades/{propiedadId}/servicios/multiple', [$propiedadServicioController, 'storeMultiple']);
+
+$router->put('/api/propiedades/{propiedadId}/servicios', [$propiedadServicioController, 'update']);
+
+$router->delete('/api/propiedades/{propiedadId}/servicios/{servicioId}', [$propiedadServicioController, 'delete']);
 
 /*
 |--------------------------------------------------------------------------

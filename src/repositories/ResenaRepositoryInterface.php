@@ -40,17 +40,37 @@ interface ResenaRepositoryInterface
     public function getByReserva(int $reservaId): array;
     
     /**
-     * Obtener promedio de calificación por propiedad
-     */
-    public function getPromedioByPropiedad(int $propiedadId): float;
-    
-    /**
-     * Obtener reseñas por propiedad (a través de reservas)
+     * Obtener reseñas de propiedad (tipo 'propiedad')
      */
     public function getByPropiedad(int $propiedadId): array;
     
     /**
-     * Verificar si una reserva ya tiene reseña
+     * Obtener reseñas de un usuario (tipo 'inquilino')
+     */
+    public function getByUsuario(int $usuarioId): array;
+    
+    /**
+     * Obtener reseñas donde un usuario es calificador
+     */
+    public function getByCalificador(int $calificadorId): array;
+    
+    /**
+     * Obtener promedio de calificación de una propiedad
+     */
+    public function getPromedioByPropiedad(int $propiedadId): float;
+    
+    /**
+     * Obtener promedio de calificación de un usuario
+     */
+    public function getPromedioByUsuario(int $usuarioId): float;
+    
+    /**
+     * Verificar si una reserva ya tiene reseña de un tipo específico
+     */
+    public function existePorReservaYTipo(int $reservaId, string $tipo): bool;
+    
+    /**
+     * Verificar si existe reseña para una reserva
      */
     public function existePorReserva(int $reservaId): bool;
 }

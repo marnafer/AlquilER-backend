@@ -9,18 +9,12 @@ use App\Middlewares\AutenticadorMiddleware;
 class ResenaController
 {
     private ResenaService $service;
-    private $ReservaRepository;
     
-    public function __construct(ResenaService $service, $ReservaRepository)
+    public function __construct(ResenaService $service)
     {
         $this->service = $service;
-        $this->ReservaRepository = $ReservaRepository;
     }
     
-    /**
-     * GET /api/resenas
-     * Listar todas las reseñas
-     */
     public function index($request)
     {
         try {
@@ -28,6 +22,9 @@ class ResenaController
             
             $filtros = [];
             
+            if (isset($_GET['tipo'])) {
+                $filtros['tipo'] = $_GET['tipo'];
+            }
             if (isset($_GET['calificacion'])) {
                 $filtros['calificacion'] = (int)$_GET['calificacion'];
             }
@@ -37,6 +34,12 @@ class ResenaController
             if (isset($_GET['calificacion_max'])) {
                 $filtros['calificacion_max'] = (int)$_GET['calificacion_max'];
             }
+            if (isset($_GET['calificado_id'])) {
+                $filtros['calificado_id'] = (int)$_GET['calificado_id'];
+            }
+            if (isset($_GET['calificador_id'])) {
+                $filtros['calificador_id'] = (int)$_GET['calificador_id'];
+            }
             if (isset($_GET['reserva_id'])) {
                 $filtros['reserva_id'] = (int)$_GET['reserva_id'];
             }
@@ -44,7 +47,6 @@ class ResenaController
                 $filtros['propiedad_id'] = (int)$_GET['propiedad_id'];
             }
             if (isset($_GET['usuario_id'])) {
-                // Solo admin puede ver reseñas de otros usuarios
                 if ($user->rol_id != 3 && $user->sub != (int)$_GET['usuario_id']) {
                     throw new \Exception("No autorizado", 403);
                 }
@@ -57,7 +59,6 @@ class ResenaController
                 $filtros['fecha_hasta'] = $_GET['fecha_hasta'];
             }
             if (isset($_GET['incluir_eliminados']) && $_GET['incluir_eliminados'] === 'true') {
-                // Solo admin puede ver eliminados
                 if ($user->rol_id != 3) {
                     throw new \Exception("No autorizado", 403);
                 }
@@ -83,10 +84,6 @@ class ResenaController
         }
     }
     
-    /**
-     * GET /api/resenas/{id}
-     * Obtener una reseña por ID
-     */
     public function show($request, $id)
     {
         try {
@@ -94,8 +91,9 @@ class ResenaController
             
             $resena = $this->service->obtenerResena((int)$id);
             
-            // Verificar permisos (solo dueño de la reserva o admin)
-            if ($user->rol_id != 3 && $resena->reserva->usuario_id != $user->sub) {
+            if ($user->rol_id != 3 && 
+                $resena['calificador_id'] != $user->sub && 
+                $resena['calificado_id'] != $user->sub) {
                 throw new \Exception("No autorizado", 403);
             }
             
@@ -116,22 +114,10 @@ class ResenaController
         }
     }
     
-    /**
-     * GET /api/resenas/reserva/{reservaId}
-     * Obtener reseñas por reserva
-     */
     public function getByReserva($request, $reservaId)
     {
         try {
-            $user = AutenticadorMiddleware::verificar();
-            
             $resenas = $this->service->obtenerResenasPorReserva((int)$reservaId);
-            
-            // Verificar permisos (solo dueño de la reserva o admin)
-            $reserva = $this->ReservaRepository->findById((int)$reservaId);
-            if ($user->rol_id != 3 && $reserva->usuario_id != $user->sub) {
-                throw new \Exception("No autorizado", 403);
-            }
             
             Response::success([
                 'items' => $resenas,
@@ -140,19 +126,10 @@ class ResenaController
             
         } catch (\Exception $e) {
             $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
-            
-            if ($status === 403) {
-                Response::forbidden($e->getMessage());
-            } else {
-                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
-            }
+            Response::json(['success' => false, 'error' => $e->getMessage()], $status);
         }
     }
     
-    /**
-     * GET /api/resenas/propiedad/{propiedadId}
-     * Obtener reseñas por propiedad
-     */
     public function getByPropiedad($request, $propiedadId)
     {
         try {
@@ -175,11 +152,49 @@ class ResenaController
         }
     }
     
-    /**
-     * POST /api/resenas
-     * Crear una nueva reseña
-     * Body: { reserva_id, calificacion, comentario? }
-     */
+    public function getByUsuario($request, $usuarioId)
+    {
+        try {
+            $resenas = $this->service->obtenerResenasPorUsuario((int)$usuarioId);
+            
+            Response::success([
+                'items' => $resenas,
+                'total' => count($resenas),
+                'promedio' => $this->service->obtenerPromedioUsuario((int)$usuarioId)
+            ], 200, 'Reseñas del usuario obtenidas');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
+        }
+    }
+    
+    public function getByCalificador($request, $calificadorId)
+    {
+        try {
+            $resenas = $this->service->obtenerResenasPorCalificador((int)$calificadorId);
+            
+            Response::success([
+                'items' => $resenas,
+                'total' => count($resenas)
+            ], 200, 'Reseñas del calificador obtenidas');
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($status === 404) {
+                Response::notFound($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+            }
+        }
+    }
+    
     public function store($request)
     {
         try {
@@ -191,8 +206,7 @@ class ResenaController
                 throw new \Exception("JSON inválido", 400);
             }
             
-            // Validar campos requeridos
-            $camposRequeridos = ['reserva_id', 'calificacion'];
+            $camposRequeridos = ['reserva_id', 'tipo', 'calificacion'];
             $errores = [];
             
             foreach ($camposRequeridos as $campo) {
@@ -205,12 +219,11 @@ class ResenaController
                 throw new \Exception(implode(', ', $errores), 400);
             }
             
-            // Preparar datos
             $datosResena = [
                 'reserva_id' => (int)$data['reserva_id'],
+                'tipo' => $data['tipo'],
                 'calificacion' => (int)$data['calificacion'],
-                'comentario' => $data['comentario'] ?? null,
-                'fecha_publicacion' => date('Y-m-d H:i:s')
+                'comentario' => $data['comentario'] ?? null
             ];
             
             $id = $this->service->crearResena($datosResena);
@@ -235,11 +248,6 @@ class ResenaController
         }
     }
     
-    /**
-     * PUT /api/resenas/{id}
-     * Actualizar una reseña existente
-     * Body: { calificacion?, comentario? }
-     */
     public function update($request, $id)
     {
         try {
@@ -278,10 +286,6 @@ class ResenaController
         }
     }
     
-    /**
-     * DELETE /api/resenas/{id}
-     * Eliminar una reseña (solo admin)
-     */
     public function delete($request, $id)
     {
         try {

@@ -15,13 +15,20 @@ class Resena extends Model
 
     protected $fillable = [
         'reserva_id',
+        'tipo',
+        'calificado_id',
+        'calificador_id',
         'calificacion',
         'comentario',
         'fecha_publicacion'
     ];
 
     protected $casts = [
-        'calificacion' => 'integer',
+        'id' => 'int',
+        'reserva_id' => 'int',
+        'calificado_id' => 'int',
+        'calificador_id' => 'int',
+        'calificacion' => 'int',
         'fecha_publicacion' => 'datetime',
         'deleted_at' => 'datetime'
     ];
@@ -31,269 +38,155 @@ class Resena extends Model
      */
     public function reserva()
     {
-        return $this->belongsTo(
-            Reserva::class,
-            'reserva_id'
-        );
+        return $this->belongsTo(Reserva::class, 'reserva_id');
     }
 
     /**
-     * Obtener todas las reseñas
+     * Relación con el usuario calificado
+     * (inquilino o propietario según el tipo)
      */
-    public static function getAll()
+    public function calificado()
     {
-        return self::with([
-                'reserva.propiedad',
-                'reserva.usuario'
-            ])
-            ->orderBy('fecha_publicacion', 'desc')
-            ->get()
-            ->map(function ($resena) {
-
-                return [
-                    'id' => $resena->id,
-                    'reserva_id' => $resena->reserva_id,
-                    'calificacion' => $resena->calificacion,
-                    'comentario' => $resena->comentario,
-                    'fecha_publicacion' => $resena->fecha_publicacion,
-
-                    'usuario_nombre' =>
-                        $resena->reserva->usuario
-                            ? $resena->reserva->usuario->nombre . ' ' .
-                              $resena->reserva->usuario->apellido
-                            : null,
-
-                    'propiedad_titulo' =>
-                        $resena->reserva->propiedad->titulo ?? null
-                ];
-            });
+        return $this->belongsTo(Usuario::class, 'calificado_id');
     }
 
     /**
-     * Obtener una reseña por ID
+     * Relación con el usuario que califica
      */
-    public static function getById($id)
+    public function calificador()
     {
-        $resena = self::with([
-                'reserva.propiedad',
-                'reserva.usuario'
-            ])
-            ->find($id);
-
-        if (!$resena) {
-            return null;
-        }
-
-        return [
-            'id' => $resena->id,
-            'reserva_id' => $resena->reserva_id,
-            'calificacion' => $resena->calificacion,
-            'comentario' => $resena->comentario,
-            'fecha_publicacion' => $resena->fecha_publicacion,
-
-            'usuario_nombre' =>
-                $resena->reserva->usuario
-                    ? $resena->reserva->usuario->nombre . ' ' .
-                      $resena->reserva->usuario->apellido
-                    : null,
-
-            'usuario_email' =>
-                $resena->reserva->usuario->email ?? null,
-
-            'propiedad_titulo' =>
-                $resena->reserva->propiedad->titulo ?? null,
-
-            'propiedad_id' =>
-                $resena->reserva->propiedad_id ?? null
-        ];
+        return $this->belongsTo(Usuario::class, 'calificador_id');
     }
 
     /**
-     * Obtener reseñas por propiedad
+     * Scope para filtrar por tipo
      */
-    public static function getByPropiedad($propiedadId)
+    public function scopeDePropiedad($query)
     {
-        return self::whereHas(
-                'reserva',
-                function ($query) use ($propiedadId) {
-                    $query->where(
-                        'propiedad_id',
-                        $propiedadId
-                    );
-                }
-            )
-            ->with([
-                'reserva.usuario'
-            ])
-            ->orderBy(
-                'fecha_publicacion',
-                'desc'
-            )
-            ->get()
-            ->map(function ($resena) {
+        return $query->where('tipo', 'propiedad');
+    }
 
-                return [
-                    'id' => $resena->id,
-                    'calificacion' => $resena->calificacion,
-                    'comentario' => $resena->comentario,
-                    'fecha_publicacion' => $resena->fecha_publicacion,
-
-                    'usuario_nombre' =>
-                        $resena->reserva->usuario
-                            ? $resena->reserva->usuario->nombre . ' ' .
-                              $resena->reserva->usuario->apellido
-                            : null
-                ];
-            });
+    public function scopeDeInquilino($query)
+    {
+        return $query->where('tipo', 'inquilino');
     }
 
     /**
-     * Obtener reseñas por usuario
+     * Scope para filtrar por calificación
      */
-    public static function getByUsuario($usuarioId)
+    public function scopePorCalificacion($query, int $calificacion)
     {
-        return self::whereHas(
-                'reserva',
-                function ($query) use ($usuarioId) {
-                    $query->where(
-                        'usuario_id',
-                        $usuarioId
-                    );
-                }
-            )
-            ->with([
-                'reserva.propiedad'
-            ])
-            ->orderBy(
-                'fecha_publicacion',
-                'desc'
-            )
-            ->get()
-            ->map(function ($resena) {
+        return $query->where('calificacion', $calificacion);
+    }
 
-                return [
-                    'id' => $resena->id,
-                    'calificacion' => $resena->calificacion,
-                    'comentario' => $resena->comentario,
-                    'fecha_publicacion' => $resena->fecha_publicacion,
+    public function scopePositivas($query)
+    {
+        return $query->where('calificacion', '>=', 4);
+    }
 
-                    'propiedad_titulo' =>
-                        $resena->reserva->propiedad->titulo ?? null
-                ];
-            });
+    public function scopeNegativas($query)
+    {
+        return $query->where('calificacion', '<=', 2);
     }
 
     /**
-     * Obtener promedio de una propiedad
+     * Scope para filtrar por propiedad (a través de reserva)
+     */
+    public function scopePorPropiedad($query, int $propiedadId)
+    {
+        return $query->whereHas('reserva', function ($q) use ($propiedadId) {
+            $q->where('propiedad_id', $propiedadId);
+        });
+    }
+
+    /**
+     * Scope para filtrar por usuario (como inquilino en la reserva)
+     */
+    public function scopePorUsuario($query, int $usuarioId)
+    {
+        return $query->whereHas('reserva', function ($q) use ($usuarioId) {
+            $q->where('usuario_id', $usuarioId);
+        });
+    }
+
+    /**
+     * Obtener promedio de calificación de una propiedad
      */
     public static function getPromedioByPropiedad($propiedadId)
     {
-        $result = self::whereHas(
-                'reserva',
-                function ($query) use ($propiedadId) {
-                    $query->where(
-                        'propiedad_id',
-                        $propiedadId
-                    );
-                }
-            )
-            ->selectRaw(
-                'AVG(calificacion) as promedio, COUNT(*) as total'
-            )
+        $result = self::dePropiedad()
+            ->porPropiedad($propiedadId)
+            ->selectRaw('AVG(calificacion) as promedio, COUNT(*) as total')
             ->first();
 
         return [
-            'promedio' =>
-                round(
-                    $result->promedio ?? 0,
-                    1
-                ),
-
-            'total' =>
-                (int) ($result->total ?? 0)
+            'promedio' => round($result->promedio ?? 0, 1),
+            'total' => (int)($result->total ?? 0)
         ];
     }
 
     /**
-     * Crear reseña
+     * Obtener promedio de calificación de un usuario (como inquilino)
      */
-    public static function createResena($data)
+    public static function getPromedioByUsuario($usuarioId)
     {
-        return self::create($data);
+        $result = self::deInquilino()
+            ->where('calificado_id', $usuarioId)
+            ->selectRaw('AVG(calificacion) as promedio, COUNT(*) as total')
+            ->first();
+
+        return [
+            'promedio' => round($result->promedio ?? 0, 1),
+            'total' => (int)($result->total ?? 0)
+        ];
     }
 
     /**
-     * Actualizar reseña
+     * Verificar si una reserva ya tiene reseña de un tipo específico
      */
-    public static function updateResena(
-        $id,
-        $data
-    ) {
-        $resena = self::find($id);
-
-        if (!$resena) {
-            return false;
-        }
-
-        return $resena->update($data);
-    }
-
-    /**
-     * Eliminar reseña
-     */
-    public static function deleteResena($id)
+    public static function existePorReservaYTipo($reservaId, $tipo)
     {
-        $resena = self::find($id);
-
-        if (!$resena) {
-            return false;
-        }
-
-        return $resena->delete();
+        return self::where('reserva_id', $reservaId)
+            ->where('tipo', $tipo)
+            ->exists();
     }
 
     /**
-     * Verificar existencia
+     * Verificar si existe una reseña para una reserva (cualquier tipo)
      */
-    public static function exists($id)
+    public static function existePorReserva($reservaId)
     {
-        return self::where(
-            'id',
-            $id
-        )->exists();
+        return self::where('reserva_id', $reservaId)->exists();
     }
 
     /**
-     * Verificar si existe una reseña
-     * para una reserva
+     * Verificar que la reserva exista y esté finalizada
      */
-    public static function existePorReserva(
-        $reservaId
-    ) {
-        return self::where(
-            'reserva_id',
-            $reservaId
-        )->exists();
+    public static function reservaExistsAndFinalizada($reservaId)
+    {
+        return Reserva::where('id', $reservaId)
+            ->where('estado', 'finalizada')
+            ->whereNull('deleted_at')
+            ->exists();
     }
 
     /**
-     * Verificar que la reserva exista
-     * y esté finalizada
+     * Verificar si el usuario es dueño de la reseña (calificador)
      */
-    public static function reservaExistsAndFinalizada(
-        $reservaId
-    ) {
-        return Reserva::where(
-                'id',
-                $reservaId
-            )
-            ->where(
-                'estado',
-                'finalizada'
-            )
-            ->whereNull(
-                'deleted_at'
-            )
+    public static function perteneceAUsuario($resenaId, $usuarioId)
+    {
+        return self::where('id', $resenaId)
+            ->where('calificador_id', $usuarioId)
+            ->exists();
+    }
+
+    /**
+     * Verificar si el usuario es el calificado en la reseña
+     */
+    public static function perteneceACalificado($resenaId, $usuarioId)
+    {
+        return self::where('id', $resenaId)
+            ->where('calificado_id', $usuarioId)
             ->exists();
     }
 
@@ -304,61 +197,24 @@ class Resena extends Model
     {
         $total = self::count();
 
-        $promedioGeneral =
-            self::avg('calificacion');
+        $promedioGeneral = self::avg('calificacion');
 
-        $distribucion =
-            self::selectRaw(
-                'calificacion, COUNT(*) as cantidad'
-            )
+        $distribucion = self::selectRaw('calificacion, COUNT(*) as cantidad')
             ->groupBy('calificacion')
-            ->orderBy(
-                'calificacion',
-                'desc'
-            )
+            ->orderBy('calificacion', 'desc')
+            ->get()
+            ->toArray();
+
+        $porTipo = self::selectRaw('tipo, COUNT(*) as cantidad')
+            ->groupBy('tipo')
             ->get()
             ->toArray();
 
         return [
             'total' => $total,
-
-            'promedio_general' =>
-                round(
-                    $promedioGeneral ?? 0,
-                    1
-                ),
-
-            'distribucion' =>
-                $distribucion
+            'promedio_general' => round($promedioGeneral ?? 0, 1),
+            'distribucion' => $distribucion,
+            'por_tipo' => $porTipo
         ];
-    }
-
-    /**
-     * Obtener reseña con su reserva
-     */
-    public static function getWithReserva($id)
-    {
-        return self::with('reserva')
-            ->find($id);
-    }
-
-    /**
-     * Verificar si el usuario es dueño de la reseña
-     */
-    public static function perteneceAUsuario(
-        $resenaId,
-        $usuarioId
-    ) {
-        return self::where('id', $resenaId)
-            ->whereHas(
-                'reserva',
-                function ($query) use ($usuarioId) {
-                    $query->where(
-                        'usuario_id',
-                        $usuarioId
-                    );
-                }
-            )
-            ->exists();
     }
 }

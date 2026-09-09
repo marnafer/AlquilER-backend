@@ -30,52 +30,71 @@ class ResenaService
         $this->logService = $logService;
     }
     
-    /**
-     * Obtener todas las reseñas con filtros
-     */
     public function listarResenas(array $filtros = []): array
     {
         return $this->resenaRepository->getAll($filtros);
     }
     
-    /**
-     * Obtener una reseña por ID
-     */
     public function obtenerResena(int $id)
     {
         $resena = $this->resenaRepository->findById($id);
-        
         if (!$resena) {
             throw new \Exception("Reseña no encontrada", 404);
         }
-        
         return $resena;
     }
     
     /**
-     * Crear una nueva reseña
+     * Crear una nueva reseña (bidireccional)
      */
     public function crearResena(array $data): int
     {
-        // Validar que la reserva existe
+        // Validar que la reserva existe y está finalizada
         $reserva = $this->reservaRepository->findById($data['reserva_id']);
         if (!$reserva) {
             throw new \Exception("La reserva no existe", 404);
         }
         
-        // Validar que la reserva esté finalizada
         if ($reserva->estado !== 'finalizada') {
             throw new \Exception("Solo se pueden calificar reservas finalizadas", 400);
         }
         
-        // Validar que no exista una reseña para esta reserva
-        if ($this->resenaRepository->existePorReserva($data['reserva_id'])) {
-            throw new \Exception("Esta reserva ya tiene una reseña", 409);
+        // Validar tipo
+        $tiposValidos = ['propiedad', 'inquilino'];
+        if (!in_array($data['tipo'], $tiposValidos)) {
+            throw new \Exception("Tipo de reseña inválido. Debe ser 'propiedad' o 'inquilino'", 400);
         }
         
         // Validar calificación
         if ($data['calificacion'] < 1 || $data['calificacion'] > 5) {
             throw new \Exception("La calificación debe ser entre 1 y 5", 400);
+        }
+        
+        // Obtener la propiedad de la reserva
+        $propiedad = $this->propiedadRepository->findById($reserva->propiedad_id);
+        if (!$propiedad) {
+            throw new \Exception("La propiedad no existe", 404);
+        }
+        
+        // Determinar calificado y calificador según el tipo
+        if ($data['tipo'] === 'propiedad') {
+            // El inquilino califica la propiedad → calificado = propietario
+            $data['calificado_id'] = $propiedad->usuario_id;
+            $data['calificador_id'] = $reserva->usuario_id;
+        } else {
+            // El propietario califica al inquilino → calificado = inquilino
+            $data['calificado_id'] = $reserva->usuario_id;
+            $data['calificador_id'] = $propiedad->usuario_id;
+        }
+        
+        // Validar que no sea auto-calificación
+        if ($data['calificado_id'] == $data['calificador_id']) {
+            throw new \Exception("No puedes calificarte a ti mismo", 400);
+        }
+        
+        // Validar que no exista una reseña de este tipo para esta reserva
+        if ($this->resenaRepository->existePorReservaYTipo($data['reserva_id'], $data['tipo'])) {
+            throw new \Exception("Esta reserva ya tiene una reseña de tipo '{$data['tipo']}'", 409);
         }
         
         // Establecer fecha de publicación
@@ -87,16 +106,13 @@ class ResenaService
         // Registrar actividad
         $this->logService->registrar(
             'resena_creada',
-            "Usuario {$reserva->usuario_id} creó reseña ID: {$id} para reserva {$data['reserva_id']}",
-            $reserva->usuario_id
+            "Usuario {$data['calificador_id']} creó reseña tipo '{$data['tipo']}' para reserva {$data['reserva_id']}",
+            $data['calificador_id']
         );
         
         return $id;
     }
     
-    /**
-     * Actualizar una reseña existente
-     */
     public function actualizarResena(int $id, array $data, int $usuarioId): bool
     {
         $resena = $this->resenaRepository->findById($id);
@@ -104,11 +120,9 @@ class ResenaService
             throw new \Exception("Reseña no encontrada", 404);
         }
         
-        // Verificar permisos (solo el dueño o admin puede actualizar)
+        // Verificar permisos (solo el calificador o admin)
         $usuario = $this->usuarioRepository->findById($usuarioId);
-        $reserva = $this->reservaRepository->findById($resena->reserva_id);
-        
-        if (!$usuario || ($usuario->rol_id != 3 && $reserva->usuario_id != $usuarioId)) {
+        if (!$usuario || ($usuario->rol_id != 3 && $resena->calificador_id != $usuarioId)) {
             throw new \Exception("No autorizado", 403);
         }
         
@@ -116,6 +130,13 @@ class ResenaService
         if (isset($data['calificacion']) && ($data['calificacion'] < 1 || $data['calificacion'] > 5)) {
             throw new \Exception("La calificación debe ser entre 1 y 5", 400);
         }
+        
+        // No permitir cambiar campos críticos
+        unset($data['tipo']);
+        unset($data['calificado_id']);
+        unset($data['calificador_id']);
+        unset($data['reserva_id']);
+        unset($data['fecha_publicacion']);
         
         $resultado = $this->resenaRepository->update($id, $data);
         
@@ -130,9 +151,6 @@ class ResenaService
         return $resultado;
     }
     
-    /**
-     * Eliminar una reseña (soft delete)
-     */
     public function eliminarResena(int $id, int $usuarioId): bool
     {
         $resena = $this->resenaRepository->findById($id);
@@ -140,7 +158,7 @@ class ResenaService
             throw new \Exception("Reseña no encontrada", 404);
         }
         
-        // Verificar permisos (solo admin puede eliminar)
+        // Solo admin puede eliminar
         $usuario = $this->usuarioRepository->findById($usuarioId);
         if (!$usuario || $usuario->rol_id != 3) {
             throw new \Exception("No autorizado", 403);
@@ -159,12 +177,8 @@ class ResenaService
         return $resultado;
     }
     
-    /**
-     * Restaurar una reseña eliminada
-     */
     public function restaurarResena(int $id, int $usuarioId): bool
     {
-        // Verificar permisos (solo admin puede restaurar)
         $usuario = $this->usuarioRepository->findById($usuarioId);
         if (!$usuario || $usuario->rol_id != 3) {
             throw new \Exception("No autorizado", 403);
@@ -185,50 +199,62 @@ class ResenaService
         return $resultado;
     }
     
-    /**
-     * Obtener reseñas por reserva
-     */
     public function obtenerResenasPorReserva(int $reservaId): array
     {
         $reserva = $this->reservaRepository->findById($reservaId);
         if (!$reserva) {
             throw new \Exception("La reserva no existe", 404);
         }
-        
         return $this->resenaRepository->getByReserva($reservaId);
     }
     
-    /**
-     * Obtener reseñas por propiedad
-     */
     public function obtenerResenasPorPropiedad(int $propiedadId): array
     {
         $propiedad = $this->propiedadRepository->findById($propiedadId);
         if (!$propiedad) {
             throw new \Exception("La propiedad no existe", 404);
         }
-        
         return $this->resenaRepository->getByPropiedad($propiedadId);
     }
     
-    /**
-     * Obtener promedio de calificación de una propiedad
-     */
+    public function obtenerResenasPorUsuario(int $usuarioId): array
+    {
+        $usuario = $this->usuarioRepository->findById($usuarioId);
+        if (!$usuario) {
+            throw new \Exception("El usuario no existe", 404);
+        }
+        return $this->resenaRepository->getByUsuario($usuarioId);
+    }
+    
+    public function obtenerResenasPorCalificador(int $calificadorId): array
+    {
+        $usuario = $this->usuarioRepository->findById($calificadorId);
+        if (!$usuario) {
+            throw new \Exception("El usuario no existe", 404);
+        }
+        return $this->resenaRepository->getByCalificador($calificadorId);
+    }
+    
     public function obtenerPromedioPropiedad(int $propiedadId): float
     {
         $propiedad = $this->propiedadRepository->findById($propiedadId);
         if (!$propiedad) {
             throw new \Exception("La propiedad no existe", 404);
         }
-        
         return $this->resenaRepository->getPromedioByPropiedad($propiedadId);
     }
     
-    /**
-     * Verificar si una reserva tiene reseña
-     */
-    public function existeResenaPorReserva(int $reservaId): bool
+    public function obtenerPromedioUsuario(int $usuarioId): float
     {
-        return $this->resenaRepository->existePorReserva($reservaId);
+        $usuario = $this->usuarioRepository->findById($usuarioId);
+        if (!$usuario) {
+            throw new \Exception("El usuario no existe", 404);
+        }
+        return $this->resenaRepository->getPromedioByUsuario($usuarioId);
+    }
+    
+    public function existeResenaPorReservaYTipo(int $reservaId, string $tipo): bool
+    {
+        return $this->resenaRepository->existePorReservaYTipo($reservaId, $tipo);
     }
 }

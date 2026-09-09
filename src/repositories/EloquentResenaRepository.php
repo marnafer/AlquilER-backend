@@ -3,19 +3,25 @@
 namespace App\Repositories;
 
 use App\Models\Resena;
-use App\Models\Reserva;
 use Illuminate\Database\Eloquent\Builder;
 
 class EloquentResenaRepository implements ResenaRepositoryInterface
 {
-    /**
-     * Obtener todas las reseñas con filtros
-     */
     public function getAll(array $filtros = []): array
     {
-        $query = Resena::with(['reserva', 'reserva.propiedad', 'reserva.usuario']);
+        $query = Resena::with([
+            'reserva',
+            'reserva.propiedad',
+            'reserva.usuario',
+            'calificado',
+            'calificador'
+        ]);
         
         // Filtros
+        if (!empty($filtros['tipo'])) {
+            $query->where('tipo', $filtros['tipo']);
+        }
+        
         if (!empty($filtros['calificacion'])) {
             $query->where('calificacion', $filtros['calificacion']);
         }
@@ -26,6 +32,14 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         
         if (!empty($filtros['calificacion_max'])) {
             $query->where('calificacion', '<=', $filtros['calificacion_max']);
+        }
+        
+        if (!empty($filtros['calificado_id'])) {
+            $query->where('calificado_id', $filtros['calificado_id']);
+        }
+        
+        if (!empty($filtros['calificador_id'])) {
+            $query->where('calificador_id', $filtros['calificador_id']);
         }
         
         if (!empty($filtros['reserva_id'])) {
@@ -65,28 +79,23 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         return $query->get()->toArray();
     }
     
-    /**
-     * Buscar una reseña por ID
-     */
     public function findById(int $id)
     {
-        return Resena::with(['reserva', 'reserva.propiedad', 'reserva.usuario'])
-            ->withTrashed()
-            ->find($id);
+        return Resena::with([
+            'reserva',
+            'reserva.propiedad',
+            'reserva.usuario',
+            'calificado',
+            'calificador'
+        ])->withTrashed()->find($id);
     }
     
-    /**
-     * Crear una nueva reseña
-     */
     public function create(array $data): int
     {
         $resena = Resena::create($data);
         return $resena->id;
     }
     
-    /**
-     * Actualizar una reseña
-     */
     public function update(int $id, array $data): bool
     {
         $resena = Resena::find($id);
@@ -96,9 +105,6 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         return $resena->update($data);
     }
     
-    /**
-     * Eliminar una reseña (soft delete)
-     */
     public function delete(int $id): bool
     {
         $resena = Resena::find($id);
@@ -108,9 +114,6 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         return $resena->delete();
     }
     
-    /**
-     * Restaurar una reseña eliminada
-     */
     public function restore(int $id): bool
     {
         $resena = Resena::withTrashed()->find($id);
@@ -120,45 +123,64 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         return $resena->restore();
     }
     
-    /**
-     * Obtener reseñas por reserva
-     */
     public function getByReserva(int $reservaId): array
     {
         return Resena::where('reserva_id', $reservaId)
-            ->with(['reserva.propiedad', 'reserva.usuario'])
+            ->with(['calificado', 'calificador'])
             ->get()
             ->toArray();
     }
     
-    /**
-     * Obtener promedio de calificación por propiedad
-     */
-    public function getPromedioByPropiedad(int $propiedadId): float
-    {
-        return Resena::whereHas('reserva', function (Builder $q) use ($propiedadId) {
-                $q->where('propiedad_id', $propiedadId);
-            })
-            ->avg('calificacion') ?? 0.0;
-    }
-    
-    /**
-     * Obtener reseñas por propiedad (a través de reservas)
-     */
     public function getByPropiedad(int $propiedadId): array
     {
-        return Resena::whereHas('reserva', function (Builder $q) use ($propiedadId) {
-                $q->where('propiedad_id', $propiedadId);
-            })
-            ->with(['reserva.usuario'])
+        return Resena::dePropiedad()
+            ->porPropiedad($propiedadId)
+            ->with(['calificador', 'reserva.usuario'])
             ->orderBy('fecha_publicacion', 'desc')
             ->get()
             ->toArray();
     }
     
-    /**
-     * Verificar si una reserva ya tiene reseña
-     */
+    public function getByUsuario(int $usuarioId): array
+    {
+        return Resena::deInquilino()
+            ->where('calificado_id', $usuarioId)
+            ->with(['calificador', 'reserva.propiedad'])
+            ->orderBy('fecha_publicacion', 'desc')
+            ->get()
+            ->toArray();
+    }
+    
+    public function getByCalificador(int $calificadorId): array
+    {
+        return Resena::where('calificador_id', $calificadorId)
+            ->with(['calificado', 'reserva'])
+            ->orderBy('fecha_publicacion', 'desc')
+            ->get()
+            ->toArray();
+    }
+    
+    public function getPromedioByPropiedad(int $propiedadId): float
+    {
+        return Resena::dePropiedad()
+            ->porPropiedad($propiedadId)
+            ->avg('calificacion') ?? 0.0;
+    }
+    
+    public function getPromedioByUsuario(int $usuarioId): float
+    {
+        return Resena::deInquilino()
+            ->where('calificado_id', $usuarioId)
+            ->avg('calificacion') ?? 0.0;
+    }
+    
+    public function existePorReservaYTipo(int $reservaId, string $tipo): bool
+    {
+        return Resena::where('reserva_id', $reservaId)
+            ->where('tipo', $tipo)
+            ->exists();
+    }
+    
     public function existePorReserva(int $reservaId): bool
     {
         return Resena::where('reserva_id', $reservaId)->exists();
