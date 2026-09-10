@@ -19,46 +19,46 @@ class ProvinciaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $this->service
             ->expects($this->once())
-            ->method('listarProvincias')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index();
+        $this->controller->listar();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_store()
+    public function it_can_crear()
     {
         $input = json_encode(['nombre' => 'Nueva Provincia']);
         file_put_contents('php://input', $input);
 
         $this->service
             ->expects($this->once())
-            ->method('crearProvincia')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_name()
+    public function it_returns_bad_request_when_crear_missing_name()
     {
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -66,16 +66,16 @@ class ProvinciaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerProvincia')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
         ob_start();
-        $this->controller->show(1);
+        $this->controller->obtener(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -86,12 +86,12 @@ class ProvinciaControllerTest extends TestCase
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerProvincia')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Provincia no encontrada", 404));
 
         ob_start();
-        $this->controller->show(999);
+        $this->controller->obtener(999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -99,51 +99,51 @@ class ProvinciaControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update()
+    public function it_can_actualizar()
     {
         $input = json_encode(['nombre' => 'Provincia Actualizada']);
         file_put_contents('php://input', $input);
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarProvincia')
+            ->method('actualizar')
             ->with(1, ['nombre' => 'Provincia Actualizada'])
             ->willReturn(true);
 
         ob_start();
-        $this->controller->update(1);
+        $this->controller->actualizar(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $this->service
             ->expects($this->once())
-            ->method('eliminarProvincia')
+            ->method('eliminar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete(1);
+        $this->controller->eliminar(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_restore()
+    public function it_can_restaurar()
     {
         $this->service
             ->expects($this->once())
-            ->method('restaurarProvincia')
+            ->method('restaurar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->restore(1);
+        $this->controller->restaurar(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);

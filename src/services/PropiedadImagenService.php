@@ -14,6 +14,7 @@ use App\Repositories\PropiedadImagenRepositoryInterface;
 use App\Services\FileUploaderInterface;
 use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\PropiedadImagenValidator;
+use App\Validators\ImageUploadValidatorInterface;
 use App\Services\PropiedadService;
 
 class PropiedadImagenService
@@ -23,7 +24,8 @@ class PropiedadImagenService
         private readonly PropiedadImagenRepositoryInterface $repository,
         private readonly PropiedadService $propiedadService,
         private readonly LogActividadService $logActividadService,
-        private readonly FileUploaderInterface $fileUploader
+        private readonly FileUploaderInterface $fileUploader,
+        private readonly ImageUploadValidatorInterface $imageUploadValidator
     ) {
     }
 
@@ -92,10 +94,18 @@ class PropiedadImagenService
     {
         $data = PropiedadImagenSanitizer::sanitizarPropiedadImagen($rawData);
 
-        $validacion = PropiedadImagenValidator::validarCrearPropiedadImagen($data, $file);
+        $validacion = PropiedadImagenValidator::validarCrearPropiedadImagen($data);
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
+        }
+
+        $errorImagen = $this->imageUploadValidator->validate($file);
+
+        if ($errorImagen !== null) {
+            throw new ValidationException([
+                'imagen' => $errorImagen,
+            ]);
         }
 
         $propiedadId = (int) $data['propiedad_id'];

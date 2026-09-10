@@ -19,22 +19,22 @@ class PropiedadImagenControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $this->service
             ->expects($this->once())
-            ->method('listarImagenes')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index();
+        $this->controller->listar();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_store()
+    public function it_can_crear()
     {
         // Simular upload de archivo
         $_FILES['imagen'] = [
@@ -49,18 +49,18 @@ class PropiedadImagenControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearImagen')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_propiedad_id()
+    public function it_returns_bad_request_when_crear_missing_propiedad_id()
     {
         $_FILES['imagen'] = [
             'name' => 'test.jpg',
@@ -73,7 +73,7 @@ class PropiedadImagenControllerTest extends TestCase
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -81,14 +81,14 @@ class PropiedadImagenControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_file()
+    public function it_returns_bad_request_when_crear_missing_file()
     {
         // No enviar archivo
         $input = json_encode(['propiedad_id' => 1]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -96,16 +96,16 @@ class PropiedadImagenControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerImagen')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
         ob_start();
-        $this->controller->show(1);
+        $this->controller->obtener(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -116,12 +116,12 @@ class PropiedadImagenControllerTest extends TestCase
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerImagen')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Imagen no encontrada", 404));
 
         ob_start();
-        $this->controller->show(999);
+        $this->controller->obtener(999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -160,30 +160,30 @@ class PropiedadImagenControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarImagen')
+            ->method('eliminar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_delete_without_user()
+    public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);

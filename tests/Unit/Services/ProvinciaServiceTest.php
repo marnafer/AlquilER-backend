@@ -7,10 +7,12 @@ namespace Tests\Unit\Services;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\BadRequestException;
 use App\Models\Provincia;
 use App\Repositories\ProvinciaRepositoryInterface;
 use App\Services\ProvinciaService;
 use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Collection;
 
 final class ProvinciaServiceTest extends TestCase
 {
@@ -126,5 +128,275 @@ final class ProvinciaServiceTest extends TestCase
         $this->expectException(ValidationException::class);
 
         $service->obtener('abc');
+    }
+
+    public function test_lista_provincias_y_devuelve_el_total(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincias = new Collection([$provincia]);
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('all')
+            ->willReturn($provincias);
+
+        $service = new ProvinciaService($repository);
+
+        $resultado = $service->listar();
+
+        $this->assertSame($provincias, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_elimina_una_provincia_sin_localidades(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->once())
+            ->method('hasLocalities')
+            ->with($provincia)
+            ->willReturn(false);
+
+        $repository
+            ->expects($this->once())
+            ->method('delete')
+            ->with($provincia)
+            ->willReturn(true);
+
+        $service = new ProvinciaService($repository);
+
+        $service->eliminar(1);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_eliminar_lanza_excepcion_si_tiene_localidades(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->method('findById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->once())
+            ->method('hasLocalities')
+            ->with($provincia)
+            ->willReturn(true);
+
+        $repository
+            ->expects($this->never())
+            ->method('delete');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(ConflictException::class);
+
+        $service->eliminar(1);
+    }
+
+    public function test_actualiza_una_provincia(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->once())
+            ->method('existsByName')
+            ->with('Cordoba', 1)
+            ->willReturn(false);
+
+        $repository
+            ->expects($this->once())
+            ->method('update')
+            ->with($provincia, ['nombre' => 'Cordoba'])
+            ->willReturn(true);
+
+        $service = new ProvinciaService($repository);
+
+        $service->actualizar(1, [
+            'nombre' => ' cordoba ',
+        ]);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_no_hay_campos(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(BadRequestException::class);
+
+        $service->actualizar(1, []);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_el_nombre_ya_existe(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->method('findById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->once())
+            ->method('existsByName')
+            ->with('Cordoba', 1)
+            ->willReturn(true);
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(ConflictException::class);
+
+        $service->actualizar(1, [
+            'nombre' => 'Cordoba',
+        ]);
+    }
+
+    public function test_restaura_una_provincia_eliminada(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->once())
+            ->method('existsByName')
+            ->with('Buenos Aires', 1)
+            ->willReturn(false);
+
+        $repository
+            ->expects($this->once())
+            ->method('restore')
+            ->with($provincia)
+            ->willReturn(true);
+
+        $service = new ProvinciaService($repository);
+
+        $service->restaurar(1);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_no_existe(): void
+    {
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn(null);
+
+        $repository
+            ->expects($this->never())
+            ->method('restore');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(NotFoundException::class);
+
+        $service->restaurar(1);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_el_nombre_ya_esta_activo(): void
+    {
+        $provincia = new Provincia(['nombre' => 'Buenos Aires']);
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->once())
+            ->method('existsByName')
+            ->with('Buenos Aires', 1)
+            ->willReturn(true);
+
+        $repository
+            ->expects($this->never())
+            ->method('restore');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(ConflictException::class);
+
+        $service->restaurar(1);
     }
 }

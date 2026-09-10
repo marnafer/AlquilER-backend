@@ -444,4 +444,120 @@ final class LocalidadServiceTest extends TestCase
 
         $service->eliminar(1);
     }
+
+    public function test_restaura_una_localidad_eliminada(): void
+    {
+        $localidad = new Localidad([
+            'nombre' => 'La Plata',
+            'provincia_id' => 1,
+        ]);
+        $localidad->id = 1;
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $provinciaRepository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($localidad);
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('existsByNameInProvince')
+            ->with('La Plata', 1, 1)
+            ->willReturn(false);
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('restore')
+            ->with($localidad)
+            ->willReturn(true);
+
+        $service = new LocalidadService(
+            $localidadRepository,
+            $provinciaRepository
+        );
+
+        $service->restaurar(1);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_no_existe(): void
+    {
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $provinciaRepository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn(null);
+
+        $localidadRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $service = new LocalidadService(
+            $localidadRepository,
+            $provinciaRepository
+        );
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('Localidad eliminada no encontrada');
+
+        $service->restaurar(1);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_el_nombre_ya_esta_activo(): void
+    {
+        $localidad = new Localidad([
+            'nombre' => 'La Plata',
+            'provincia_id' => 1,
+        ]);
+        $localidad->id = 1;
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $provinciaRepository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $localidadRepository
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($localidad);
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('existsByNameInProvince')
+            ->with('La Plata', 1, 1)
+            ->willReturn(true);
+
+        $localidadRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $service = new LocalidadService(
+            $localidadRepository,
+            $provinciaRepository
+        );
+
+        $this->expectException(ConflictException::class);
+
+        $service->restaurar(1);
+    }
 }

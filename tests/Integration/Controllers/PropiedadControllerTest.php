@@ -19,22 +19,22 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_index()
+    public function it_can_listar()
     {
         $this->service
             ->expects($this->once())
-            ->method('listarPropiedades')
+            ->method('listar')
             ->willReturn([]);
 
         ob_start();
-        $this->controller->index();
+        $this->controller->listar();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_can_store()
+    public function it_can_crear()
     {
         $input = json_encode([
             'titulo' => 'Casa Test',
@@ -55,24 +55,24 @@ class PropiedadControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('crearPropiedad')
+            ->method('crear')
             ->willReturn(1);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('201', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_store_missing_fields()
+    public function it_returns_bad_request_when_crear_missing_fields()
     {
         $input = json_encode([]);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->store();
+        $this->controller->crear();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -80,16 +80,16 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_show()
+    public function it_can_obtener()
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerPropiedad')
+            ->method('obtener')
             ->with(1)
             ->willReturn((object) ['id' => 1]);
 
         ob_start();
-        $this->controller->show(1);
+        $this->controller->obtener(1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -100,12 +100,12 @@ class PropiedadControllerTest extends TestCase
     {
         $this->service
             ->expects($this->once())
-            ->method('obtenerPropiedad')
+            ->method('obtener')
             ->with(999)
             ->willThrowException(new \Exception("Propiedad no encontrada", 404));
 
         ob_start();
-        $this->controller->show(999);
+        $this->controller->obtener(999);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -113,7 +113,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_update()
+    public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['titulo' => 'Propiedad Actualizada']);
@@ -121,26 +121,26 @@ class PropiedadControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarPropiedad')
+            ->method('actualizar')
             ->with(1, ['titulo' => 'Propiedad Actualizada'])
             ->willReturn(true);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_update_without_user()
+    public function it_returns_unauthorized_when_actualizar_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode(['titulo' => 'Propiedad Actualizada']);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->update($request, 1);
+        $this->controller->actualizar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -148,30 +148,30 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_delete()
+    public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarPropiedad')
+            ->method('eliminar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_delete_without_user()
+    public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
 
         ob_start();
-        $this->controller->delete($request, 1);
+        $this->controller->eliminar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -179,18 +179,18 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_restore()
+    public function it_can_restaurar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
         $this->service
             ->expects($this->once())
-            ->method('restaurarPropiedad')
+            ->method('restaurar')
             ->with(1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->restore($request, 1);
+        $this->controller->restaurar($request, 1);
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);

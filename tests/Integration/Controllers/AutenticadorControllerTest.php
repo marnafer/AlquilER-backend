@@ -55,7 +55,7 @@ class AutenticadorControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_register()
+    public function it_can_registrar()
     {
         $input = json_encode([
             'nombre' => 'Test',
@@ -69,11 +69,11 @@ class AutenticadorControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('register')
+            ->method('registrar')
             ->willReturn(['id' => 1]);
 
         ob_start();
-        $this->controller->register();
+        $this->controller->registrar();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
@@ -81,13 +81,13 @@ class AutenticadorControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_bad_request_when_register_missing_fields()
+    public function it_returns_bad_request_when_registrar_missing_fields()
     {
         $input = json_encode(['email' => 'test@test.com']);
         file_put_contents('php://input', $input);
 
         ob_start();
-        $this->controller->register();
+        $this->controller->registrar();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":false', $output);
@@ -99,11 +99,7 @@ class AutenticadorControllerTest extends TestCase
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
-        $this->service
-            ->expects($this->once())
-            ->method('logout')
-            ->willReturn(true);
-
+        // El logout no usa el servicio, solo el middleware
         ob_start();
         $this->controller->logout($request);
         $output = ob_get_clean();
