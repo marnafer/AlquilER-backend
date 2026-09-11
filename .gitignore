@@ -12,3 +12,7 @@ node_modules/
 # Archivos de cambios actuales y futuros
 Cambios.txt
 PLAN-SWAGGER.txt
+
+# Archivos temporales 
+.phpunit.result.cache
+.vscode/
