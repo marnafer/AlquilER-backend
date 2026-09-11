@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\BadRequestException;
 
-final class GestorArchivosLocalesUploader implements GestorArchivosInterface
+final class GestorArchivosLocales implements GestorArchivosInterface
 {
     public function upload(array $file, string $directory): string
     {
