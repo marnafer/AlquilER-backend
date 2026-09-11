@@ -2,7 +2,7 @@
 
 namespace App\Validators;
 
-final class ImageUploadValidator implements ImageUploadValidatorInterface
+final class CargaImagenValidator implements CargaImagenValidatorInterface
 {
     public function validate(array $file): ?string
     {

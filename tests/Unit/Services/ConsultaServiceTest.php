@@ -8,6 +8,7 @@ use App\Repositories\ConsultaRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Models\Propiedad;
 
 class ConsultaServiceTest extends TestCase
 {
@@ -35,7 +36,7 @@ class ConsultaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_list_consultas()
+    public function test_it_can_list_consultas()
     {
         $filtros = ['usuario_id' => 1];
         $expected = [['id' => 1, 'propiedad_id' => 1]];
@@ -51,9 +52,9 @@ class ConsultaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_create_consulta()
+    public function test_it_can_create_consulta()
     {
-        $propiedadMock = (object) ['id' => 1];
+        $propiedadMock = new Propiedad(['id' => 1]);
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -79,7 +80,7 @@ class ConsultaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_property_not_found()
+    public function test_it_throws_exception_when_property_not_found()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("La propiedad no existe");
@@ -98,7 +99,7 @@ class ConsultaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_consultas_by_usuario()
+    public function test_it_can_get_consultas_by_usuario()
     {
         $expected = [['id' => 1]];
 
@@ -113,7 +114,7 @@ class ConsultaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_not_authorized_to_view_usuario_consultas()
+    public function test_it_throws_exception_when_not_authorized_to_view_usuario_consultas()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("No autorizado");
@@ -123,7 +124,7 @@ class ConsultaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_consultas_by_propiedad()
+    public function test_it_can_get_consultas_by_propiedad()
     {
         $expected = [['id' => 1]];
 
@@ -131,7 +132,7 @@ class ConsultaServiceTest extends TestCase
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn((object) ['id' => 1, 'usuario_id' => 1]);
+            ->willReturn(new Propiedad(['id' => 1, 'usuario_id' => 1]));
 
         $this->consultaRepository
             ->expects($this->once())

@@ -84,9 +84,8 @@ class FavoritoService
         
         if ($resultado) {
             $this->logService->registrar(
-                'favorito_agregado',
-                "Usuario {$usuarioId} agregó propiedad {$propiedadId} a favoritos",
-                $usuarioId
+                (int) $usuarioId,
+                'favorito_agregado'
             );
         }
         
@@ -114,9 +113,8 @@ class FavoritoService
         
         if ($resultado) {
             $this->logService->registrar(
-                'favorito_eliminado',
-                "Usuario {$usuarioId} eliminó propiedad {$propiedadId} de favoritos",
-                $usuarioId
+                (int) $usuarioId,
+                'favorito_eliminado'
             );
         }
         

@@ -88,11 +88,10 @@ class ReservaService
         // Crear reserva
         $id = $this->reservaRepository->create($data);
         
-        // Registrar actividad
+        // Registrar actividad (Orden corregido: int $usuarioId, string $accion)
         $this->logService->registrar(
-            'reserva_creada',
-            "Usuario {$data['usuario_id']} creó reserva ID: {$id} para propiedad {$data['propiedad_id']}",
-            $data['usuario_id']
+            (int) $data['usuario_id'],
+            'reserva_creada'
         );
         
         return $id;
@@ -131,10 +130,10 @@ class ReservaService
         $resultado = $this->reservaRepository->update($id, $data);
         
         if ($resultado) {
+            $userId = (int) ($data['usuario_id'] ?? $reserva->usuario_id);
             $this->logService->registrar(
-                'reserva_actualizada',
-                "Usuario actualizó reserva ID: {$id}",
-                $data['usuario_id'] ?? $reserva->usuario_id
+                $userId,
+                'reserva_actualizada'
             );
         }
         
@@ -160,9 +159,8 @@ class ReservaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'reserva_eliminada',
-                "Usuario {$usuarioId} eliminó reserva ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'reserva_eliminada'
             );
         }
         
@@ -178,9 +176,8 @@ class ReservaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'reserva_restaurada',
-                "Usuario {$usuarioId} restauró reserva ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'reserva_restaurada'
             );
         }
         
@@ -235,9 +232,8 @@ class ReservaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'reserva_cambio_estado',
-                "Usuario {$usuarioId} cambió reserva {$id} a estado '{$estado}'",
-                $usuarioId
+                (int) $usuarioId,
+                'reserva_cambio_estado'
             );
         }
         

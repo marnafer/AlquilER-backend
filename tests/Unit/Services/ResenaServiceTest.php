@@ -9,6 +9,9 @@ use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Models\Reserva;
+use App\Models\Propiedad;
+use App\Models\Usuario;
 
 class ResenaServiceTest extends TestCase
 {
@@ -39,7 +42,7 @@ class ResenaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_list_resenas()
+    public function test_it_can_list_resenas()
     {
         $filtros = ['tipo' => 'propiedad'];
         $expected = [['id' => 1, 'calificacion' => 5]];
@@ -55,15 +58,15 @@ class ResenaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_create_resena_de_propiedad()
+    public function test_it_can_create_resena_de_propiedad()
     {
-        $reservaMock = (object) [
+        $reservaMock = new Reserva([
             'id' => 5,
             'estado' => 'finalizada',
             'propiedad_id' => 1,
             'usuario_id' => 2
-        ];
-        $propiedadMock = (object) ['id' => 1, 'usuario_id' => 3];
+        ]);
+        $propiedadMock = new Propiedad(['id' => 1, 'usuario_id' => 3]);
 
         $this->reservaRepository
             ->expects($this->once())
@@ -102,15 +105,15 @@ class ResenaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_create_resena_de_inquilino()
+    public function test_it_can_create_resena_de_inquilino()
     {
-        $reservaMock = (object) [
+        $reservaMock = new Reserva([
             'id' => 5,
             'estado' => 'finalizada',
             'propiedad_id' => 1,
             'usuario_id' => 2
-        ];
-        $propiedadMock = (object) ['id' => 1, 'usuario_id' => 3];
+        ]);
+        $propiedadMock = new Propiedad(['id' => 1, 'usuario_id' => 3]);
 
         $this->reservaRepository
             ->expects($this->once())
@@ -149,17 +152,17 @@ class ResenaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_reserva_not_finalizada()
+    public function test_it_throws_exception_when_reserva_not_finalizada()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("Solo se pueden calificar reservas finalizadas");
         $this->expectExceptionCode(400);
 
-        $reservaMock = (object) [
+        $reservaMock = new Reserva([
             'id' => 5,
             'estado' => 'pendiente',
             'propiedad_id' => 1
-        ];
+        ]);
 
         $this->reservaRepository
             ->expects($this->once())
@@ -175,19 +178,19 @@ class ResenaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_duplicate_resena()
+    public function test_it_throws_exception_when_duplicate_resena()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("Esta reserva ya tiene una reseña de tipo 'propiedad'");
         $this->expectExceptionCode(409);
 
-        $reservaMock = (object) [
+        $reservaMock = new Reserva([
             'id' => 5,
             'estado' => 'finalizada',
             'propiedad_id' => 1,
             'usuario_id' => 2
-        ];
-        $propiedadMock = (object) ['id' => 1, 'usuario_id' => 3];
+        ]);
+        $propiedadMock = new Propiedad(['id' => 1, 'usuario_id' => 3]);
 
         $this->reservaRepository
             ->expects($this->once())
@@ -215,7 +218,7 @@ class ResenaServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_promedio_by_propiedad()
+    public function test_it_can_get_promedio_by_propiedad()
     {
         $this->resenaRepository
             ->expects($this->once())
@@ -227,14 +230,14 @@ class ResenaServiceTest extends TestCase
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn(new Propiedad(['id' => 1]));
 
         $result = $this->resenaService->obtenerPromedioPropiedad(1);
         $this->assertEquals(4.5, $result);
     }
 
     /** @test */
-    public function it_can_get_promedio_by_usuario()
+    public function test_it_can_get_promedio_by_usuario()
     {
         $this->resenaRepository
             ->expects($this->once())
@@ -246,7 +249,7 @@ class ResenaServiceTest extends TestCase
             ->expects($this->once())
             ->method('findById')
             ->with(2)
-            ->willReturn((object) ['id' => 2]);
+            ->willReturn(new Usuario(['id' => 2]));
 
         $result = $this->resenaService->obtenerPromedioUsuario(2);
         $this->assertEquals(4.2, $result);
