@@ -18,8 +18,8 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
-CREATE DATABASE IF NOT EXISTS sistema_alquiler_db;
-USE sistema_alquiler_db;
+CREATE DATABASE IF NOT EXISTS sistema_alquiler_db_dev;
+USE sistema_alquiler_db_dev;
 --
 
 -- --------------------------------------------------------
@@ -297,7 +297,8 @@ INSERT INTO `reservas` (`id`, `propiedad_id`, `usuario_id`, `fecha_inicio_alquil
 
 CREATE TABLE IF NOT EXISTS `roles` (
   `id` int(11) UNSIGNED NOT NULL,
-  `nombre` varchar(30) NOT NULL
+  `nombre` varchar(30) NOT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
