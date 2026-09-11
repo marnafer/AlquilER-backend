@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Exceptions\BadRequestException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
@@ -14,8 +13,8 @@ use App\Repositories\PropiedadImagenRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\PropiedadImagenService;
 use App\Services\PropiedadService;
-use App\Services\FileUploaderInterface;
-use App\Validators\ImageUploadValidatorInterface;
+use App\Services\GestorArchivosInterface; 
+use App\Validators\CargaImagenValidatorInterface;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
 
@@ -31,8 +30,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -43,8 +42,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->listar();
 
         $this->assertSame($imagenes, $resultado['items']);
@@ -59,8 +58,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -72,8 +71,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->listar(1);
 
         $this->assertSame([$imagen], $resultado['items']);
@@ -85,8 +84,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->never())
@@ -96,8 +95,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         );
 
         $this->expectException(ValidationException::class);
@@ -113,8 +112,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -126,8 +125,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->obtener(1);
 
         $this->assertSame($imagen, $resultado);
@@ -138,8 +137,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -151,8 +150,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         );
 
         $this->expectException(NotFoundException::class);
@@ -166,8 +165,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $propiedadService
             ->expects($this->never())
@@ -175,7 +174,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository
             ->expects($this->never())
             ->method('create');
-        $imageUploadValidator
+        $cargaImagenValidator
             ->expects($this->once())
             ->method('validate')
             ->willReturn('Debe enviar una imagen');
@@ -184,8 +183,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         );
 
         $this->expectException(ValidationException::class);
@@ -206,19 +205,19 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $propiedadService
             ->expects($this->once())
             ->method('obtener')
             ->with(1)
             ->willReturn($propiedad);
-        $imageUploadValidator
+        $cargaImagenValidator
             ->expects($this->once())
             ->method('validate')
             ->willReturn(null);
-        $fileUploader
+        $gestorArchivos
             ->expects($this->once())
             ->method('upload')
             ->willReturn('/uploads/imagen.jpg');
@@ -231,8 +230,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->crear(
             ['propiedad_id' => 1],
             ['tmp_name' => '/tmp/php123', 'size' => 1024],
@@ -261,8 +260,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -284,8 +283,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->establecerPrincipal(1, (object) ['sub' => 7, 'rol_id' => 1]);
 
         $this->assertSame($imagen, $resultado);
@@ -304,8 +303,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -320,8 +319,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         );
 
         $this->expectException(ForbiddenException::class);
@@ -342,8 +341,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -364,8 +363,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->eliminar(1, (object) ['sub' => 7, 'rol_id' => 1]);
 
         $this->addToAssertionCount(1);
@@ -383,8 +382,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
         $repository
             ->expects($this->once())
             ->method('findById')
@@ -401,8 +400,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         );
 
         $this->expectException(ForbiddenException::class);
@@ -423,8 +422,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
-        $fileUploader = $this->createMock(FileUploaderInterface::class);
-        $imageUploadValidator = $this->createMock(ImageUploadValidatorInterface::class);
+        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
+        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
 
         $repository
             ->expects($this->once())
@@ -445,8 +444,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $repository,
             $propiedadService,
             $logService,
-            $fileUploader,
-            $imageUploadValidator
+            $gestorArchivos,
+            $cargaImagenValidator
         ))->eliminar(1, (object) ['sub' => 99, 'rol_id' => 2]);
 
         $this->addToAssertionCount(1);

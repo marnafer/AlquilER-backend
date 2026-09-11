@@ -65,11 +65,10 @@ class ConsultaService
         // Crear consulta
         $id = $this->consultaRepository->create($data);
         
-        // Registrar actividad
+        // Registrar actividad (Respetando la firma: int $usuarioId, string $accion, ?string $ipAddress)
         $this->logService->registrar(
-            'consulta_creada',
-            "Usuario {$data['usuario_id']} creó consulta ID: {$id} para propiedad {$data['propiedad_id']}",
-            $data['usuario_id']
+            (int) $data['usuario_id'],
+            'consulta_creada'
         );
         
         return $id;
@@ -95,9 +94,8 @@ class ConsultaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'consulta_actualizada',
-                "Usuario actualizó consulta ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'consulta_actualizada'
             );
         }
         
@@ -124,9 +122,8 @@ class ConsultaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'consulta_eliminada',
-                "Usuario {$usuarioId} eliminó consulta ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'consulta_eliminada'
             );
         }
         
@@ -148,9 +145,8 @@ class ConsultaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'consulta_restaurada',
-                "Usuario {$usuarioId} restauró consulta ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'consulta_restaurada'
             );
         } else {
             throw new \Exception("No se pudo restaurar la consulta o no existe", 404);
