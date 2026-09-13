@@ -39,6 +39,7 @@ class AutenticadorController
         );
     }
 
+<<<<<<< HEAD
     /**
      * Alias para register() para compatibilidad con tests
      */
@@ -48,6 +49,18 @@ class AutenticadorController
     }
 
     public function logout($request = null): void
+=======
+    public function refresh(): void
+    {
+        $data = Request::json();
+
+        Response::success(
+            $this->service->refresh($data)
+        );
+    }
+
+    public function logout(): void
+>>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
     {
         AutenticadorMiddleware::verificar();
 

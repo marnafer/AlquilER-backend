@@ -5,10 +5,16 @@ use App\Models\Usuario;
 
 interface TokenProviderInterface
 {
+<<<<<<< HEAD
     /**
      * Genera un token de acceso (retrocompatible)
      */
     public function generate(Usuario $usuario): string;
+=======
+    public function generateAccessToken(Usuario $usuario): string;
+    
+    public function generateRefreshToken(): string;
+>>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
 
     /**
      * Valida un token

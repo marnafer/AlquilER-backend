@@ -14,7 +14,6 @@ class Consulta extends Model
     protected $fillable = [
         'propiedad_id',
         'usuario_id',
-        'mensaje',
         'fecha_consulta'
     ];
 
@@ -45,5 +44,13 @@ class Consulta extends Model
             Usuario::class,
             'usuario_id'
         );
+    }
+
+    /**
+     * Relación: Una consulta tiene muchos mensajes en su hilo de conversación.
+     */
+    public function mensajes()
+    {
+        return $this->hasMany(MensajeConsulta::class, 'consulta_id');
     }
 }

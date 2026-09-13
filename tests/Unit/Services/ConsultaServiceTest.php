@@ -7,16 +7,21 @@ use App\Services\ConsultaService;
 use App\Repositories\ConsultaRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
+use App\Repositories\MensajeConsultaRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Models\Propiedad;
+use App\Exceptions\ValidationException;
+use App\Exceptions\UnauthorizedException;
 
 class ConsultaServiceTest extends TestCase
 {
     private $consultaRepository;
     private $propiedadRepository;
     private $usuarioRepository;
+    private $mensajeConsultaRepository;
     private $logService;
     private $consultaService;
+    private $policyMock;
 
     protected function setUp(): void
     {
@@ -25,13 +30,17 @@ class ConsultaServiceTest extends TestCase
         $this->consultaRepository = $this->createMock(ConsultaRepositoryInterface::class);
         $this->propiedadRepository = $this->createMock(PropiedadRepositoryInterface::class);
         $this->usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
+        $this->mensajeConsultaRepository = $this->createMock(MensajeConsultaRepositoryInterface::class);
         $this->logService = $this->createMock(LogActividadService::class);
+        $this->policyMock = $this->createMock(\App\Policies\ConsultaPolicy::class);
 
         $this->consultaService = new ConsultaService(
             $this->consultaRepository,
             $this->propiedadRepository,
             $this->usuarioRepository,
-            $this->logService
+            $this->mensajeConsultaRepository,
+            $this->logService,
+            $this->policyMock
         );
     }
 
@@ -67,34 +76,43 @@ class ConsultaServiceTest extends TestCase
             ->method('create')
             ->willReturn(1);
 
+        // Verificamos que se cree el mensaje inicial en su repositorio correspondiente
+        $this->mensajeConsultaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(function (array $data) {
+                return $data['consulta_id'] === 1 
+                    && $data['usuario_id'] === 2 
+                    && $data['mensaje'] === 'Hola, me interesa la propiedad';
+            }));
+
         $this->logService
             ->expects($this->once())
             ->method('registrar');
 
         $result = $this->consultaService->crearConsulta([
             'propiedad_id' => 1,
-            'usuario_id' => 2
+            'usuario_id' => 2,
+            'mensaje' => 'Hola, me interesa la propiedad'
         ]);
 
         $this->assertEquals(1, $result);
     }
 
     /** @test */
-    public function test_it_throws_exception_when_property_not_found()
+    public function test_it_throws_exception_when_property_not_found(): void
     {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage("La propiedad no existe");
-        $this->expectExceptionCode(404);
-
-        $this->propiedadRepository
-            ->expects($this->once())
+        $this->propiedadRepository->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
+        $this->expectException(ValidationException::class);
+        
         $this->consultaService->crearConsulta([
             'propiedad_id' => 999,
-            'usuario_id' => 2
+            'usuario_id' => 1,
+            'mensaje' => 'Hola'
         ]);
     }
 
@@ -102,6 +120,8 @@ class ConsultaServiceTest extends TestCase
     public function test_it_can_get_consultas_by_usuario()
     {
         $expected = [['id' => 1]];
+
+        $this->policyMock->method('puedeVerDeUsuario')->willReturn(true);
 
         $this->consultaRepository
             ->expects($this->once())
@@ -116,9 +136,10 @@ class ConsultaServiceTest extends TestCase
     /** @test */
     public function test_it_throws_exception_when_not_authorized_to_view_usuario_consultas()
     {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage("No autorizado");
-        $this->expectExceptionCode(403);
+        $this->policyMock->method('puedeVerDeUsuario')->willReturn(false);
+
+        $this->expectException(UnauthorizedException::class);
+        $this->expectExceptionMessage('No tienes permiso para ver las consultas de este usuario');
 
         $this->consultaService->obtenerConsultasPorUsuario(1, 2, 1);
     }
@@ -127,6 +148,8 @@ class ConsultaServiceTest extends TestCase
     public function test_it_can_get_consultas_by_propiedad()
     {
         $expected = [['id' => 1]];
+
+        $this->policyMock->method('puedeVerDePropiedad')->willReturn(true);
 
         $this->propiedadRepository
             ->expects($this->once())

@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Tests;
 
+<<<<<<< HEAD
 use App\Helpers\Request;
 use App\Helpers\TokenProviderInterface;
 use App\Middlewares\AutenticadorMiddleware;
 use PHPUnit\Framework\MockObject\MockObject;
+=======
+use App\Helpers\TokenProviderInterface;
+use App\Middlewares\AutenticadorMiddleware;
+>>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -51,7 +56,27 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+<<<<<<< HEAD
      * Configura el provider para que devuelva un usuario autenticado.
+=======
+     * Simula una sesión autenticada para los tests de controladores
+     */
+    protected function actingAs(int $id = 5, int $rolId = 1): object
+    {
+        $usuarioFalso = $this->createUserMock($id, $rolId);
+
+        $tokenProvider = $this->createMock(TokenProviderInterface::class);
+        $tokenProvider->method('validate')->willReturn($usuarioFalso);
+
+        AutenticadorMiddleware::configure($tokenProvider);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_falso_para_test';
+
+        return $usuarioFalso;
+    }
+
+    /**
+     * Crear un request mock para los controladores
+>>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
      */
     protected function autenticarComo(int $usuarioId = 1, int $rolId = 1): void
     {
