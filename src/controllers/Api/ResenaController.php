@@ -311,4 +311,52 @@ class ResenaController
             }
         }
     }
+
+    /**
+     * Métodos alias en español para compatibilidad con tests
+     */
+    public function listar($request)
+    {
+        return $this->index($request);
+    }
+
+    public function obtener($request, $id)
+    {
+        return $this->show($request, $id);
+    }
+
+    public function crear($request)
+    {
+        return $this->store($request);
+    }
+
+    public function actualizar($request, $id)
+    {
+        return $this->update($request, $id);
+    }
+
+    public function eliminar($request, $id)
+    {
+        return $this->delete($request, $id);
+    }
+
+    public function listarPorReserva($request, $reservaId)
+    {
+        return $this->getByReserva($request, $reservaId);
+    }
+
+    public function listarPorPropiedad($request, $propiedadId)
+    {
+        return $this->getByPropiedad($request, $propiedadId);
+    }
+
+    public function listarPorUsuario($request, $usuarioId)
+    {
+        return $this->getByUsuario($request, $usuarioId);
+    }
+
+    public function listarPorCalificador($request, $calificadorId)
+    {
+        return $this->getByCalificador($request, $calificadorId);
+    }
 }

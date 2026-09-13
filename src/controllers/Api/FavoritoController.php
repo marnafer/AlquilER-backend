@@ -147,4 +147,76 @@ class FavoritoController
             }
         }
     }
+
+    /**
+     * Alias para index() - Métodos en español para compatibilidad con tests
+     */
+    public function listar($request)
+    {
+        return $this->index($request);
+    }
+
+    /**
+     * Alias para store()
+     */
+    public function crear($request)
+    {
+        return $this->store($request);
+    }
+
+    /**
+     * Alias para indexByUsuario()
+     */
+    public function listarPorUsuario($request, $id)
+    {
+        return $this->indexByUsuario($request, $id);
+    }
+
+    /**
+     * Alias para deleteByPropiedad()
+     */
+    public function eliminarPorPropiedad($request, $propiedadId)
+    {
+        return $this->deleteByPropiedad($request, $propiedadId);
+    }
+
+    /**
+     * Eliminar un favorito específico por propiedad
+     */
+    public function eliminar($request, $propiedadId)
+    {
+        return $this->deleteByPropiedad($request, $propiedadId);
+    }
+
+    /**
+     * Verificar si una propiedad es favorita del usuario
+     */
+    public function verificar($request, $propiedadId)
+    {
+        try {
+            $usuarioId = $request->usuario_id ?? null;
+            
+            if (!$usuarioId) {
+                Response::unauthorized('Usuario no autenticado');
+                return;
+            }
+            
+            if (!is_numeric($propiedadId) || $propiedadId <= 0) {
+                Response::badRequest('ID de propiedad inválido');
+                return;
+            }
+            
+            $esFavorito = $this->service->esFavorito((int)$usuarioId, (int)$propiedadId);
+            
+            Response::success(
+                ['es_favorito' => $esFavorito],
+                200,
+                'Verificación realizada'
+            );
+            
+        } catch (\Exception $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            Response::json(['success' => false, 'error' => $e->getMessage()], $status);
+        }
+    }
 }

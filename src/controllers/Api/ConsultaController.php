@@ -278,4 +278,12 @@ class ConsultaController
             }
         }
     }
+
+    /**
+     * Alias para index() para compatibilidad con tests
+     */
+    public function listar($request)
+    {
+        return $this->index($request);
+    }
 }

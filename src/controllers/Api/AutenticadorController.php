@@ -39,7 +39,15 @@ class AutenticadorController
         );
     }
 
-    public function logout(): void
+    /**
+     * Alias para register() para compatibilidad con tests
+     */
+    public function registrar(): void
+    {
+        $this->register();
+    }
+
+    public function logout($request = null): void
     {
         AutenticadorMiddleware::verificar();
 
