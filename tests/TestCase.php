@@ -2,6 +2,8 @@
 
 namespace Tests;
 
+use App\Helpers\TokenProviderInterface;
+use App\Middlewares\AutenticadorMiddleware;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -17,6 +19,22 @@ abstract class TestCase extends BaseTestCase
     {
         parent::tearDown();
         // Limpiar después de cada test si es necesario
+    }
+
+    /**
+     * Simula una sesión autenticada para los tests de controladores
+     */
+    protected function actingAs(int $id = 5, int $rolId = 1): object
+    {
+        $usuarioFalso = $this->createUserMock($id, $rolId);
+
+        $tokenProvider = $this->createMock(TokenProviderInterface::class);
+        $tokenProvider->method('validate')->willReturn($usuarioFalso);
+
+        AutenticadorMiddleware::configure($tokenProvider);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_falso_para_test';
+
+        return $usuarioFalso;
     }
 
     /**

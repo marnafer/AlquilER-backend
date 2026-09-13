@@ -19,7 +19,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_listar()
+    public function test_it_can_listar()
     {
         $this->service
             ->expects($this->once())
@@ -34,7 +34,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_crear()
+    public function test_it_can_crear()
     {
         $input = json_encode([
             'titulo' => 'Casa Test',
@@ -66,7 +66,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_bad_request_when_crear_missing_fields()
+    public function test_it_returns_bad_request_when_crear_missing_fields()
     {
         $input = json_encode([]);
         file_put_contents('php://input', $input);
@@ -80,7 +80,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_obtener()
+    public function test_it_can_obtener()
     {
         $this->service
             ->expects($this->once())
@@ -96,7 +96,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_not_found_when_propiedad_not_exists()
+    public function test_it_returns_not_found_when_propiedad_not_exists()
     {
         $this->service
             ->expects($this->once())
@@ -113,7 +113,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_actualizar()
+    public function test_it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
         $input = json_encode(['titulo' => 'Propiedad Actualizada']);
@@ -133,7 +133,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_actualizar_without_user()
+    public function test_it_returns_unauthorized_when_actualizar_without_user()
     {
         $request = $this->createRequest([]);
         $input = json_encode(['titulo' => 'Propiedad Actualizada']);
@@ -148,7 +148,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_eliminar()
+    public function test_it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 
@@ -166,7 +166,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_unauthorized_when_eliminar_without_user()
+    public function test_it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
 
@@ -179,7 +179,7 @@ class PropiedadControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_can_restaurar()
+    public function test_it_can_restaurar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
 

@@ -18,6 +18,8 @@ $router->post('/api/autenticador/register', [$autenticadorController, 'register'
 
 $router->post('/api/autenticador/logout', [$autenticadorController, 'logout']);
 
+$router->post('/api/autenticador/refresh', [$autenticadorController, 'refresh']);
+
 /*
 |--------------------------------------------------------------------------
 | USUARIOS
@@ -271,3 +273,13 @@ $router->put('/api/propiedades/{id}', [$propiedadController, 'update']);
 $router->delete('/api/propiedades/{id}', [$propiedadController, 'delete']);
 
 $router->post('/api/propiedades/{id}/restaurar', [$propiedadController, 'restore']);
+
+/*
+|--------------------------------------------------------------------------
+| MENSAJES DE CONSULTA
+|--------------------------------------------------------------------------
+*/
+
+$router->get('/api/consultas/{consulta_id}/mensajes', [$mensajeConsultaController, 'index']);
+
+$router->post('/api/consultas/{consulta_id}/mensajes', [$mensajeConsultaController, 'store']);
