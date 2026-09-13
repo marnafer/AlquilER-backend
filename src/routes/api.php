@@ -18,6 +18,8 @@ $router->post('/api/autenticador/register', [$autenticadorController, 'register'
 
 $router->post('/api/autenticador/logout', [$autenticadorController, 'logout']);
 
+$router->post('/api/autenticador/refresh', [$autenticadorController, 'refresh']);
+
 /*
 |--------------------------------------------------------------------------
 | USUARIOS

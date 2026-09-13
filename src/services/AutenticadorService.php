@@ -56,9 +56,14 @@ class AutenticadorService
             'Inicio de sesión'
         );
 
+        $tokens = $this->tokenProvider->generateTokens($usuario);
+
         return [
-            'token' => $this->tokenProvider->generate($usuario),
+            'access_token' => $tokens['access_token'],
+            'refresh_token' => $tokens['refresh_token'],
+            'token' => $tokens['access_token'], // Retrocompatibilidad
             'rol_id' => $usuario->rol_id,
+            'usuario_id' => $usuario->id,
         ];
     }
 
@@ -96,5 +101,34 @@ class AutenticadorService
         );
 
         return $usuario;
+    }
+
+    /**
+     * Refresca el access token usando un refresh token válido
+     */
+    public function refresh(string $refreshToken): array
+    {
+        // Validar que el token sea un refresh token válido
+        $payload = $this->tokenProvider->validateRefreshToken($refreshToken);
+
+        if (!$payload) {
+            throw new UnauthorizedException('Refresh token inválido o expirado');
+        }
+
+        // Obtener el usuario
+        $usuario = $this->usuarioRepository->findById((int) $payload->sub);
+
+        if (!$usuario) {
+            throw new UnauthorizedException('Usuario no encontrado');
+        }
+
+        // Generar un nuevo access token
+        $accessToken = $this->tokenProvider->generateAccessToken($usuario);
+
+        return [
+            'access_token' => $accessToken,
+            'token' => $accessToken, // Retrocompatibilidad
+            'refresh_token' => $refreshToken, // Devolver el mismo refresh token
+        ];
     }
 }

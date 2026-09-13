@@ -57,4 +57,36 @@ class AutenticadorController
             'Logout (el cliente elimina el token)'
         );
     }
+
+    /**
+     * Refresca el access token
+     * POST /api/auth/refresh
+     * Body: { "refresh_token": "..." }
+     */
+    public function refresh(): void
+    {
+        $data = Request::json();
+
+        try {
+            $refreshToken = $data['refresh_token'] ?? null;
+
+            if (!$refreshToken) {
+                throw new \Exception('Refresh token requerido', 400);
+            }
+
+            $result = $this->service->refresh($refreshToken);
+
+            Response::success($result, 200, 'Token refrescado correctamente');
+        } catch (\Exception $e) {
+            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
+            
+            if ($statusCode === 400) {
+                Response::badRequest($e->getMessage());
+            } elseif ($statusCode === 401) {
+                Response::unauthorized($e->getMessage());
+            } else {
+                Response::json(['success' => false, 'error' => $e->getMessage()], $statusCode);
+            }
+        }
+    }
 }
