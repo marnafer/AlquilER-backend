@@ -17,6 +17,80 @@ El sistema está desarrollado utilizando una arquitectura de API REST y las sigu
 * **Swagger/OpenAPI** mediante `swagger-php` para la documentación de la API.
 * **Apache/XAMPP** como entorno de desarrollo local.
 
+### Requerimientos de software
+
+Para ejecutar el backend se requiere:
+
+*PHP 8.2 o superior
+*Composer
+*MySQL 8.0 o superior
+*XAMPP o WAMP para disponer de Apache y MySQL
+*Git para clonar el repositorio
+
+El proyecto utiliza Eloquent ORM como ORM para el acceso a datos, instalado mediante Composer. No requiere la instalación de Laravel.
+
+### Pasos para ejecutar el backend
+* **1. Clonar el repositorio**
+
+Clonar el repositorio utilizando Git:
+
+git clone https://github.com/marnafer/alquiler-backend.git
+* **2. Ingresar a la carpeta del proyecto**
+* **cd alquiler-backend**
+* **3. Instalar las dependencias**
+
+Ejecutar:
+
+composer install
+* **4. Crear la base de datos**
+
+*Crear una base de datos MySQL llamada:
+
+*sistema_alquiler_db_dev
+
+*Luego importar el archivo:
+
+*create_database.sql
+
+El archivo contiene la estructura necesaria para crear las tablas de la aplicación.
+
+* **5. Configurar las variables de entorno**
+
+Configurar el archivo .env con los datos correspondientes a la conexión de la base de datos y demás parámetros requeridos por el backend.
+
+* **Ejemplo:**
+
+DB_HOST=localhost
+DB_DATABASE=sistema_db_dev
+DB_USERNAME=root
+DB_PASSWORD=
+
+JWT_KEY=cambiar_por_una_clave_aleatoria_larga
+JWT_EXP=3600
+
+APP_ENV=development
+APP_DEBUG=true
+
+* **6. Ejecutar el backend**
+*Opción A: Servidor integrado de PHP
+
+*Desde la raíz del proyecto:
+
+*php -S localhost:8000 -t public
+
+*Luego acceder desde el navegador a:
+
+*http://localhost:8000
+* **Opción B: XAMPP**
+*Abrir XAMPP.
+*Iniciar los servicios Apache y MySQL.
+*Colocar el proyecto dentro del directorio htdocs de XAMPP.
+*Verificar que la base de datos sistema_alquiler_db_dev haya sido creada e importada correctamente.
+*Acceder desde el navegador a:
+*http://localhost/alquiler-backend/public
+
+Si Apache está configurado para utilizar otro puerto, utilizar el puerto correspondiente en la URL.
+
 ### Propósito general
 El sistema AlquilER tiene como objetivo gestionar el alquiler de propiedades, permitiendo centralizar la información relacionada con propiedades, usuarios, reservas, consultas, servicios y demás elementos asociados al proceso de alquiler. 
 
