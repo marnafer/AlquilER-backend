@@ -18,7 +18,7 @@ class PropiedadControllerTest extends TestCase
         $this->controller = new PropiedadController($this->service);
     }
 
-    /** @test */
+    
     public function test_it_can_listar()
     {
         $this->service
@@ -33,7 +33,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function test_it_can_crear()
     {
         $input = json_encode([
@@ -65,7 +65,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function test_it_returns_bad_request_when_crear_missing_fields()
     {
         $input = json_encode([]);
@@ -79,7 +79,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function test_it_can_obtener()
     {
         $this->service
@@ -95,7 +95,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function test_it_returns_not_found_when_propiedad_not_exists()
     {
         $this->service
@@ -112,7 +112,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function test_it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -132,7 +132,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function test_it_returns_unauthorized_when_actualizar_without_user()
     {
         $request = $this->createRequest([]);
@@ -147,7 +147,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function test_it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -165,7 +165,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function test_it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
@@ -178,7 +178,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function test_it_can_restaurar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);

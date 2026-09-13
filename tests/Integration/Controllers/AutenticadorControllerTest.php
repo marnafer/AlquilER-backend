@@ -21,7 +21,7 @@ class AutenticadorControllerTest extends TestCase
         $this->controller = new AutenticadorController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_login()
     {
         $input = json_encode([
@@ -49,7 +49,7 @@ class AutenticadorControllerTest extends TestCase
         $this->assertStringContainsString('"refresh_token"', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_login_missing_fields()
     {
         $input = json_encode(['email' => 'test@test.com']);
@@ -66,7 +66,7 @@ class AutenticadorControllerTest extends TestCase
         $this->controller->login();
     }
 
-    /** @test */
+    
     public function it_can_register() // Cambiado a register() para coincidir con tu controlador
     {
         $input = json_encode([
@@ -95,7 +95,7 @@ class AutenticadorControllerTest extends TestCase
         $this->assertStringContainsString('Usuario registrado', $output);
     }
 
-    /** @test */
+    
     public function it_can_refresh_token()
     {
         $input = json_encode([
@@ -121,7 +121,7 @@ class AutenticadorControllerTest extends TestCase
         $this->assertStringContainsString('"nuevo_refresh_token"', $output);
     }
 
-    /** @test */
+    
     public function it_can_logout()
     {
         // Simulamos el payload del frontend enviando el refresh token

@@ -36,7 +36,7 @@ class PropiedadServicioServiceTest extends TestCase
         );
     }
 
-    /** @test */
+    
     public function test_it_can_get_servicios_by_propiedad()
     {
         $expected = [['id' => 1, 'servicio_id' => 1]];
@@ -57,7 +57,7 @@ class PropiedadServicioServiceTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    
     public function test_it_can_asignar_servicio()
     {
         $this->propiedadRepository
@@ -86,7 +86,7 @@ class PropiedadServicioServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_property_not_found_for_asignar()
     {
         $this->expectException(\Exception::class);
@@ -102,7 +102,7 @@ class PropiedadServicioServiceTest extends TestCase
         $this->propiedadServicioService->asignarServicio(999, 1, 1);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_servicio_not_found()
     {
         $this->expectException(\Exception::class);
@@ -124,7 +124,7 @@ class PropiedadServicioServiceTest extends TestCase
         $this->propiedadServicioService->asignarServicio(1, 999, 1);
     }
 
-    /** @test */
+    
     public function test_it_can_desasignar_servicio()
     {
         $this->propiedadServicioRepository
@@ -147,7 +147,7 @@ class PropiedadServicioServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_desasignar_servicio_not_found()
     {
         $this->expectException(\Exception::class);
@@ -163,7 +163,7 @@ class PropiedadServicioServiceTest extends TestCase
         $this->propiedadServicioService->desasignarServicio(1, 999, 3);
     }
 
-    /** @test */
+    
     public function test_it_can_sync_servicios()
     {
         $servicioIds = [1, 2, 3];

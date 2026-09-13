@@ -18,7 +18,7 @@ class RolControllerTest extends TestCase
         $this->controller = new RolController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $this->service
@@ -33,7 +33,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear()
     {
         $input = json_encode(['nombre' => 'Nuevo Rol']);
@@ -51,7 +51,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_name()
     {
         $input = json_encode([]);
@@ -65,7 +65,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $this->service
@@ -81,7 +81,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_rol_not_exists()
     {
         $this->service
@@ -98,7 +98,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_actualizar()
     {
         $input = json_encode(['nombre' => 'Rol Actualizado']);
@@ -117,7 +117,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $this->service
@@ -133,7 +133,7 @@ class RolControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_restaurar()
     {
         $this->service

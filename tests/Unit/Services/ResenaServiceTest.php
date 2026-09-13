@@ -41,7 +41,7 @@ class ResenaServiceTest extends TestCase
         );
     }
 
-    /** @test */
+    
     public function test_it_can_list_resenas()
     {
         $filtros = ['tipo' => 'propiedad'];
@@ -57,7 +57,7 @@ class ResenaServiceTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    
     public function test_it_can_create_resena_de_propiedad()
     {
         $reservaMock = new Reserva([
@@ -104,7 +104,7 @@ class ResenaServiceTest extends TestCase
         $this->assertEquals(1, $result);
     }
 
-    /** @test */
+    
     public function test_it_can_create_resena_de_inquilino()
     {
         $reservaMock = new Reserva([
@@ -151,7 +151,7 @@ class ResenaServiceTest extends TestCase
         $this->assertEquals(1, $result);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_reserva_not_finalizada()
     {
         $this->expectException(\Exception::class);
@@ -177,7 +177,7 @@ class ResenaServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_duplicate_resena()
     {
         $this->expectException(\Exception::class);
@@ -217,7 +217,7 @@ class ResenaServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    
     public function test_it_can_get_promedio_by_propiedad()
     {
         $this->resenaRepository
@@ -236,7 +236,7 @@ class ResenaServiceTest extends TestCase
         $this->assertEquals(4.5, $result);
     }
 
-    /** @test */
+    
     public function test_it_can_get_promedio_by_usuario()
     {
         $this->resenaRepository

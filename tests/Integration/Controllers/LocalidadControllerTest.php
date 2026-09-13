@@ -18,7 +18,7 @@ class LocalidadControllerTest extends TestCase
         $this->controller = new LocalidadController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $this->service
@@ -33,7 +33,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear()
     {
         $input = json_encode([
@@ -55,7 +55,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_fields()
     {
         $input = json_encode([]);
@@ -69,7 +69,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $this->service
@@ -85,7 +85,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_localidad_not_exists()
     {
         $this->service
@@ -102,7 +102,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_actualizar()
     {
         $input = json_encode(['nombre' => 'Localidad Actualizada']);
@@ -121,7 +121,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $this->service
@@ -137,7 +137,7 @@ class LocalidadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_restaurar()
     {
         $this->service

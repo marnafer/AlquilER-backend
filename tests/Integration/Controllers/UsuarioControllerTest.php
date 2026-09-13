@@ -18,7 +18,7 @@ class UsuarioControllerTest extends TestCase
         $this->controller = new UsuarioController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -35,7 +35,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
@@ -48,7 +48,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -66,7 +66,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_usuario_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -85,7 +85,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_profile()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -103,7 +103,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_profile_without_user()
     {
         $request = $this->createRequest([]);
@@ -116,7 +116,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -136,7 +136,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -154,7 +154,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_restaurar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -172,7 +172,7 @@ class UsuarioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);

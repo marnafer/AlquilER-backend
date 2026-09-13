@@ -18,7 +18,7 @@ class FavoritoControllerTest extends TestCase
         $this->controller = new FavoritoController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -36,7 +36,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
@@ -49,7 +49,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -69,7 +69,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_propiedad_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -84,7 +84,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
@@ -99,7 +99,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_conflict_when_favorito_already_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -120,7 +120,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('409', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -138,7 +138,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_eliminar_with_invalid_property_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -151,7 +151,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
@@ -164,7 +164,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_eliminar_favorito_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -183,7 +183,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_verificar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -202,7 +202,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('"es_favorito":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_verificar_with_invalid_property_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -215,7 +215,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_verificar_without_user()
     {
         $request = $this->createRequest([]);
@@ -228,7 +228,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_usuario()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -246,7 +246,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_listar_por_usuario_with_invalid_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -259,7 +259,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar_por_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -277,7 +277,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_eliminar_por_propiedad_with_invalid_property_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -290,7 +290,7 @@ class FavoritoControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_eliminar_por_propiedad_without_user()
     {
         $request = $this->createRequest([]);

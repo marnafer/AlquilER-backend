@@ -4,6 +4,8 @@ namespace Tests;
 
 use App\Helpers\TokenProviderInterface;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Helpers\Response;
+use App\Helpers\Request;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -12,11 +14,17 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Response::setTesting(true);
         // Aquí puedes cargar configuración de base de datos de prueba si es necesario
     }
 
     protected function tearDown(): void
     {
+
+        Request::setTestBody(null);
+        Response::setTesting(false);
+        
         parent::tearDown();
         // Limpiar después de cada test si es necesario
     }

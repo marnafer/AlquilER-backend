@@ -5,6 +5,14 @@ namespace App\Helpers;
 
 class Response
 {
+	// Variable para indicar si estamos en modo de prueba
+	private static bool $testing = false;
+
+	public static function setTesting(bool $testing): void
+	{
+		self::$testing = $testing;
+	}
+
 	public static function json($data, int $status = 200): void
 	{
 		if (headers_sent() === false) {
@@ -30,7 +38,9 @@ class Response
 			]);
 		}
 
-		exit;
+		if (!self::$testing) {
+			exit;
+		}
 	}
 
 	// ===== FUNCIONES DE EXITO =====
