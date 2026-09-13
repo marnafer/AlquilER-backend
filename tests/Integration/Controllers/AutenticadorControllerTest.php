@@ -7,6 +7,7 @@ use App\Controllers\Api\AutenticadorController;
 use App\Services\AutenticadorService;
 use App\Exceptions\ValidationException;
 use App\Exceptions\UnauthorizedException;
+use App\Helpers\Request;
 use App\Models\Usuario;
 
 class AutenticadorControllerTest extends TestCase
@@ -26,9 +27,8 @@ class AutenticadorControllerTest extends TestCase
     {
         $input = json_encode([
             'email' => 'test@test.com',
-            'contrasena' => 'password123' // Corregido de password a contrasena según tu service
+            'contrasena' => 'password123'
         ]);
-        file_put_contents('php://input', $input);
 
         // Ahora esperamos que el servicio devuelva la estructura con ambos tokens
         $this->service
@@ -40,11 +40,12 @@ class AutenticadorControllerTest extends TestCase
                 'rol_id' => 1
             ]);
 
-        ob_start();
-        $this->controller->login();
-        $output = ob_get_clean();
+        $output = $this->captureResponse(function () use ($input) {
+            Request::setTestBody($input);
+            $this->controller->login();
+        });
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertStringContainsString('"success": true', $output);
         $this->assertStringContainsString('"access_token"', $output);
         $this->assertStringContainsString('"refresh_token"', $output);
     }
@@ -53,7 +54,6 @@ class AutenticadorControllerTest extends TestCase
     public function it_returns_bad_request_when_login_missing_fields()
     {
         $input = json_encode(['email' => 'test@test.com']);
-        file_put_contents('php://input', $input);
 
         // Simulamos que el servicio lanza la excepción de validación porque falta la contraseña
         $this->service
@@ -63,11 +63,12 @@ class AutenticadorControllerTest extends TestCase
 
         $this->expectException(ValidationException::class);
         
+        Request::setTestBody($input);
         $this->controller->login();
     }
 
     /** @test */
-    public function it_can_register() // Cambiado a register() para coincidir con tu controlador
+    public function it_can_register()
     {
         $input = json_encode([
             'nombre' => 'Test',
@@ -77,7 +78,6 @@ class AutenticadorControllerTest extends TestCase
             'telefono' => '123456789',
             'domicilio' => 'Calle 123'
         ]);
-        file_put_contents('php://input', $input);
 
         // Tu servicio registrar ahora devuelve un objeto Usuario
         $usuarioMock = new Usuario(['id' => 1]);
@@ -87,11 +87,12 @@ class AutenticadorControllerTest extends TestCase
             ->method('registrar')
             ->willReturn($usuarioMock);
 
-        ob_start();
-        $this->controller->register();
-        $output = ob_get_clean();
+        $output = $this->captureResponse(function () use ($input) {
+            Request::setTestBody($input);
+            $this->controller->register();
+        });
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertStringContainsString('"success": true', $output);
         $this->assertStringContainsString('Usuario registrado', $output);
     }
 
@@ -101,7 +102,6 @@ class AutenticadorControllerTest extends TestCase
         $input = json_encode([
             'refresh_token' => 'token_viejo_enviado_por_cliente'
         ]);
-        file_put_contents('php://input', $input);
 
         $this->service
             ->expects($this->once())
@@ -112,11 +112,12 @@ class AutenticadorControllerTest extends TestCase
                 'rol_id' => 1
             ]);
 
-        ob_start();
-        $this->controller->refresh();
-        $output = ob_get_clean();
+        $output = $this->captureResponse(function () use ($input) {
+            Request::setTestBody($input);
+            $this->controller->refresh();
+        });
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertStringContainsString('"success": true', $output);
         $this->assertStringContainsString('"nuevo_jwt_token"', $output);
         $this->assertStringContainsString('"nuevo_refresh_token"', $output);
     }
@@ -126,7 +127,6 @@ class AutenticadorControllerTest extends TestCase
     {
         // Simulamos el payload del frontend enviando el refresh token
         $input = json_encode(['refresh_token' => 'token_a_invalidar']);
-        file_put_contents('php://input', $input);
 
         // Simulamos el header de autorización que exige AutenticadorMiddleware::verificar()
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_jwt_valido';
@@ -139,11 +139,12 @@ class AutenticadorControllerTest extends TestCase
                 return isset($data['refresh_token']) && $data['refresh_token'] === 'token_a_invalidar';
             }));
 
-        ob_start();
-        $this->controller->logout();
-        $output = ob_get_clean();
+        $output = $this->captureResponse(function () use ($input) {
+            Request::setTestBody($input);
+            $this->controller->logout();
+        });
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertStringContainsString('"success": true', $output);
         $this->assertStringContainsString('Sesión cerrada correctamente', $output);
     }
 }

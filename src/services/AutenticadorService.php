@@ -12,7 +12,6 @@ use App\Repositories\RefreshTokenRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
 use App\Models\Usuario;
-use App\Models\RefreshToken;
 
 class AutenticadorService
 {
@@ -54,7 +53,6 @@ class AutenticadorService
         }
 
         // Solo 1 refresh token activo por usuario
-
         $this->refreshTokenRepository->deleteByUsuarioId($usuario->id);
 
         $accessToken = $this->tokenProvider->generateAccessToken($usuario);
@@ -68,19 +66,10 @@ class AutenticadorService
 
         $this->logActividadService->registrar($usuario->id, 'Inicio de sesión');
 
-        $tokens = $this->tokenProvider->generateTokens($usuario);
-
         return [
-<<<<<<< HEAD
-            'access_token' => $tokens['access_token'],
-            'refresh_token' => $tokens['refresh_token'],
-            'token' => $tokens['access_token'], // Retrocompatibilidad
-=======
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
->>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
             'rol_id' => $usuario->rol_id,
-            'usuario_id' => $usuario->id,
         ];
     }
 
@@ -119,22 +108,6 @@ class AutenticadorService
         return $usuario;
     }
 
-<<<<<<< HEAD
-    /**
-     * Refresca el access token usando un refresh token válido
-     */
-    public function refresh(string $refreshToken): array
-    {
-        // Validar que el token sea un refresh token válido
-        $payload = $this->tokenProvider->validateRefreshToken($refreshToken);
-
-        if (!$payload) {
-            throw new UnauthorizedException('Refresh token inválido o expirado');
-        }
-
-        // Obtener el usuario
-        $usuario = $this->usuarioRepository->findById((int) $payload->sub);
-=======
     public function refresh(array $rawData): array
     {
         $tokenRecibido = $rawData['refresh_token'] ?? null;
@@ -152,23 +125,11 @@ class AutenticadorService
         }
 
         $usuario = $userToken->usuario;
->>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
 
         if (!$usuario) {
             throw new UnauthorizedException('Usuario no encontrado');
         }
 
-<<<<<<< HEAD
-        // Generar un nuevo access token
-        $accessToken = $this->tokenProvider->generateAccessToken($usuario);
-
-        return [
-            'access_token' => $accessToken,
-            'token' => $accessToken, // Retrocompatibilidad
-            'refresh_token' => $refreshToken, // Devolver el mismo refresh token
-        ];
-    }
-=======
         // Rotación del token: eliminar el usado y crear uno nuevo
         $this->refreshTokenRepository->deleteById($userToken->id);
 
@@ -196,5 +157,4 @@ class AutenticadorService
             $this->refreshTokenRepository->deleteByToken($token);
         }
     }
->>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
 }

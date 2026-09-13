@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
+use App\Exceptions\UnauthorizedException;
+use App\Exceptions\ValidationException;
 use App\Helpers\Response;
 use App\Helpers\Request;
-use App\Middlewares\AutenticadorMiddleware;
 use App\Services\AutenticadorService;
 
 class AutenticadorController
@@ -39,7 +40,6 @@ class AutenticadorController
         );
     }
 
-<<<<<<< HEAD
     /**
      * Alias para register() para compatibilidad con tests
      */
@@ -48,32 +48,9 @@ class AutenticadorController
         $this->register();
     }
 
-    public function logout($request = null): void
-=======
-    public function refresh(): void
-    {
-        $data = Request::json();
-
-        Response::success(
-            $this->service->refresh($data)
-        );
-    }
-
-    public function logout(): void
->>>>>>> c9460ea80694538dda38eefb86136b58a78448c8
-    {
-        AutenticadorMiddleware::verificar();
-
-        Response::success(
-            [],
-            200,
-            'Logout (el cliente elimina el token)'
-        );
-    }
-
     /**
-     * Refresca el access token
-     * POST /api/auth/refresh
+     * Refresca el access token usando un refresh token válido
+     * POST /api/autenticador/refresh
      * Body: { "refresh_token": "..." }
      */
     public function refresh(): void
@@ -81,25 +58,30 @@ class AutenticadorController
         $data = Request::json();
 
         try {
-            $refreshToken = $data['refresh_token'] ?? null;
-
-            if (!$refreshToken) {
-                throw new \Exception('Refresh token requerido', 400);
-            }
-
-            $result = $this->service->refresh($refreshToken);
+            $result = $this->service->refresh($data);
 
             Response::success($result, 200, 'Token refrescado correctamente');
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500;
-            
-            if ($statusCode === 400) {
-                Response::badRequest($e->getMessage());
-            } elseif ($statusCode === 401) {
-                Response::unauthorized($e->getMessage());
-            } else {
-                Response::json(['success' => false, 'error' => $e->getMessage()], $statusCode);
-            }
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        } catch (ValidationException $e) {
+            Response::json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'validation_errors' => $e->errors(),
+            ], 422);
         }
+    }
+
+    public function logout(): void
+    {
+        $data = Request::json();
+
+        $this->service->logout($data);
+
+        Response::success(
+            [],
+            200,
+            'Sesión cerrada correctamente'
+        );
     }
 }
