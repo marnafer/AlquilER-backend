@@ -6,6 +6,10 @@ use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Services\PropiedadService;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\ValidationException;
+use App\Exceptions\UnauthorizedException;
 
 
 class PropiedadController
@@ -46,9 +50,15 @@ class PropiedadController
             return;
         }
 
-        Response::success(
-            $this->service->obtener((int)$id)
-        );
+        try {
+            Response::success(
+                $this->service->obtener((int)$id)
+            );
+        } catch (NotFoundException $e) {
+            Response::notFound($e->getMessage());
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        }
     }
 
     /**
@@ -56,17 +66,23 @@ class PropiedadController
      */
     public function store()
     {
-        $user = AutenticadorMiddleware::verificar();
+        try {
+            $user = AutenticadorMiddleware::verificar();
 
-        $propiedad = $this->service->crear(
-            Request::json(),
-            (int) $user->sub
-        );
+            $propiedad = $this->service->crear(
+                Request::json(),
+                (int) $user->sub
+            );
 
-        Response::created(
-            $propiedad,
-            'Propiedad creada exitosamente'
-        );
+            Response::created(
+                $propiedad,
+                'Propiedad creada exitosamente'
+            );
+        } catch (ValidationException $e) {
+            Response::validationError($e->errors());
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        }
     }
 
     /**
@@ -79,20 +95,30 @@ class PropiedadController
             return;
         }
 
-        $user = AutenticadorMiddleware::verificar();
+        try {
+            $user = AutenticadorMiddleware::verificar();
 
-        $this->service->actualizar(
-            (int) $user->sub,
-            (int) $user->rol_id,
-            (int) $id,
-            Request::json()
-        );
+            $this->service->actualizar(
+                (int) $user->sub,
+                (int) $user->rol_id,
+                (int) $id,
+                Request::json()
+            );
 
-        Response::success(
-            [],
-            200,
-            'Propiedad actualizada exitosamente'
-        );
+            Response::success(
+                [],
+                200,
+                'Propiedad actualizada exitosamente'
+            );
+        } catch (NotFoundException $e) {
+            Response::notFound($e->getMessage());
+        } catch (ForbiddenException $e) {
+            Response::forbidden($e->getMessage());
+        } catch (ValidationException $e) {
+            Response::validationError($e->errors());
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        }
     }
 
     /**
@@ -105,19 +131,27 @@ class PropiedadController
             return;
         }
 
-        $user = AutenticadorMiddleware::verificar();
+        try {
+            $user = AutenticadorMiddleware::verificar();
 
-        $this->service->eliminar(
-            (int) $user->sub,
-            (int) $user->rol_id,
-            (int) $id
-        );
+            $this->service->eliminar(
+                (int) $user->sub,
+                (int) $user->rol_id,
+                (int) $id
+            );
 
-        Response::success(
-            [],
-            200,
-            'Propiedad eliminada exitosamente'
-        );
+            Response::success(
+                [],
+                200,
+                'Propiedad eliminada exitosamente'
+            );
+        } catch (NotFoundException $e) {
+            Response::notFound($e->getMessage());
+        } catch (ForbiddenException $e) {
+            Response::forbidden($e->getMessage());
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        }
     }
 
     /**
@@ -130,19 +164,27 @@ class PropiedadController
             return;
         }
 
-        $user = AutenticadorMiddleware::verificar();
+        try {
+            $user = AutenticadorMiddleware::verificar();
 
-        $this->service->restaurar(
-            (int) $user->sub,
-            (int) $user->rol_id,
-            (int) $id
-        );
+            $this->service->restaurar(
+                (int) $user->sub,
+                (int) $user->rol_id,
+                (int) $id
+            );
 
-        Response::success(
-            [],
-            200,
-            'Propiedad restaurada exitosamente'
-        );
+            Response::success(
+                [],
+                200,
+                'Propiedad restaurada exitosamente'
+            );
+        } catch (NotFoundException $e) {
+            Response::notFound($e->getMessage());
+        } catch (ForbiddenException $e) {
+            Response::forbidden($e->getMessage());
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        }
     }
 
     /**
