@@ -7,6 +7,7 @@ use App\Services\FavoritoService;
 use App\Repositories\FavoritoRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Models\Propiedad;
 
 class FavoritoServiceTest extends TestCase
 {
@@ -31,7 +32,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_favoritos_by_user()
+    public function test_it_can_get_favoritos_by_user()
     {
         $usuarioId = 1;
         $expected = [['id' => 1, 'propiedad_id' => 1, 'usuario_id' => 1]];
@@ -47,18 +48,18 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_empty_array_when_usuario_id_is_zero()
+    public function test_it_returns_empty_array_when_usuario_id_is_zero()
     {
         $result = $this->favoritoService->obtenerFavoritos(0);
         $this->assertEmpty($result);
     }
 
     /** @test */
-    public function it_can_add_favorito()
+    public function test_it_can_add_favorito()
     {
         $usuarioId = 1;
         $propiedadId = 2;
-        $propiedadMock = (object) ['usuario_id' => 3];
+        $propiedadMock = new Propiedad(['usuario_id' => 3]);
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -81,11 +82,11 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_false_when_favorito_already_exists()
+    public function test_it_returns_false_when_favorito_already_exists()
     {
         $usuarioId = 1;
         $propiedadId = 2;
-        $propiedadMock = (object) ['usuario_id' => 3];
+        $propiedadMock = new Propiedad(['usuario_id' => 3]);
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -104,7 +105,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_property_does_not_exist()
+    public function test_it_throws_exception_when_property_does_not_exist()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("La propiedad no existe");
@@ -120,13 +121,13 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_trying_to_add_own_property()
+    public function test_it_throws_exception_when_trying_to_add_own_property()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("No puedes agregar tu propia propiedad a favoritos");
         $this->expectExceptionCode(400);
 
-        $propiedadMock = (object) ['usuario_id' => 1];
+        $propiedadMock = new Propiedad(['usuario_id' => 1]);
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -138,7 +139,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_remove_favorito()
+    public function test_it_can_remove_favorito()
     {
         $usuarioId = 1;
         $propiedadId = 2;
@@ -164,7 +165,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_removing_non_existent_favorito()
+    public function test_it_throws_exception_when_removing_non_existent_favorito()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("La propiedad no está en favoritos");
@@ -180,7 +181,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_check_if_property_is_favorito()
+    public function test_it_can_check_if_property_is_favorito()
     {
         $this->favoritoRepository
             ->expects($this->once())
@@ -193,7 +194,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_false_when_checking_with_invalid_ids()
+    public function test_it_returns_false_when_checking_with_invalid_ids()
     {
         $result = $this->favoritoService->esFavorito(0, 2);
         $this->assertFalse($result);
@@ -203,7 +204,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_count_favoritos_by_property()
+    public function test_it_can_count_favoritos_by_property()
     {
         $this->favoritoRepository
             ->expects($this->once())
@@ -216,14 +217,14 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_zero_when_counting_with_invalid_property_id()
+    public function test_it_returns_zero_when_counting_with_invalid_property_id()
     {
         $result = $this->favoritoService->contarFavoritos(0);
         $this->assertEquals(0, $result);
     }
 
     /** @test */
-    public function it_can_mark_favoritos_in_listado()
+    public function test_it_can_mark_favoritos_in_listado()
     {
         $usuarioId = 1;
         $propiedades = [
@@ -246,7 +247,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_ids_favoritos()
+    public function test_it_returns_ids_favoritos()
     {
         $this->favoritoRepository
             ->expects($this->once())
@@ -259,7 +260,7 @@ class FavoritoServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_returns_empty_array_when_getting_ids_with_invalid_user()
+    public function test_it_returns_empty_array_when_getting_ids_with_invalid_user()
     {
         $result = $this->favoritoService->obtenerIdsFavoritos(0);
         $this->assertEmpty($result);

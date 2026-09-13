@@ -8,6 +8,8 @@ use App\Repositories\PropiedadServicioRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ServicioRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Models\Propiedad;
+use App\Models\Servicio;
 
 class PropiedadServicioServiceTest extends TestCase
 {
@@ -35,7 +37,7 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_get_servicios_by_propiedad()
+    public function test_it_can_get_servicios_by_propiedad()
     {
         $expected = [['id' => 1, 'servicio_id' => 1]];
 
@@ -43,7 +45,7 @@ class PropiedadServicioServiceTest extends TestCase
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn(new Propiedad(['id' => 1]));
 
         $this->propiedadServicioRepository
             ->expects($this->once())
@@ -56,19 +58,19 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_asignar_servicio()
+    public function test_it_can_asignar_servicio()
     {
         $this->propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn(new Propiedad(['id' => 1]));
 
         $this->servicioRepository
             ->expects($this->once())
             ->method('findById')
             ->with(2)
-            ->willReturn((object) ['id' => 2]);
+            ->willReturn(new Servicio(['id' => 2])); // Corregido a instancia de Servicio
 
         $this->propiedadServicioRepository
             ->expects($this->once())
@@ -85,7 +87,7 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_property_not_found_for_asignar()
+    public function test_it_throws_exception_when_property_not_found_for_asignar()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("La propiedad no existe");
@@ -101,7 +103,7 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_servicio_not_found()
+    public function test_it_throws_exception_when_servicio_not_found()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("El servicio no existe");
@@ -111,7 +113,7 @@ class PropiedadServicioServiceTest extends TestCase
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn(new Propiedad(['id' => 1]));
 
         $this->servicioRepository
             ->expects($this->once())
@@ -123,7 +125,7 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_desasignar_servicio()
+    public function test_it_can_desasignar_servicio()
     {
         $this->propiedadServicioRepository
             ->expects($this->once())
@@ -146,7 +148,7 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_throws_exception_when_desasignar_servicio_not_found()
+    public function test_it_throws_exception_when_desasignar_servicio_not_found()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage("La propiedad no tiene este servicio asignado");
@@ -162,7 +164,7 @@ class PropiedadServicioServiceTest extends TestCase
     }
 
     /** @test */
-    public function it_can_sync_servicios()
+    public function test_it_can_sync_servicios()
     {
         $servicioIds = [1, 2, 3];
 
@@ -170,12 +172,12 @@ class PropiedadServicioServiceTest extends TestCase
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn(new Propiedad(['id' => 1]));
 
         $this->servicioRepository
             ->expects($this->exactly(3))
             ->method('findById')
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn(new Servicio(['id' => 1])); // Corregido a instancia de Servicio
 
         $this->propiedadServicioRepository
             ->expects($this->once())

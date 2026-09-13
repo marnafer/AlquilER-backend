@@ -103,11 +103,10 @@ class ResenaService
         // Crear reseña
         $id = $this->resenaRepository->create($data);
         
-        // Registrar actividad
+        // Registrar actividad (Respetando la firma: int $usuarioId, string $accion)
         $this->logService->registrar(
-            'resena_creada',
-            "Usuario {$data['calificador_id']} creó reseña tipo '{$data['tipo']}' para reserva {$data['reserva_id']}",
-            $data['calificador_id']
+            (int) $data['calificador_id'],
+            'resena_creada'
         );
         
         return $id;
@@ -142,9 +141,8 @@ class ResenaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'resena_actualizada',
-                "Usuario actualizó reseña ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'resena_actualizada'
             );
         }
         
@@ -168,9 +166,8 @@ class ResenaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'resena_eliminada',
-                "Usuario {$usuarioId} eliminó reseña ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'resena_eliminada'
             );
         }
         
@@ -188,9 +185,8 @@ class ResenaService
         
         if ($resultado) {
             $this->logService->registrar(
-                'resena_restaurada',
-                "Usuario {$usuarioId} restauró reseña ID: {$id}",
-                $usuarioId
+                (int) $usuarioId,
+                'resena_restaurada'
             );
         } else {
             throw new \Exception("No se pudo restaurar la reseña o no existe", 404);

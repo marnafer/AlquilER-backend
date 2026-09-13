@@ -82,9 +82,8 @@ class PropiedadServicioService
         
         if ($resultado) {
             $this->logService->registrar(
-                'servicio_asignado',
-                "Usuario {$usuarioId} asignó servicio {$servicioId} a propiedad {$propiedadId}",
-                $usuarioId
+                (int) $usuarioId,
+                'servicio_asignado'
             );
         }
         
@@ -105,9 +104,8 @@ class PropiedadServicioService
         
         if ($resultado) {
             $this->logService->registrar(
-                'servicio_desasignado',
-                "Usuario {$usuarioId} desasignó servicio {$servicioId} de propiedad {$propiedadId}",
-                $usuarioId
+                (int) $usuarioId,
+                'servicio_desasignado'
             );
         }
         
@@ -138,9 +136,8 @@ class PropiedadServicioService
         // Registrar actividad
         if (!empty($resultados['asignados'])) {
             $this->logService->registrar(
-                'servicios_multiples_asignados',
-                "Usuario {$usuarioId} asignó servicios " . implode(',', $resultados['asignados']) . " a propiedad {$propiedadId}",
-                $usuarioId
+                (int) $usuarioId,
+                'servicios_multiples_asignados'
             );
         }
         
@@ -170,9 +167,8 @@ class PropiedadServicioService
         
         // Registrar actividad
         $this->logService->registrar(
-            'servicios_sincronizados',
-            "Usuario {$usuarioId} sincronizó servicios de propiedad {$propiedadId}",
-            $usuarioId
+            (int) $usuarioId,
+            'servicios_sincronizados'
         );
         
         return $resultados;

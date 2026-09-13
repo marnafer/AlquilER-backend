@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Exceptions\BadRequestException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\PropiedadImagen;
 use App\Models\Propiedad;
 use App\Repositories\PropiedadImagenRepositoryInterface;
-use App\Services\FileUploaderInterface;
+use App\Services\GestorArchivosInterface;
 use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\PropiedadImagenValidator;
-use App\Validators\ImageUploadValidatorInterface;
+use App\Validators\CargaImagenValidatorInterface;
 use App\Services\PropiedadService;
 
 class PropiedadImagenService
@@ -24,8 +23,8 @@ class PropiedadImagenService
         private readonly PropiedadImagenRepositoryInterface $repository,
         private readonly PropiedadService $propiedadService,
         private readonly LogActividadService $logActividadService,
-        private readonly FileUploaderInterface $fileUploader,
-        private readonly ImageUploadValidatorInterface $imageUploadValidator
+        private readonly GestorArchivosInterface $gestorArchivos,
+        private readonly CargaImagenValidatorInterface $cargaImagenValidator
     ) {
     }
 
@@ -100,7 +99,7 @@ class PropiedadImagenService
             throw new ValidationException($validacion['errors']);
         }
 
-        $errorImagen = $this->imageUploadValidator->validate($file);
+        $errorImagen = $this->cargaImagenValidator->validate($file);
 
         if ($errorImagen !== null) {
             throw new ValidationException([
@@ -116,7 +115,7 @@ class PropiedadImagenService
 
         $uploadDir = dirname(__DIR__, 2) . '/public/uploads/propiedades';
 
-        $nombreArchivo = $this->fileUploader->upload(
+        $nombreArchivo = $this->gestorArchivos->upload(
             $file,
             $uploadDir
         );
