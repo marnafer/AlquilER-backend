@@ -24,7 +24,7 @@ class ConsultaSanitizer
         $id = filter_var($id, FILTER_VALIDATE_INT);
 
         return ($id !== false && $id > 0)
-            ? $id
+            ? (int) $id 
             : null;
     }
 
