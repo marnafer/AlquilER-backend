@@ -36,7 +36,9 @@
 
     $allowedOrigins = [
         'http://localhost',
-        'http://127.0.0.1'
+        'http://127.0.0.1',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
     ];
 
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -45,7 +47,7 @@
         header("Access-Control-Allow-Origin: $origin");
     }
 
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
     // ============================================
