@@ -172,6 +172,8 @@ $router->get('/api/reservas/verificar-disponibilidad', [$reservaController, 'ver
 |--------------------------------------------------------------------------
 */
 
+$router->get('/api/admin/consultas', [$consultaController, 'adminIndex']);
+
 $router->get('/api/consultas', [$consultaController, 'index']);
 
 $router->get('/api/consultas/{id}', [$consultaController, 'show']);
