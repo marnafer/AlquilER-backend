@@ -39,6 +39,15 @@ class AutenticadorController
         );
     }
 
+    public function refresh(): void
+    {
+        $data = Request::json();
+
+        Response::success(
+            $this->service->refresh($data)
+        );
+    }
+
     public function logout(): void
     {
         AutenticadorMiddleware::verificar();
