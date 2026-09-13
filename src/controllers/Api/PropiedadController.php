@@ -19,6 +19,14 @@ class PropiedadController
     }
 
     /**
+     * Valida que un ID sea numérico válido
+     */
+    private function validateId($id): bool
+    {
+        return is_numeric($id) && (int)$id > 0;
+    }
+
+    /**
      * GET /api/propiedades
      */
     public function index()
@@ -33,8 +41,13 @@ class PropiedadController
      */
     public function show($id)
     {
+        if (!$this->validateId($id)) {
+            Response::badRequest('ID de propiedad inválido');
+            return;
+        }
+
         Response::success(
-                $this->service->obtener($id)
+            $this->service->obtener((int)$id)
         );
     }
 
@@ -61,12 +74,17 @@ class PropiedadController
      */
     public function update($id)
     {
+        if (!$this->validateId($id)) {
+            Response::badRequest('ID de propiedad inválido');
+            return;
+        }
+
         $user = AutenticadorMiddleware::verificar();
 
         $this->service->actualizar(
             (int) $user->sub,
             (int) $user->rol_id,
-            $id,
+            (int) $id,
             Request::json()
         );
 
@@ -82,12 +100,17 @@ class PropiedadController
      */
     public function delete($id)
     {
+        if (!$this->validateId($id)) {
+            Response::badRequest('ID de propiedad inválido');
+            return;
+        }
+
         $user = AutenticadorMiddleware::verificar();
 
         $this->service->eliminar(
             (int) $user->sub,
             (int) $user->rol_id,
-            $id
+            (int) $id
         );
 
         Response::success(
@@ -102,12 +125,17 @@ class PropiedadController
      */
     public function restore($id)
     {
+        if (!$this->validateId($id)) {
+            Response::badRequest('ID de propiedad inválido');
+            return;
+        }
+
         $user = AutenticadorMiddleware::verificar();
 
         $this->service->restaurar(
             (int) $user->sub,
             (int) $user->rol_id,
-            $id
+            (int) $id
         );
 
         Response::success(
@@ -135,17 +163,17 @@ class PropiedadController
         return $this->show($id);
     }
 
-    public function actualizar($request, $id)
+    public function actualizar($id)
     {
         return $this->update($id);
     }
 
-    public function eliminar($request, $id)
+    public function eliminar($id)
     {
         return $this->delete($id);
     }
 
-    public function restaurar($request, $id)
+    public function restaurar($id)
     {
         return $this->restore($id);
     }
