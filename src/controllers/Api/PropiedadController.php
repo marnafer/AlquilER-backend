@@ -33,17 +33,23 @@ class PropiedadController
     /**
      * GET /api/propiedades
      */
-    public function index()
+    public function index(): void
     {
-         Response::success(
-            $this->service->listar()
-        );
+        try {
+            Response::success(
+                $this->service->listar()
+            );
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        } catch (\Exception $e) {
+            Response::serverError('Error al listar propiedades');
+        }
     }
 
     /**
      * GET /api/propiedades/{id}
      */
-    public function show($id)
+    public function show($id): void
     {
         if (!$this->validateId($id)) {
             Response::badRequest('ID de propiedad inválido');
@@ -64,7 +70,7 @@ class PropiedadController
     /**
      * POST /api/propiedades
      */
-    public function store()
+    public function store(): void
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -82,13 +88,15 @@ class PropiedadController
             Response::validationError($e->errors());
         } catch (UnauthorizedException $e) {
             Response::unauthorized($e->getMessage());
+        } catch (\Exception $e) {
+            Response::serverError('Error al crear propiedad');
         }
     }
 
     /**
      * PUT /api/propiedades/{id}
      */
-    public function update($id)
+    public function update($id): void
     {
         if (!$this->validateId($id)) {
             Response::badRequest('ID de propiedad inválido');
@@ -124,7 +132,7 @@ class PropiedadController
     /**
      * DELETE /api/propiedades/{id}
      */
-    public function delete($id)
+    public function delete($id): void
     {
         if (!$this->validateId($id)) {
             Response::badRequest('ID de propiedad inválido');
@@ -157,7 +165,7 @@ class PropiedadController
     /**
      * PATCH /api/propiedades/{id}/restaurar
      */
-    public function restore($id)
+    public function restore($id): void
     {
         if (!$this->validateId($id)) {
             Response::badRequest('ID de propiedad inválido');
