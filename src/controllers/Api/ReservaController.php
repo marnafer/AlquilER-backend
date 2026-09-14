@@ -71,7 +71,7 @@ class ReservaController
                 $reserva->propiedad_id
             );
 
-            $esAdmin = $user->rol_id == 3;
+            $esAdmin = $user->rol_id == 2;
             $esPropietario =
                 $propiedad &&
                 $propiedad->usuario_id == $user->sub;
@@ -136,7 +136,7 @@ class ReservaController
             }
 
             if (
-                $user->rol_id != 3 &&
+                $user->rol_id != 2 &&
                 $propiedad->usuario_id != $user->sub
             ) {
                 throw new ForbiddenException();
@@ -250,7 +250,7 @@ class ReservaController
             );
 
             if (
-                $user->rol_id != 3 &&
+                $user->rol_id != 2 &&
                 $propiedad->usuario_id != $user->sub
             ) {
                 throw new ForbiddenException();
@@ -264,7 +264,7 @@ class ReservaController
                 );
             }
 
-            $reserva->estado = 'aprobada';
+            $reserva->estado = 'confirmada';
             $reserva->save();
 
             Response::success(
@@ -300,7 +300,7 @@ class ReservaController
             );
 
             if (
-                $user->rol_id != 3 &&
+                $user->rol_id != 2 &&
                 $propiedad->usuario_id != $user->sub
             ) {
                 throw new ForbiddenException();
@@ -346,7 +346,7 @@ class ReservaController
             }
 
             if (
-                $user->rol_id != 3 &&
+                $user->rol_id != 2 &&
                 $reserva->usuario_id != $user->sub
             ) {
                 throw new ForbiddenException();
@@ -355,7 +355,7 @@ class ReservaController
             if (
                 !in_array(
                     $reserva->estado,
-                    ['pendiente', 'aprobada']
+                    ['pendiente', 'confirmada']
                 )
             ) {
                 throw new BadRequestException(
@@ -399,14 +399,14 @@ class ReservaController
             );
 
             if (
-                $user->rol_id != 3 &&
+                $user->rol_id != 2 &&
                 $propiedad->usuario_id != $user->sub
             ) {
                 throw new ForbiddenException();
             }
 
             if (
-                $reserva->estado !== 'aprobada'
+                $reserva->estado !== 'confirmada'
             ) {
                 throw new BadRequestException(
                     'La reserva no puede finalizarse'
