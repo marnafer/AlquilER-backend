@@ -48,6 +48,50 @@ class ConsultaController
         ]);
     }
 
+    /**
+     * GET /api/consultas/propiedad/{propiedadId}
+     *
+     * Obtener las consultas de una propiedad.
+     * Solo el dueño de la propiedad o un administrador.
+     */
+    public function indexByPropiedad($propiedadId)
+    {
+        $user = AutenticadorMiddleware::verificar();
+
+        $consultas = $this->service->obtenerConsultasPorPropiedad(
+            (int) $propiedadId,
+            (int) $user->sub,
+            (int) $user->rol_id
+        );
+
+        Response::success([
+            'items' => $consultas,
+            'total' => count($consultas)
+        ]);
+    }
+
+    /**
+     * GET /api/consultas/usuario/{usuarioId}
+     *
+     * Obtener las consultas de un usuario.
+     * Solo el propio usuario o un administrador.
+     */
+    public function indexByUsuario($usuarioId)
+    {
+        $user = AutenticadorMiddleware::verificar();
+
+        $consultas = $this->service->obtenerConsultasPorUsuario(
+            (int) $usuarioId,
+            (int) $user->sub,
+            (int) $user->rol_id
+        );
+
+        Response::success([
+            'items' => $consultas,
+            'total' => count($consultas)
+        ]);
+    }
+
     public function show($id)
     {
         $user = AutenticadorMiddleware::verificar();

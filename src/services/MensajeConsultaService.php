@@ -37,6 +37,7 @@ class MensajeConsultaService
             'consulta_id' => $consulta->id,
             'usuario_id' => $usuarioLogueadoId,
             'mensaje' => $data['mensaje'],
+            'fecha_mensaje' => date('Y-m-d H:i:s'),
         ]);
 
         $this->logActividadService->registrar(

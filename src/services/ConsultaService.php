@@ -106,7 +106,7 @@ class ConsultaService
                     'consulta_id' => $consultaId,
                     'usuario_id' => $data['usuario_id'],
                     'mensaje' => $data['mensaje'],
-                    'fecha_envio' => date('Y-m-d H:i:s')
+                    'fecha_mensaje' => date('Y-m-d H:i:s')
                 ]);
             }
 
