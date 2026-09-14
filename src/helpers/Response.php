@@ -38,19 +38,13 @@ class Response
 			]);
 		}
 
-<<<<<<< HEAD
-		// En entorno de testing, no matamos el proceso: lanzamos una
+// En entorno de testing, no matamos el proceso: lanzamos una
 		// excepción que los tests capturan para poder seguir ejecutando.
 		if (defined('APP_ENV') && APP_ENV === 'testing') {
 			throw new \RuntimeException('__RESPONSE_SENT__');
 		}
 
 		exit;
-=======
-		if (!self::$testing) {
-			exit;
-		}
->>>>>>> 9e2c53299033f9f88a6195e662924ff4569b9be6
 	}
 
 	// ===== FUNCIONES DE EXITO =====

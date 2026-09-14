@@ -7,12 +7,7 @@ namespace Tests;
 use App\Helpers\Request;
 use App\Helpers\TokenProviderInterface;
 use App\Middlewares\AutenticadorMiddleware;
-<<<<<<< HEAD
 use PHPUnit\Framework\MockObject\MockObject;
-=======
-use App\Helpers\Response;
-use App\Helpers\Request;
->>>>>>> 9e2c53299033f9f88a6195e662924ff4569b9be6
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -24,7 +19,6 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-<<<<<<< HEAD
         // 1. Constantes que JwtHelper espera.
         //    No incluimos config/config.php para no disparar la
         //    validación de $_ENV (que en CLI está vacío).
@@ -48,22 +42,12 @@ abstract class TestCase extends BaseTestCase
 
         // 3. Limpiar body de test por si quedó sucio de un test anterior.
         Request::setTestBody(null);
-=======
-        Response::setTesting(true);
-        // Aquí puedes cargar configuración de base de datos de prueba si es necesario
->>>>>>> 9e2c53299033f9f88a6195e662924ff4569b9be6
     }
 
     protected function tearDown(): void
     {
-<<<<<<< HEAD
         Request::setTestBody(null);
-=======
 
-        Request::setTestBody(null);
-        Response::setTesting(false);
-        
->>>>>>> 9e2c53299033f9f88a6195e662924ff4569b9be6
         parent::tearDown();
     }
 
