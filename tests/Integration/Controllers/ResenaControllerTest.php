@@ -18,7 +18,7 @@ class ResenaControllerTest extends TestCase
         $this->controller = new ResenaController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -35,7 +35,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
@@ -48,7 +48,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -66,7 +66,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_resena_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -85,7 +85,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_returns_forbidden_when_user_not_authorized_to_view_resena()
     {
         $request = $this->createRequest(['usuario_id' => 3]);
@@ -104,7 +104,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('403', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear_resena_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -128,7 +128,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear_resena_inquilino()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -152,7 +152,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_fields()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -167,7 +167,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_tipo()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -185,7 +185,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
@@ -204,7 +204,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_conflict_when_resena_already_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -228,7 +228,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('409', $output);
     }
 
-    /** @test */
+    
     public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -248,7 +248,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_actualizar_with_empty_data()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -263,7 +263,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_forbidden_when_actualizar_without_permission()
     {
         $request = $this->createRequest(['usuario_id' => 2]);
@@ -284,7 +284,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('403', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -302,7 +302,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_forbidden_when_eliminar_without_permission()
     {
         $request = $this->createRequest(['usuario_id' => 2]);
@@ -321,7 +321,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('403', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_reserva()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -339,7 +339,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_reserva_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -358,7 +358,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -383,7 +383,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"promedio":4.5', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_property_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -402,7 +402,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_usuario()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -427,7 +427,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"promedio":4.2', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_usuario_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -446,7 +446,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_calificador()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -464,7 +464,7 @@ class ResenaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_calificador_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);

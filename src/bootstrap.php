@@ -66,6 +66,7 @@ use App\Validators\CargaImagenValidator;
 
 // POLICIES
 use App\Policies\ConsultaPolicy;
+use App\Policies\FavoritoPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
@@ -91,6 +92,7 @@ $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
 
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
+$favoritoPolicy = new FavoritoPolicy(); 
 
 // INSTANCIAR SERVICES
 $logActividadService = new LogActividadService(
@@ -151,7 +153,8 @@ $propiedadImagenService = new PropiedadImagenService(
 $favoritoService = new FavoritoService(
     $favoritoRepository,
     $propiedadRepository,
-    $logActividadService
+    $logActividadService,
+    $favoritoPolicy 
 );
 
 $reservaService = new ReservaService(

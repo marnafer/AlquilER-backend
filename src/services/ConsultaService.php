@@ -29,11 +29,18 @@ class ConsultaService
     ) {
     }
     
-    public function listarConsultas(array $rawFiltros = []): array
+    public function listarConsultas(int $rolId, array $rawFiltros = []): array
     {
+        if (!$this->policy->puedeAdministrar($rolId)) {
+            throw new UnauthorizedException('No autorizado para ver el listado global de consultas');
+        }
+
         $filtros = ConsultaSanitizer::sanitizarConsulta($rawFiltros);
         
-        return $this->consultaRepository->getAll($filtros);
+        // Eliminamos los valores nulos o vacíos para enviar solo los filtros activos
+        $filtrosLimpios = array_filter($filtros, fn($value) => !is_null($value) && $value !== '');
+        
+        return $this->consultaRepository->getAll($filtrosLimpios);
     }
     
     public function obtenerConsulta($rawId): Consulta

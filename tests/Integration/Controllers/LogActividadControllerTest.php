@@ -18,7 +18,7 @@ class LogActividadControllerTest extends TestCase
         $this->controller = new LogActividadController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -35,7 +35,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
@@ -48,7 +48,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -66,7 +66,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_obtener_without_user()
     {
         $request = $this->createRequest([]);
@@ -79,7 +79,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_log_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -98,7 +98,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_filter_listar_by_fecha()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -117,7 +117,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_filter_listar_by_usuario()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -135,7 +135,7 @@ class LogActividadControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_filter_listar_by_accion()
     {
         $request = $this->createRequest(['usuario_id' => 1]);

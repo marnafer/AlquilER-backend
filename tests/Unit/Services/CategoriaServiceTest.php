@@ -288,4 +288,202 @@ final class CategoriaServiceTest extends TestCase
 
         $this->addToAssertionCount(1);
     }
+
+    public function test_crear_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('create');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->crear([
+            'nombre' => ''
+        ]);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_la_categoria_no_existe(): void
+    {
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(999)
+            ->willReturn(null);
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'Categoría no encontrada'
+        );
+
+        $service->actualizar(999, [
+            'nombre' => 'Nueva Categoria'
+        ]);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_no_hay_campos_actualizables(): void
+    {
+        $categoria = new Categoria([
+            'nombre' => 'Casa'
+        ]);
+
+        $categoria->id = 1;
+
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($categoria);
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage(
+            'No se enviaron campos actualizables'
+        );
+
+        $service->actualizar(1, [
+            'id' => 10,
+            'deleted_at' => '2026-01-01'
+        ]);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_el_nombre_ya_existe(): void
+    {
+        $categoria = new Categoria([
+            'nombre' => 'Casa'
+        ]);
+
+        $categoria->id = 1;
+
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($categoria);
+
+        $repository
+            ->expects($this->once())
+            ->method('existsByName')
+            ->with('Departamento', 1)
+            ->willReturn(true);
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'El nombre ya está registrado'
+        );
+
+        $service->actualizar(1, [
+            'nombre' => ' Departamento '
+        ]);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_la_categoria_no_existe(): void
+    {
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(999)
+            ->willReturn(null);
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('restore');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'Categoría eliminada no encontrada'
+        );
+
+        $service->restaurar(999);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_ya_existe_una_categoria_activa_con_el_mismo_nombre(): void
+    {
+        $categoria = new Categoria([
+            'nombre' => 'Casa'
+        ]);
+
+        $categoria->id = 1;
+
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($categoria);
+
+        $repository
+            ->expects($this->once())
+            ->method('existsByName')
+            ->with('Casa', 1)
+            ->willReturn(true);
+
+        $repository
+            ->expects($this->never())
+            ->method('restore');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'Ya existe una categoría activa con ese nombre'
+        );
+
+        $service->restaurar(1);
+    }
 }

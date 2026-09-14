@@ -50,7 +50,7 @@ class IntegridadBaseDeDatosTest extends TestCase
         }
     }
 
-    /** @test */
+    
     public function test_it_verifies_all_database_tables_and_relations()
     {
         // 1. Categoría y Relación

@@ -16,6 +16,22 @@ class ConsultaController
         $this->service = $service;
     }
 
+    public function adminIndex()
+    {
+        $user = AutenticadorMiddleware::verificar();
+        $rolId = (int) $user->rol_id;
+
+        // Opcional: capturar parámetros de filtrado si se envían por query string
+        $filtros = $_GET ?? [];
+
+        $consultas = $this->service->listarConsultas($rolId, $filtros);
+
+        Response::success([
+            'items' => $consultas,
+            'total' => count($consultas)
+        ]);
+    }
+
     public function index()
     {
         // Guardamos el objeto retornado por middleware

@@ -32,7 +32,7 @@ class ReservaServiceTest extends TestCase
         );
     }
 
-    /** @test */
+    
     public function test_it_can_list_reservas()
     {
         $filtros = ['estado' => 'pendiente'];
@@ -48,7 +48,7 @@ class ReservaServiceTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    /** @test */
+    
     public function test_it_can_get_reserva_by_id()
     {
         $reservaMock = new Reserva(['id' => 1, 'estado' => 'pendiente']);
@@ -63,7 +63,7 @@ class ReservaServiceTest extends TestCase
         $this->assertSame($reservaMock, $result);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_reserva_not_found()
     {
         $this->expectException(\Exception::class);
@@ -79,7 +79,7 @@ class ReservaServiceTest extends TestCase
         $this->reservaService->obtenerReserva(999);
     }
 
-    /** @test */
+    
     public function test_it_can_create_reserva()
     {
         $propiedadMock = new Propiedad([
@@ -123,7 +123,7 @@ class ReservaServiceTest extends TestCase
         $this->assertEquals(1, $result);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_creating_reserva_with_non_existent_property()
     {
         $this->expectException(\Exception::class);
@@ -144,7 +144,7 @@ class ReservaServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_property_not_available_for_rent()
     {
         $this->expectException(\Exception::class);
@@ -170,7 +170,7 @@ class ReservaServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_dates_are_invalid_on_create()
     {
         $this->expectException(\Exception::class);
@@ -196,7 +196,7 @@ class ReservaServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    
     public function test_it_can_change_estado_reserva()
     {
         $reservaMock = new Reserva([
@@ -224,7 +224,7 @@ class ReservaServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_on_invalid_estado_transition()
     {
         $this->expectException(\Exception::class);
@@ -245,7 +245,7 @@ class ReservaServiceTest extends TestCase
         $this->reservaService->cambiarEstadoReserva(1, 'confirmada', 3);
     }
 
-    /** @test */
+    
     public function test_it_can_verificar_disponibilidad()
     {
         $propiedadMock = new Propiedad([

@@ -23,6 +23,18 @@ class EloquentFavoritoRepository implements FavoritoRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    /**
+     * Obtener un favorito específico por usuario y propiedad.
+     */
+    public function findByUsuarioAndPropiedad(
+        int $usuarioId,
+        int $propiedadId
+    ): ?Favorito {
+        return Favorito::where('usuario_id', $usuarioId)
+            ->where('propiedad_id', $propiedadId)
+            ->first();
+    }
     
     /**
      * Verificar si existe un favorito

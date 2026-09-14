@@ -18,7 +18,7 @@ class ReservaControllerTest extends TestCase
         $this->controller = new ReservaController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -35,7 +35,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
@@ -48,7 +48,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_with_filters()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -68,7 +68,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -86,7 +86,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_reserva_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -105,7 +105,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -129,7 +129,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_fields()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -144,7 +144,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_dates()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -162,7 +162,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
@@ -182,7 +182,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_conflict_when_property_not_available()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -207,7 +207,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('409', $output);
     }
 
-    /** @test */
+    
     public function it_can_actualizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -227,7 +227,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_actualizar_with_empty_data()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -242,7 +242,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_actualizar_without_user()
     {
         $request = $this->createRequest([]);
@@ -257,7 +257,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -275,7 +275,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);
@@ -288,7 +288,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_forbidden_when_eliminar_confirmada_reserva()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -307,7 +307,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_restaurar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -325,7 +325,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_restaurar_without_user()
     {
         $request = $this->createRequest([]);
@@ -338,7 +338,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_usuario()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -356,7 +356,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_por_usuario_without_user()
     {
         $request = $this->createRequest([]);
@@ -369,7 +369,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_por_propiedad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -387,7 +387,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_por_propiedad_without_user()
     {
         $request = $this->createRequest([]);
@@ -400,7 +400,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_cambiar_estado()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -420,7 +420,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_cambiar_estado_missing_estado()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -435,7 +435,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_cambiar_estado_without_user()
     {
         $request = $this->createRequest([]);
@@ -450,7 +450,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_cambiar_estado_invalid_transition()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -471,7 +471,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_verificar_disponibilidad()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -493,7 +493,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('"disponible":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_verificar_disponibilidad_missing_params()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -506,7 +506,7 @@ class ReservaControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_property_not_exists_for_availability()
     {
         $request = $this->createRequest(['usuario_id' => 1]);

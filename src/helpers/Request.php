@@ -9,6 +9,7 @@ use JsonException;
 
 class Request
 {
+<<<<<<< HEAD
     private static ?string $testBody = null;
 
     /**
@@ -27,6 +28,22 @@ class Request
         }
 
         $body ??= file_get_contents('php://input');
+=======
+
+    private static ?string $testBody = null;
+
+    /** 
+     * Permite establecer un body manualmente durante los tests. 
+    */ 
+    public static function setTestBody(?string $body): void 
+    { 
+        self::$testBody = $body; 
+    }
+
+    public static function json(): array
+    {
+        $body = self::$testBody ?? file_get_contents('php://input');
+>>>>>>> 9e2c53299033f9f88a6195e662924ff4569b9be6
 
         if ($body === false || trim($body) === '') {
             throw new BadRequestException(
