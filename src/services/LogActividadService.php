@@ -9,6 +9,8 @@ use App\Exceptions\ValidationException;
 use App\Repositories\LogActividadRepositoryInterface;
 use App\Sanitizers\LogActividadSanitizer;
 use App\Validators\LogActividadValidator;
+use Illuminate\Support\Collection;
+
 
 class LogActividadService
 {
@@ -17,7 +19,7 @@ class LogActividadService
     ) {
     }
 
-    public function listar()
+    public function listar(): Collection
     {
         return $this->repository->all();
     }
