@@ -98,7 +98,9 @@ class AutenticadorService
             PASSWORD_DEFAULT
         );
 
-        $usuario = $this->usuarioRepository->createWithRole($data, 1);
+        $rolId = $this->resolverRolId($rawData);
+
+        $usuario = $this->usuarioRepository->createWithRole($data, $rolId);
 
         $this->logActividadService->registrar(
             $usuario->id,
@@ -106,6 +108,38 @@ class AutenticadorService
         );
 
         return $usuario;
+    }
+
+    private const ROL_INQUILINO = 1;
+    private const ROL_PROPIETARIO = 4;
+
+    private function resolverRolId(array $rawData): int
+    {
+        $rol = $rawData['rol'] ?? null;
+
+        if (is_string($rol)) {
+            $rol = strtolower(trim($rol));
+
+            if ($rol === 'propietario') {
+                return self::ROL_PROPIETARIO;
+            }
+
+            if ($rol === 'inquilino') {
+                return self::ROL_INQUILINO;
+            }
+        }
+
+        $rolId = $rawData['rol_id'] ?? null;
+
+        if (is_numeric($rolId)) {
+            $rolId = (int) $rolId;
+
+            if ($rolId === self::ROL_PROPIETARIO) {
+                return self::ROL_PROPIETARIO;
+            }
+        }
+
+        return self::ROL_INQUILINO;
     }
 
     public function refresh(array $rawData): array

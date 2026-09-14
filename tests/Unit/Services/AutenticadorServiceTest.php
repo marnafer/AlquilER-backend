@@ -229,6 +229,47 @@ final class AutenticadorServiceTest extends TestCase
         $this->assertSame($usuario, $resultado);
     }
 
+    public function test_registra_un_usuario_como_propietario_cuando_se_envia_el_rol(): void
+    {
+        $usuario = new Usuario(['email' => 'dueno@example.com']);
+        $usuario->id = 8;
+
+        $usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
+        $refreshTokenRepository = $this->createMock(RefreshTokenRepositoryInterface::class);
+        $tokenProvider = $this->createMock(TokenProviderInterface::class);
+        $logActividadService = $this->createMock(LogActividadService::class);
+
+        $usuarioRepository
+            ->expects($this->once())
+            ->method('existsByEmail')
+            ->willReturn(false);
+
+        $usuarioRepository
+            ->expects($this->once())
+            ->method('createWithRole')
+            ->with($this->anything(), 4)
+            ->willReturn($usuario);
+
+        $service = new AutenticadorService(
+            $usuarioRepository,
+            $refreshTokenRepository,
+            $tokenProvider,
+            $logActividadService
+        );
+
+        $resultado = $service->registrar([
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+            'email' => 'dueno@example.com',
+            'telefono' => '11 1234-5678',
+            'domicilio' => 'Av. Siempre Viva 123',
+            'contrasena' => 'secreto',
+            'rol' => 'propietario',
+        ]);
+
+        $this->assertSame($usuario, $resultado);
+    }
+
     public function test_registrar_lanza_excepcion_si_faltan_datos(): void
     {
         $usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
