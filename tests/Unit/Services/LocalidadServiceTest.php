@@ -390,6 +390,89 @@ final class LocalidadServiceTest extends TestCase
         ]);
     }
 
+    public function test_actualizar_lanza_excepcion_si_no_se_envian_datos(): void
+    {
+        $localidad = new Localidad([
+            'nombre' => 'La Plata',
+            'provincia_id' => 1,
+        ]);
+
+        $localidad->id = 1;
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $provinciaRepository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($localidad);
+
+        $localidadRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(\App\Exceptions\BadRequestException::class);
+        $this->expectExceptionMessage(
+            'Debe enviar al menos un campo para actualizar'
+        );
+
+        $service = new LocalidadService(
+            $localidadRepository,
+            $provinciaRepository
+        );
+
+        $service->actualizar(1, []);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_no_hay_campos_actualizables(): void
+    {
+        $localidad = new Localidad([
+            'nombre' => 'La Plata',
+            'provincia_id' => 1,
+        ]);
+
+        $localidad->id = 1;
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $provinciaRepository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $localidadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($localidad);
+
+        $localidadRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(\App\Exceptions\BadRequestException::class);
+        $this->expectExceptionMessage(
+            'No se enviaron campos actualizables'
+        );
+
+        $service = new LocalidadService(
+            $localidadRepository,
+            $provinciaRepository
+        );
+
+        $service->actualizar(1, [
+            'id' => 1,
+            'deleted_at' => null,
+        ]);
+    }
+
     public function test_elimina_una_localidad_sin_propiedades(): void
     {
         $localidad = new Localidad(['nombre' => 'La Plata']);
