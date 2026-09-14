@@ -15,7 +15,6 @@ class EloquentFavoritoRepository implements FavoritoRepositoryInterface
             ->with([
                 'propiedad',
                 'propiedad.categoria',
-                'propiedad.provincia',
                 'propiedad.localidad',
                 'propiedad.imagenes'
             ])
