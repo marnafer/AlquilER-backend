@@ -8,6 +8,7 @@ use App\Controllers\Api\MensajeConsultaController;
 use App\Models\MensajeConsulta;
 use App\Services\MensajeConsultaService;
 use Tests\TestCase;
+use App\Helpers\Request;
 
 final class MensajeConsultaControllerTest extends TestCase
 {
@@ -46,9 +47,9 @@ final class MensajeConsultaControllerTest extends TestCase
         $output = ob_get_clean();
 
         $this->assertEquals(200, http_response_code());
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertStringContainsString('"success": true', $output);
         $this->assertStringContainsString('"items":', $output);
-        $this->assertStringContainsString('"total":2', $output);
+        $this->assertStringContainsString('"total": 2', $output);
     }
 
     /**
@@ -58,20 +59,41 @@ final class MensajeConsultaControllerTest extends TestCase
     public function test_store_retorna_201_y_crea_el_mensaje_correctamente(): void
     {
         $input = json_encode(['mensaje' => 'Me interesa']);
-        file_put_contents('php://input', $input);
 
-        $mensajeCreado = new MensajeConsulta(['id' => 1, 'mensaje' => 'Me interesa']);
+        Request::setTestBody($input);
 
-        $this->service->expects($this->once())
-            ->method('crearMensaje')
+        $mensajeCreado = new MensajeConsulta([ 
+            'id' => 1, 
+            'consulta_id' => 100, 
+            'usuario_id' => 5, 
+            'mensaje' => 'Me interesa' 
+        ]); 
+        
+        $this->service->expects($this->once()) 
+            ->method('crearMensaje') 
+            ->with( 
+                $this->callback(function (array $data): bool { 
+                    return $data['consulta_id'] === 100 
+                        && $data['mensaje'] === 'Me interesa'; 
+                }), 
+                5 
+            ) 
             ->willReturn($mensajeCreado);
 
         ob_start();
-        $this->controller->store(100);
-        $output = ob_get_clean();
 
-        $this->assertEquals(201, http_response_code());
-        $this->assertStringContainsString('"success":true', $output);
+       try { 
+            $this->controller->store(100); 
+            $output = ob_get_clean(); 
+        } catch (\Throwable $e) { 
+            ob_end_clean(); 
+            throw $e; 
+        } 
+        
+        $this->assertEquals(201, http_response_code()); 
+        $this->assertStringContainsString('"success": true', $output); 
         $this->assertStringContainsString('Me interesa', $output);
+
+        Request::setTestBody(null);
     }
 }
