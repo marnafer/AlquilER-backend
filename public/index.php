@@ -58,6 +58,20 @@
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 
     // ============================================
+    // SERVIDOR EMBEBIDO (php -S): servir archivos
+    // estáticos reales (uploads, imágenes, CSS/JS)
+    // sin pasarlos por el router.
+    // ============================================
+
+    if (PHP_SAPI === 'cli-server') {
+        $archivoSolicitado = __DIR__ . parse_url($requestUri, PHP_URL_PATH);
+
+        if (is_file($archivoSolicitado)) {
+            return false;
+        }
+    }
+
+    // ============================================
     // CORS - PREFLIGHT
     // ============================================
 

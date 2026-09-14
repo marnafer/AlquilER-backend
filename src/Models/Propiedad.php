@@ -39,6 +39,9 @@ class Propiedad extends Model
     // Indicamos que use deleted_at para el Soft Delete
     protected $dates = ['deleted_at'];
 
+    // Campo calculado con la URL de la imagen destacada (o null si no tiene)
+    protected $appends = ['imagen_url'];
+
     // Relaciones con otros modelos 
 
     public function categoria()
@@ -99,6 +102,17 @@ class Propiedad extends Model
 
         // 2. Si no hay principal, toma la primera de la lista de todas las imágenes
         return $this->imagenes()->first(); 
+    }
+
+    /**
+     * Devuelve la ruta de la imagen destacada (o null si la propiedad no tiene imagen).
+     * Se incluye en el JSON como 'imagen_url'.
+     */
+    public function getImagenUrlAttribute(): ?string
+    {
+        $imagen = $this->imagenDestacada();
+
+        return $imagen?->ruta;
     }
    
 }

@@ -10,6 +10,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function all(): Collection
     {
         return Propiedad::query()
+            ->with(['imagenes', 'imagenPrincipal'])
             ->orderBy('id', 'asc')
             ->get();
     }
@@ -17,6 +18,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function findById(int $id): ?Propiedad
     {
         return Propiedad::query()
+            ->with(['imagenes', 'imagenPrincipal'])
             ->whereKey($id)
             ->first();
     }
