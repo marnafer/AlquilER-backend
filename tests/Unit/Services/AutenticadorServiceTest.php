@@ -194,20 +194,56 @@ final class AutenticadorServiceTest extends TestCase
         $usuario = new Usuario(['email' => 'ana@example.com']);
         $usuario->id = 7;
 
-        $usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
-        $refreshTokenRepository = $this->createMock(RefreshTokenRepositoryInterface::class);
-        $tokenProvider = $this->createMock(TokenProviderInterface::class);
-        $logActividadService = $this->createMock(LogActividadService::class);
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $refreshTokenRepository = $this->createMock(
+            RefreshTokenRepositoryInterface::class
+        );
+
+        $tokenProvider = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $logActividadService = $this->createMock(
+            LogActividadService::class
+        );
 
         $usuarioRepository
             ->expects($this->once())
             ->method('existsByEmail')
+            ->with('ana@example.com')
             ->willReturn(false);
-            
+
         $usuarioRepository
             ->expects($this->once())
             ->method('createWithRole')
+            ->with(
+                $this->callback(function (array $data): bool {
+                    return $data['nombre'] === 'Ana'
+                        && $data['apellido'] === 'Gomez'
+                        && $data['email'] === 'ana@example.com'
+                        && $data['telefono'] === '11 1234-5678'
+                        && $data['domicilio'] === 'Av. Siempre Viva 123'
+                        && isset($data['contrasena'])
+                        && $data['contrasena'] !== 'secreto'
+                        && password_verify(
+                            'secreto',
+                            $data['contrasena']
+                        )
+                        && !isset($data['rol_id'])
+                        && !isset($data['id'])
+                        && !isset($data['deleted_at']);
+                }),
+                1
+            )
             ->willReturn($usuario);
+
+        $logActividadService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(7, 'Registro de usuario');
 
         $service = new AutenticadorService(
             $usuarioRepository,
@@ -217,8 +253,8 @@ final class AutenticadorServiceTest extends TestCase
         );
 
         $resultado = $service->registrar([
-            'nombre' => ' ana ',
-            'apellido' => ' gomez ',
+            'nombre' => ' Ana ',
+            'apellido' => ' Gomez ',
             'email' => ' ANA@EXAMPLE.COM ',
             'telefono' => '11 1234-5678',
             'domicilio' => ' Av. Siempre Viva 123 ',
@@ -377,6 +413,66 @@ final class AutenticadorServiceTest extends TestCase
         $this->expectExceptionMessage('Refresh token inválido o expirado');
 
         $service->refresh(['refresh_token' => 'token-invalido']);
+    }
+
+    public function test_refresh_lanza_excepcion_si_el_usuario_del_token_no_existe(): void
+    {
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $refreshTokenRepository = $this->createMock(
+            RefreshTokenRepositoryInterface::class
+        );
+
+        $tokenProvider = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $logActividadService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $userToken = new RefreshToken();
+        $userToken->id = 15;
+        $userToken->setRelation('usuario', null);
+
+        $refreshTokenRepository
+            ->expects($this->once())
+            ->method('findValidByToken')
+            ->with('token-sin-usuario')
+            ->willReturn($userToken);
+
+        $refreshTokenRepository
+            ->expects($this->never())
+            ->method('deleteById');
+
+        $tokenProvider
+            ->expects($this->never())
+            ->method('generateAccessToken');
+
+        $tokenProvider
+            ->expects($this->never())
+            ->method('generateRefreshToken');
+
+        $service = new AutenticadorService(
+            $usuarioRepository,
+            $refreshTokenRepository,
+            $tokenProvider,
+            $logActividadService
+        );
+
+        $this->expectException(
+            UnauthorizedException::class
+        );
+
+        $this->expectExceptionMessage(
+            'Usuario no encontrado'
+        );
+
+        $service->refresh([
+            'refresh_token' => 'token-sin-usuario'
+        ]);
     }
 
     public function test_logout_elimina_el_refresh_token(): void
