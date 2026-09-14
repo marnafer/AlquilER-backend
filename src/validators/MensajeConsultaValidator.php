@@ -33,8 +33,14 @@ class MensajeConsultaValidator
 
         if (empty($mensaje)) {
             $errores['mensaje'] = 'El mensaje es obligatorio';
-        } elseif (mb_strlen($mensaje) > 2000) {
-            $errores['mensaje'] = 'El mensaje no puede superar los 2000 caracteres';
+        } else {
+            $longitud = mb_strlen(trim($mensaje));
+
+            if ($longitud < 5) {
+                $errores['mensaje'] = 'El mensaje debe tener al menos 5 caracteres';
+            } elseif ($longitud > 2000) {
+                $errores['mensaje'] = 'El mensaje no puede superar los 2000 caracteres';
+            }
         }
 
         if (!empty($errores)) {
