@@ -286,7 +286,7 @@ class ReservaValidator
 
         $validos = [
             'pendiente',
-            'aprobada',
+            'confirmada',
             'rechazada',
             'cancelada',
             'finalizada'

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// CONTROLLERS
 use App\Controllers\Api\AutenticadorController;
 use App\Controllers\Api\UsuarioController;
 use App\Controllers\Api\CategoriaController;
@@ -17,8 +18,13 @@ use App\Controllers\Api\PropiedadServicioController;
 use App\Controllers\Api\LogActividadController;
 use App\Controllers\Api\PropiedadController;
 use App\Controllers\Api\FavoritoController;
+use App\Controllers\Api\MensajeConsultaController;
+
+// HELPERS - MIDDLEWARES
 use App\Helpers\JwtProvider;
 use App\Middlewares\AutenticadorMiddleware;
+
+// REPOSITORIES
 use App\Repositories\EloquentUsuarioRepository;
 use App\Repositories\EloquentCategoriaRepository;
 use App\Repositories\EloquentServicioRepository;
@@ -33,6 +39,10 @@ use App\Repositories\EloquentReservaRepository;
 use App\Repositories\EloquentConsultaRepository;
 use App\Repositories\EloquentResenaRepository;
 use App\Repositories\EloquentPropiedadServicioRepository;
+use App\Repositories\EloquentRefreshTokenRepository;
+use App\Repositories\EloquentMensajeConsultaRepository;
+
+// SERVICES
 use App\Services\AutenticadorService;
 use App\Services\UsuarioService;
 use App\Services\CategoriaService;
@@ -49,13 +59,20 @@ use App\Services\ConsultaService;
 use App\Services\ResenaService;
 use App\Services\PropiedadServicioService;
 use App\Services\GestorArchivosLocales;
+use App\Services\MensajeConsultaService;
+
+//VALIDATORS
 use App\Validators\CargaImagenValidator;
+
+// POLICIES
+use App\Policies\ConsultaPolicy;
+use App\Policies\FavoritoPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
 AutenticadorMiddleware::configure($tokenProvider);
 
-// REPOSITORIES
+// INSTANCIAR REPOSITORIES
 $usuarioRepository = new EloquentUsuarioRepository();
 $categoriaRepository = new EloquentCategoriaRepository();
 $servicioRepository = new EloquentServicioRepository();
@@ -70,14 +87,21 @@ $reservaRepository = new EloquentReservaRepository();
 $consultaRepository = new EloquentConsultaRepository();
 $resenaRepository = new EloquentResenaRepository();
 $propiedadServicioRepository = new EloquentPropiedadServicioRepository();
+$refreshTokenRepository = new EloquentRefreshTokenRepository();
+$mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
 
-// SERVICES
+//INSTANCIAR POLICIES
+$consultaPolicy = new ConsultaPolicy();
+$favoritoPolicy = new FavoritoPolicy(); 
+
+// INSTANCIAR SERVICES
 $logActividadService = new LogActividadService(
     $logActividadRepository
 );
 
 $autenticadorService = new AutenticadorService(
     $usuarioRepository,
+    $refreshTokenRepository,
     $tokenProvider,
     $logActividadService
 );
@@ -129,7 +153,8 @@ $propiedadImagenService = new PropiedadImagenService(
 $favoritoService = new FavoritoService(
     $favoritoRepository,
     $propiedadRepository,
-    $logActividadService
+    $logActividadService,
+    $favoritoPolicy 
 );
 
 $reservaService = new ReservaService(
@@ -142,7 +167,9 @@ $consultaService = new ConsultaService(
     $consultaRepository,
     $propiedadRepository,
     $usuarioRepository,
-    $logActividadService
+    $mensajeConsultaRepository,
+    $logActividadService,
+    $consultaPolicy
 );
 
 $resenaService = new ResenaService(
@@ -157,6 +184,12 @@ $propiedadServicioService = new PropiedadServicioService(
     $propiedadServicioRepository,
     $propiedadRepository,
     $servicioRepository,
+    $logActividadService
+);
+
+$mensajeConsultaService = new MensajeConsultaService(
+    $mensajeConsultaRepository,
+    $consultaService,
     $logActividadService
 );
 
@@ -176,5 +209,6 @@ return [
     'reservaController' => new ReservaController($reservaService),
     'consultaController' => new ConsultaController($consultaService),
     'resenaController' => new ResenaController($resenaService),
+    'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService),
     'propiedadServicioController' => new PropiedadServicioController($propiedadServicioService),
 ];

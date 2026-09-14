@@ -160,31 +160,6 @@ class LogActividadValidator
         ];
     }
 
-    public static function validarDias($dias): array
-    {
-        $errores = [];
-
-        if (filter_var($dias, FILTER_VALIDATE_INT) === false) {
-            $errores['dias'] = 'La cantidad de días debe ser un número entero';
-        } elseif ((int)$dias <= 0) {
-            $errores['dias'] = 'La cantidad de días debe ser mayor a 0';
-        }
-
-        if (!empty($errores)) {
-            return [
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $errores
-            ];
-        }
-
-        return [
-            'success' => true,
-            'message' => 'Validación exitosa',
-            'errors' => null
-        ];
-    }
-
     /**
      * Validar creación
      */

@@ -86,4 +86,37 @@ class RolController
             'Rol restaurado exitosamente'
         );
     }
+
+    /**
+     * Métodos alias en español para compatibilidad con tests
+     */
+    public function listar()
+    {
+        return $this->index();
+    }
+
+    public function crear()
+    {
+        return $this->store();
+    }
+
+    public function obtener($id)
+    {
+        return $this->show($id);
+    }
+
+    public function actualizar($id)
+    {
+        return $this->update($id);
+    }
+
+    public function eliminar($id)
+    {
+        return $this->delete($id);
+    }
+
+    public function restaurar($id)
+    {
+        return $this->restore($id);
+    }
 }

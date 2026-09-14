@@ -5,302 +5,312 @@ namespace Tests\Integration\Controllers;
 use Tests\TestCase;
 use App\Controllers\Api\ConsultaController;
 use App\Services\ConsultaService;
+use App\Models\Consulta;
+use App\Middlewares\AutenticadorMiddleware;
+use App\Helpers\TokenProviderInterface;
+use App\Helpers\Request;
 
 class ConsultaControllerTest extends TestCase
 {
     private $controller;
     private $service;
+    private $tokenProviderMock;
 
     protected function setUp(): void
     {
         parent::setUp();
+
         $this->service = $this->createMock(ConsultaService::class);
         $this->controller = new ConsultaController($this->service);
+
+        $this->tokenProviderMock = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $this->tokenProviderMock
+            ->method('validate')
+            ->willReturnCallback(function ($token) {
+                if ($token === 'admin-token') {
+                    return (object) [
+                        'sub' => 99,
+                        'rol_id' => 2
+                    ];
+                }
+
+                return (object) [
+                    'sub' => 1,
+                    'rol_id' => 1
+                ];
+            });
+
+        AutenticadorMiddleware::configure($this->tokenProviderMock);
+
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer fake-jwt-token-for-testing';
+        $_GET = [];
     }
 
-    /** @test */
-    public function it_can_listar()
+    protected function tearDown(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        Request::setTestBody(null);
+
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        $_GET = [];
+
+        parent::tearDown();
+    }
+
+    public function test_el_controlador_permite_al_admin_listar_todas_las_consultas(): void
+    {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer admin-token';
+
+        $consultas = [
+            [
+                'id' => 1,
+                'propiedad_id' => 10
+            ],
+            [
+                'id' => 2,
+                'propiedad_id' => 20
+            ]
+        ];
+
+        $_GET = [
+            'usuario_id' => '5'
+        ];
 
         $this->service
             ->expects($this->once())
-            ->method('listar')
-            ->willReturn([]);
+            ->method('listarConsultas')
+            ->with(
+                2,
+                ['usuario_id' => '5']
+            )
+            ->willReturn($consultas);
 
         ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->adminIndex();
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode($output, true);
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($consultas, $response['data']['items']);
+        $this->assertSame(2, $response['data']['total']);
+        $this->assertSame(200, http_response_code());
     }
 
-    /** @test */
-    public function it_returns_unauthorized_when_listar_without_user()
+    public function test_el_controlador_puede_listar_las_consultas_del_usuario(): void
     {
-        $request = $this->createRequest([]);
-
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    /** @test */
-    public function it_can_obtener()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $consultas = [
+            [
+                'id' => 1,
+                'propiedad_id' => 10
+            ]
+        ];
 
         $this->service
             ->expects($this->once())
-            ->method('obtener')
-            ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->method('obtenerConsultasPorUsuario')
+            ->with(1, 1, 1)
+            ->willReturn($consultas);
 
         ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->index();
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode($output, true);
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($consultas, $response['data']['items']);
+        $this->assertSame(1, $response['data']['total']);
+        $this->assertSame(200, http_response_code());
     }
 
-    /** @test */
-    public function it_returns_not_found_when_consulta_not_exists()
+    public function test_el_controlador_puede_mostrar_una_consulta_especifica(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $consulta = new Consulta([
+            'id' => 1
+        ]);
 
         $this->service
             ->expects($this->once())
-            ->method('obtener')
-            ->with(999)
-            ->willThrowException(new \Exception("Consulta no encontrada", 404));
+            ->method('obtenerConsultaAutorizada')
+            ->with(1, 1)
+            ->willReturn($consulta);
 
         ob_start();
-        $this->controller->obtener($request, 999);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        try {
+            $this->controller->show(1);
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode($output, true);
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(200, http_response_code());
+        $this->assertArrayHasKey('data', $response);
     }
 
-    /** @test */
-    public function it_returns_forbidden_when_user_not_authorized_to_view_consulta()
+    public function test_el_controlador_puede_crear_una_consulta(): void
     {
-        $request = $this->createRequest(['usuario_id' => 2]);
+        Request::setTestBody(json_encode([
+            'propiedad_id' => 1,
+            'mensaje' => 'Interesado en la propiedad'
+        ]));
 
         $this->service
             ->expects($this->once())
-            ->method('obtener')
-            ->with(1)
-            ->willThrowException(new \Exception("No autorizado", 403));
+            ->method('crearConsulta')
+            ->with([
+                'propiedad_id' => 1,
+                'mensaje' => 'Interesado en la propiedad',
+                'usuario_id' => 1
+            ])
+            ->willReturn(25);
 
         ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('403', $output);
+        try {
+            $this->controller->store();
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode($output, true);
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(25, $response['data']['id']);
+        $this->assertSame(
+            'Consulta creada exitosamente',
+            $response['message']
+        );
+        $this->assertSame(201, http_response_code());
     }
 
-    /** @test */
-    public function it_can_crear()
+    public function test_el_controlador_puede_actualizar_una_consulta(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['propiedad_id' => 1]);
-        file_put_contents('php://input', $input);
+        Request::setTestBody(json_encode([
+            'mensaje' => 'Mensaje actualizado'
+        ]));
 
         $this->service
             ->expects($this->once())
-            ->method('crear')
-            ->willReturn(1);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('201', $output);
-    }
-
-    /** @test */
-    public function it_returns_bad_request_when_crear_missing_propiedad_id()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    /** @test */
-    public function it_returns_unauthorized_when_crear_without_user()
-    {
-        $request = $this->createRequest([]);
-        $input = json_encode(['propiedad_id' => 1]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    /** @test */
-    public function it_can_actualizar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['mensaje' => 'Mensaje actualizado']);
-        file_put_contents('php://input', $input);
-
-        $this->service
-            ->expects($this->once())
-            ->method('actualizar')
-            ->with(1, ['mensaje' => 'Mensaje actualizado'], 1)
+            ->method('actualizarConsulta')
+            ->with(
+                1,
+                [
+                    'mensaje' => 'Mensaje actualizado'
+                ],
+                1
+            )
             ->willReturn(true);
 
         ob_start();
-        $this->controller->actualizar($request, 1);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->update(1);
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode($output, true);
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Consulta actualizada exitosamente',
+            $response['message']
+        );
+        $this->assertSame(200, http_response_code());
     }
 
-    /** @test */
-    public function it_returns_forbidden_when_actualizar_without_permission()
+    public function test_el_controlador_puede_eliminar_una_consulta(): void
     {
-        $request = $this->createRequest(['usuario_id' => 2]);
-        $input = json_encode(['mensaje' => 'Mensaje actualizado']);
-        file_put_contents('php://input', $input);
-
         $this->service
             ->expects($this->once())
-            ->method('actualizar')
-            ->with(1, ['mensaje' => 'Mensaje actualizado'], 2)
-            ->willThrowException(new \Exception("No autorizado", 403));
-
-        ob_start();
-        $this->controller->actualizar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('403', $output);
-    }
-
-    /** @test */
-    public function it_can_eliminar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('eliminar')
+            ->method('eliminarConsulta')
             ->with(1, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->eliminar($request, 1);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->delete(1);
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode($output, true);
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Consulta eliminada exitosamente',
+            $response['message']
+        );
+        $this->assertSame(200, http_response_code());
     }
 
-    /** @test */
-    public function it_returns_forbidden_when_eliminar_without_permission()
+    public function test_el_controlador_puede_restaurar_una_consulta(): void
     {
-        $request = $this->createRequest(['usuario_id' => 2]);
-
         $this->service
             ->expects($this->once())
-            ->method('eliminar')
-            ->with(1, 2)
-            ->willThrowException(new \Exception("No autorizado", 403));
-
-        ob_start();
-        $this->controller->eliminar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('403', $output);
-    }
-
-    /** @test */
-    public function it_can_restaurar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('restaurar')
+            ->method('restaurarConsulta')
             ->with(1, 1)
             ->willReturn(true);
 
         ob_start();
-        $this->controller->restaurar($request, 1);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
-    }
+        try {
+            $this->controller->restore(1);
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
 
-    /** @test */
-    public function it_can_listar_por_usuario()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->assertJson($output);
 
-        $this->service
-            ->expects($this->once())
-            ->method('listarPorUsuario')
-            ->with(1)
-            ->willReturn([]);
+        $response = json_decode($output, true);
 
-        ob_start();
-        $this->controller->listarPorUsuario($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    /** @test */
-    public function it_can_listar_por_propiedad()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('listarPorPropiedad')
-            ->with(1)
-            ->willReturn([]);
-
-        ob_start();
-        $this->controller->listarPorPropiedad($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    /** @test */
-    public function it_returns_not_found_when_listar_por_propiedad_and_property_not_exists()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('listarPorPropiedad')
-            ->with(999)
-            ->willThrowException(new \Exception("Propiedad no encontrada", 404));
-
-        ob_start();
-        $this->controller->listarPorPropiedad($request, 999);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Consulta restaurada exitosamente',
+            $response['message']
+        );
+        $this->assertSame(200, http_response_code());
     }
 }

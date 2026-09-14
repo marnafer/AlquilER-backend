@@ -45,7 +45,7 @@ class UsuarioController
     /**
      * GET /api/usuarios/me
      */
-    public function profile(): void
+    public function profile($request = null): void
     {
         $user = AutenticadorMiddleware::verificar();
 
@@ -103,5 +103,33 @@ class UsuarioController
             200,
             'Usuario restaurado correctamente'
         );
+    }
+
+    /**
+     * Métodos alias en español para compatibilidad con tests
+     */
+    public function listar($request): void
+    {
+        $this->index();
+    }
+
+    public function obtener($request, $id): void
+    {
+        $this->show($id);
+    }
+
+    public function actualizar($request, $id): void
+    {
+        $this->update($id);
+    }
+
+    public function eliminar($request, $id): void
+    {
+        $this->delete($id);
+    }
+
+    public function restaurar($request, $id): void
+    {
+        $this->restore($id);
     }
 }

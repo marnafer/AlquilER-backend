@@ -5,6 +5,14 @@ namespace App\Helpers;
 
 class Response
 {
+	// Variable para indicar si estamos en modo de prueba
+	private static bool $testing = false;
+
+	public static function setTesting(bool $testing): void
+	{
+		self::$testing = $testing;
+	}
+
 	public static function json($data, int $status = 200): void
 	{
 		if (headers_sent() === false) {
@@ -28,6 +36,12 @@ class Response
 				'success' => false,
 				'error' => 'Error al generar JSON'
 			]);
+		}
+
+// En entorno de testing, no matamos el proceso: lanzamos una
+		// excepción que los tests capturan para poder seguir ejecutando.
+		if (defined('APP_ENV') && APP_ENV === 'testing') {
+			throw new \RuntimeException('__RESPONSE_SENT__');
 		}
 
 		exit;
@@ -66,6 +80,11 @@ class Response
 	public static function noContent(): void
 	{
 		http_response_code(204);
+
+		if (defined('APP_ENV') && APP_ENV === 'testing') {
+			throw new \RuntimeException('__RESPONSE_SENT__');
+		}
+
 		exit;
 	}
 

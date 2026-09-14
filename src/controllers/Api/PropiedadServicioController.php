@@ -242,4 +242,37 @@ class PropiedadServicioController
             }
         }
     }
+
+    /**
+     * Métodos alias en español para compatibilidad con tests
+     */
+    public function listar($request, $propiedadId)
+    {
+        return $this->index($request, $propiedadId);
+    }
+
+    public function listarPropiedadesPorServicio($request, $servicioId)
+    {
+        return $this->getPropiedadesByServicio($request, $servicioId);
+    }
+
+    public function crear($request, $propiedadId)
+    {
+        return $this->store($request, $propiedadId);
+    }
+
+    public function crearMultiples($request, $propiedadId)
+    {
+        return $this->storeMultiple($request, $propiedadId);
+    }
+
+    public function sincronizar($request, $propiedadId)
+    {
+        return $this->update($request, $propiedadId);
+    }
+
+    public function eliminar($request, $propiedadId, $servicioId)
+    {
+        return $this->delete($request, $propiedadId, $servicioId);
+    }
 }

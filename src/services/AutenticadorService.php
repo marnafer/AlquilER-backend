@@ -8,6 +8,7 @@ use App\Exceptions\UnauthorizedException;
 use App\Exceptions\ValidationException;
 use App\Helpers\TokenProviderInterface;
 use App\Repositories\UsuarioRepositoryInterface;
+use App\Repositories\RefreshTokenRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
 use App\Models\Usuario;
@@ -16,6 +17,7 @@ class AutenticadorService
 {
     public function __construct(
         private readonly UsuarioRepositoryInterface $usuarioRepository,
+        private readonly RefreshTokenRepositoryInterface $refreshTokenRepository,
         private readonly TokenProviderInterface $tokenProvider,
         private readonly LogActividadService $logActividadService
     ) {
@@ -35,7 +37,6 @@ class AutenticadorService
         }
 
         $email = UsuarioSanitizer::sanitizarSoloEmail($email);
-
         $validacion = UsuarioValidator::validarEmailLoginUsuario($email);
 
         if (!$validacion['success']) {
@@ -51,13 +52,23 @@ class AutenticadorService
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
-        $this->logActividadService->registrar(
-            $usuario->id,
-            'Inicio de sesión'
-        );
+        // Solo 1 refresh token activo por usuario
+        $this->refreshTokenRepository->deleteByUsuarioId($usuario->id);
+
+        $accessToken = $this->tokenProvider->generateAccessToken($usuario);
+        $refreshToken = $this->tokenProvider->generateRefreshToken();
+
+        $this->refreshTokenRepository->create([
+            'usuario_id' => $usuario->id,
+            'token' => $refreshToken,
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+15 days'))
+        ]);
+
+        $this->logActividadService->registrar($usuario->id, 'Inicio de sesión');
 
         return [
-            'token' => $this->tokenProvider->generate($usuario),
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
             'rol_id' => $usuario->rol_id,
         ];
     }
@@ -66,7 +77,6 @@ class AutenticadorService
     {
         $data = UsuarioSanitizer::sanitizarUsuario($rawData);
 
-        // El rol público no lo decide el cliente.
         unset($data['rol_id'], $data['id'], $data['deleted_at']);
 
         $validacion = UsuarioValidator::validarRegistro($data);
@@ -88,7 +98,9 @@ class AutenticadorService
             PASSWORD_DEFAULT
         );
 
-        $usuario = $this->usuarioRepository->createWithRole($data, 1);
+        $rolId = $this->resolverRolId($rawData);
+
+        $usuario = $this->usuarioRepository->createWithRole($data, $rolId);
 
         $this->logActividadService->registrar(
             $usuario->id,
@@ -96,5 +108,87 @@ class AutenticadorService
         );
 
         return $usuario;
+    }
+
+    private const ROL_INQUILINO = 1;
+    private const ROL_PROPIETARIO = 4;
+
+    private function resolverRolId(array $rawData): int
+    {
+        $rol = $rawData['rol'] ?? null;
+
+        if (is_string($rol)) {
+            $rol = strtolower(trim($rol));
+
+            if ($rol === 'propietario') {
+                return self::ROL_PROPIETARIO;
+            }
+
+            if ($rol === 'inquilino') {
+                return self::ROL_INQUILINO;
+            }
+        }
+
+        $rolId = $rawData['rol_id'] ?? null;
+
+        if (is_numeric($rolId)) {
+            $rolId = (int) $rolId;
+
+            if ($rolId === self::ROL_PROPIETARIO) {
+                return self::ROL_PROPIETARIO;
+            }
+        }
+
+        return self::ROL_INQUILINO;
+    }
+
+    public function refresh(array $rawData): array
+    {
+        $tokenRecibido = $rawData['refresh_token'] ?? null;
+
+        if (!$tokenRecibido) {
+            throw new ValidationException([
+                'refresh_token' => ['El refresh token es obligatorio']
+            ]);
+        }
+
+        $userToken = $this->refreshTokenRepository->findValidByToken($tokenRecibido);
+
+        if (!$userToken) {
+            throw new UnauthorizedException('Refresh token inválido o expirado');
+        }
+
+        $usuario = $userToken->usuario;
+
+        if (!$usuario) {
+            throw new UnauthorizedException('Usuario no encontrado');
+        }
+
+        // Rotación del token: eliminar el usado y crear uno nuevo
+        $this->refreshTokenRepository->deleteById($userToken->id);
+
+        $nuevoAccessToken = $this->tokenProvider->generateAccessToken($usuario);
+        $nuevoRefreshToken = $this->tokenProvider->generateRefreshToken();
+
+        $this->refreshTokenRepository->create([
+            'usuario_id' => $usuario->id,
+            'token' => $nuevoRefreshToken,
+            'expires_at' => date('Y-m-d H:i:s', strtotime('+15 days'))
+        ]);
+
+        return [
+            'access_token' => $nuevoAccessToken,
+            'refresh_token' => $nuevoRefreshToken,
+            'rol_id' => $usuario->rol_id,
+        ];
+    }
+
+    public function logout(array $rawData): void
+    {
+        $token = $rawData['refresh_token'] ?? null;
+
+        if ($token) {
+            $this->refreshTokenRepository->deleteByToken($token);
+        }
     }
 }

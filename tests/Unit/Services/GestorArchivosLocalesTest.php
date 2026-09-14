@@ -32,7 +32,6 @@ class GestorArchivosLocalesTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
     public function test_it_throws_exception_when_directory_creation_fails()
     {
         $this->expectException(BadRequestException::class);
@@ -55,7 +54,7 @@ class GestorArchivosLocalesTest extends TestCase
         }
     }
 
-    /** @test */
+    
     public function test_it_throws_exception_when_move_uploaded_file_fails()
     {
         $this->expectException(BadRequestException::class);

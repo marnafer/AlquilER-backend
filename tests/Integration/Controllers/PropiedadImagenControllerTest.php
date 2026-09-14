@@ -18,7 +18,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->controller = new PropiedadImagenController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $this->service
@@ -33,7 +33,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear()
     {
         // Simular upload de archivo
@@ -59,7 +59,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_propiedad_id()
     {
         $_FILES['imagen'] = [
@@ -80,7 +80,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_file()
     {
         // No enviar archivo
@@ -95,7 +95,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_obtener()
     {
         $this->service
@@ -111,7 +111,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_imagen_not_exists()
     {
         $this->service
@@ -128,7 +128,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_set_principal()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -146,7 +146,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_set_principal_without_user()
     {
         $request = $this->createRequest([]);
@@ -159,7 +159,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -177,7 +177,7 @@ class PropiedadImagenControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);

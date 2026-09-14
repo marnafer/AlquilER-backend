@@ -256,4 +256,52 @@ class ReservaService
         
         return $this->reservaRepository->isAvailable($propiedadId, $fechaInicio, $fechaFin);
     }
+
+    /**
+     * Métodos alias en español para compatibilidad con tests
+     */
+    public function listar(array $filtros = []): array
+    {
+        return $this->listarReservas($filtros);
+    }
+
+    public function obtener(int $id)
+    {
+        return $this->obtenerReserva($id);
+    }
+
+    public function crear(array $data): int
+    {
+        return $this->crearReserva($data);
+    }
+
+    public function actualizar(int $id, array $data): bool
+    {
+        return $this->actualizarReserva($id, $data);
+    }
+
+    public function eliminar(int $id, int $usuarioId): bool
+    {
+        return $this->eliminarReserva($id, $usuarioId);
+    }
+
+    public function restaurar(int $id, int $usuarioId): bool
+    {
+        return $this->restaurarReserva($id, $usuarioId);
+    }
+
+    public function listarPorUsuario(int $usuarioId): array
+    {
+        return $this->obtenerReservasPorUsuario($usuarioId);
+    }
+
+    public function listarPorPropiedad(int $propiedadId): array
+    {
+        return $this->obtenerReservasPorPropiedad($propiedadId);
+    }
+
+    public function cambiarEstado(int $id, string $estado, int $usuarioId): bool
+    {
+        return $this->cambiarEstadoReserva($id, $estado, $usuarioId);
+    }
 }

@@ -18,7 +18,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->controller = new PropiedadServicioController($this->service);
     }
 
-    /** @test */
+    
     public function it_can_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -36,7 +36,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_listar_without_user()
     {
         $request = $this->createRequest([]);
@@ -49,7 +49,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_property_not_exists_in_listar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -68,7 +68,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_listar_propiedades_por_servicio()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -86,7 +86,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_servicio_not_exists()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -105,7 +105,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -125,7 +125,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('201', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_missing_servicio_id()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -140,7 +140,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_crear_without_user()
     {
         $request = $this->createRequest([]);
@@ -155,7 +155,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_returns_conflict_when_servicio_already_assigned()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -176,7 +176,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('409', $output);
     }
 
-    /** @test */
+    
     public function it_can_crear_multiples()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -196,7 +196,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_multiples_missing_servicio_ids()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -211,7 +211,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_crear_multiples_servicio_ids_not_array()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -226,7 +226,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_can_sincronizar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -250,7 +250,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_bad_request_when_sincronizar_missing_servicio_ids()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -265,7 +265,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('400', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_sincronizar_without_user()
     {
         $request = $this->createRequest([]);
@@ -280,7 +280,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('401', $output);
     }
 
-    /** @test */
+    
     public function it_can_eliminar()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -298,7 +298,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('"success":true', $output);
     }
 
-    /** @test */
+    
     public function it_returns_not_found_when_eliminar_servicio_not_assigned()
     {
         $request = $this->createRequest(['usuario_id' => 1]);
@@ -317,7 +317,7 @@ class PropiedadServicioControllerTest extends TestCase
         $this->assertStringContainsString('404', $output);
     }
 
-    /** @test */
+    
     public function it_returns_unauthorized_when_eliminar_without_user()
     {
         $request = $this->createRequest([]);

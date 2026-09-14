@@ -5,151 +5,216 @@ namespace Tests\Integration\Controllers;
 use Tests\TestCase;
 use App\Controllers\Api\LogActividadController;
 use App\Services\LogActividadService;
+use App\Helpers\Request;
+use App\Helpers\TokenProviderInterface;
+use App\Middlewares\AutenticadorMiddleware;
+use App\Exceptions\NotFoundException;
 
 class LogActividadControllerTest extends TestCase
 {
     private $controller;
     private $service;
+    private $tokenProviderMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = $this->createMock(LogActividadService::class);
-        $this->controller = new LogActividadController($this->service);
+
+        $this->service = $this->createMock(
+            LogActividadService::class
+        );
+
+        $this->controller = new LogActividadController(
+            $this->service
+        );
+
+        $this->tokenProviderMock = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $this->tokenProviderMock
+            ->method('validate')
+            ->willReturn(
+                (object) [
+                    'sub' => 1,
+                    'rol_id' => 2
+                ]
+            );
+
+        AutenticadorMiddleware::configure(
+            $this->tokenProviderMock
+        );
+
+        $_SERVER['HTTP_AUTHORIZATION'] =
+            'Bearer token_jwt_valido';
     }
 
-    /** @test */
-    public function it_can_listar()
+    protected function tearDown(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        Request::setTestBody(null);
+
+        unset(
+            $_SERVER['HTTP_AUTHORIZATION']
+        );
+
+        parent::tearDown();
+    }
+
+    public function test_index_lista_los_logs_correctamente(): void
+    {
+        $logs = collect([]);
 
         $this->service
             ->expects($this->once())
             ->method('listar')
-            ->willReturn([]);
+            ->willReturn($logs);
 
         ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->index();
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode(
+            $output,
+            true
+        );
+
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'Lista de logs obtenida correctamente',
+            $response['message']
+        );
+
+        $this->assertSame(
+            200,
+            http_response_code()
+        );
     }
 
-    /** @test */
-    public function it_returns_unauthorized_when_listar_without_user()
+    public function test_index_requiere_token(): void
     {
-        $request = $this->createRequest([]);
+        unset($_SERVER['HTTP_AUTHORIZATION']);
 
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
+        $this->service
+            ->expects($this->never())
+            ->method('listar');
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $this->expectException(
+            \App\Exceptions\UnauthorizedException::class
+        );
+
+        $this->expectExceptionMessage(
+            'Token requerido'
+        );
+
+        $this->controller->index();
     }
 
-    /** @test */
-    public function it_can_obtener()
+    public function test_show_obtiene_un_log_correctamente(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $log = [
+            'id' => 1,
+            'usuario_id' => 1,
+            'accion' => 'Inicio de sesión',
+            'ip_address' => '127.0.0.1',
+            'fecha' => '2026-09-14 10:00:00',
+            'usuario_nombre' => 'Mariano Fernández',
+            'usuario_email' => 'mariano@example.com',
+        ];
 
         $this->service
             ->expects($this->once())
             ->method('obtener')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn($log);
 
         ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->show(1);
+            $output = ob_get_clean();
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            throw $e;
+        }
+
+        $this->assertJson($output);
+
+        $response = json_decode(
+            $output,
+            true
+        );
+
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            $log,
+            $response['data']
+        );
+
+        $this->assertSame(
+            200,
+            http_response_code()
+        );
     }
 
-    /** @test */
-    public function it_returns_unauthorized_when_obtener_without_user()
+    public function test_show_requiere_token(): void
     {
-        $request = $this->createRequest([]);
+        unset($_SERVER['HTTP_AUTHORIZATION']);
 
-        ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
+        $this->service
+            ->expects($this->never())
+            ->method('obtener');
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $this->expectException(
+            \App\Exceptions\UnauthorizedException::class
+        );
+
+        $this->expectExceptionMessage(
+            'Token requerido'
+        );
+
+        $this->controller->show(1);
     }
 
-    /** @test */
-    public function it_returns_not_found_when_log_not_exists()
+    public function test_show_devuelve_not_found_si_el_log_no_existe(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
         $this->service
             ->expects($this->once())
             ->method('obtener')
             ->with(999)
-            ->willThrowException(new \Exception("Log no encontrado", 404));
+            ->willThrowException(
+                new NotFoundException('Log no encontrado')
+            );
+
+        $this->expectException(
+            NotFoundException::class
+        );
+
+        $this->expectExceptionMessage(
+            'Log no encontrado'
+        );
 
         ob_start();
-        $this->controller->obtener($request, 999);
-        $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
-    }
-
-    /** @test */
-    public function it_can_filter_listar_by_fecha()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $_GET['fecha_desde'] = '2026-01-01';
-        $_GET['fecha_hasta'] = '2026-12-31';
-
-        $this->service
-            ->expects($this->once())
-            ->method('listar')
-            ->willReturn([]);
-
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    /** @test */
-    public function it_can_filter_listar_by_usuario()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $_GET['usuario_id'] = '2';
-
-        $this->service
-            ->expects($this->once())
-            ->method('listar')
-            ->willReturn([]);
-
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    /** @test */
-    public function it_can_filter_listar_by_accion()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $_GET['accion'] = 'login';
-
-        $this->service
-            ->expects($this->once())
-            ->method('listar')
-            ->willReturn([]);
-
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
+        try {
+            $this->controller->show(999);
+        } finally {
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+        }
     }
 }

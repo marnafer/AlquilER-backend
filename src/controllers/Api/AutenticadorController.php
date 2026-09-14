@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
+use App\Exceptions\UnauthorizedException;
+use App\Exceptions\ValidationException;
 use App\Helpers\Response;
 use App\Helpers\Request;
-use App\Middlewares\AutenticadorMiddleware;
 use App\Services\AutenticadorService;
 
 class AutenticadorController
@@ -39,14 +40,48 @@ class AutenticadorController
         );
     }
 
+    /**
+     * Alias para register() para compatibilidad con tests
+     */
+    public function registrar(): void
+    {
+        $this->register();
+    }
+
+    /**
+     * Refresca el access token usando un refresh token válido
+     * POST /api/autenticador/refresh
+     * Body: { "refresh_token": "..." }
+     */
+    public function refresh(): void
+    {
+        $data = Request::json();
+
+        try {
+            $result = $this->service->refresh($data);
+
+            Response::success($result, 200, 'Token refrescado correctamente');
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        } catch (ValidationException $e) {
+            Response::json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'validation_errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
     public function logout(): void
     {
-        AutenticadorMiddleware::verificar();
+        $data = Request::json();
+
+        $this->service->logout($data);
 
         Response::success(
             [],
             200,
-            'Logout (el cliente elimina el token)'
+            'Sesión cerrada correctamente'
         );
     }
 }

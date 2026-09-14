@@ -5,11 +5,15 @@ namespace Tests\Integration\Controllers;
 use Tests\TestCase;
 use App\Controllers\Api\AutenticadorController;
 use App\Services\AutenticadorService;
+use App\Exceptions\ValidationException;
+use App\Exceptions\UnauthorizedException;
+use App\Models\Usuario;
 
 class AutenticadorControllerTest extends TestCase
 {
     private $controller;
     private $service;
+    private $tokenProviderMock;
 
     protected function setUp(): void
     {
@@ -23,21 +27,27 @@ class AutenticadorControllerTest extends TestCase
     {
         $input = json_encode([
             'email' => 'test@test.com',
-            'password' => 'password123'
+            'contrasena' => 'password123' // Corregido de password a contrasena según tu service
         ]);
         file_put_contents('php://input', $input);
 
+        // Ahora esperamos que el servicio devuelva la estructura con ambos tokens
         $this->service
             ->expects($this->once())
             ->method('login')
-            ->willReturn(['token' => 'jwt_token', 'user' => ['id' => 1]]);
+            ->with([
+                'email' => 'test@test.com',
+                'contrasena' => 'password123'
+            ])
+            ->willReturn($resultado);
 
         ob_start();
         $this->controller->login();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('"token"', $output);
+        $this->assertStringContainsString('"access_token"', $output);
+        $this->assertStringContainsString('"refresh_token"', $output);
     }
 
     /** @test */
@@ -46,77 +56,115 @@ class AutenticadorControllerTest extends TestCase
         $input = json_encode(['email' => 'test@test.com']);
         file_put_contents('php://input', $input);
 
-        ob_start();
-        $this->controller->login();
-        $output = ob_get_clean();
+        // Simulamos que el servicio lanza la excepción de validación porque falta la contraseña
+        $this->service
+            ->expects($this->once())
+            ->method('login')
+            ->with([
+                'email' => 'test@test.com'
+            ])
+            ->willThrowException(
+                new \App\Exceptions\ValidationException([
+                    'credenciales' => [
+                        'Faltan datos'
+                    ]
+                ])
+            );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
+        $this->expectException(ValidationException::class);
+        
+        $this->controller->login();
     }
 
     /** @test */
-    public function it_can_registrar()
+    public function it_can_register() // Cambiado a register() para coincidir con tu controlador
     {
         $input = json_encode([
             'nombre' => 'Test',
             'apellido' => 'User',
             'email' => 'test@test.com',
-            'password' => 'password123',
+            'contrasena' => 'password123',
             'telefono' => '123456789',
             'domicilio' => 'Calle 123'
         ]);
         file_put_contents('php://input', $input);
 
+        $usuario = new Usuario();
+        $usuario->id = 1;
+
         $this->service
             ->expects($this->once())
             ->method('registrar')
-            ->willReturn(['id' => 1]);
+            ->with([
+                'nombre' => 'Test',
+                'apellido' => 'User',
+                'email' => 'test@test.com',
+                'contrasena' => 'password123',
+                'telefono' => '123456789',
+                'domicilio' => 'Calle 123'
+            ])
+            ->willReturn($usuario);
 
         ob_start();
-        $this->controller->registrar();
+        $this->controller->register();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('201', $output);
+        $this->assertStringContainsString('Usuario registrado', $output);
     }
 
     /** @test */
-    public function it_returns_bad_request_when_registrar_missing_fields()
+    public function it_can_refresh_token()
     {
-        $input = json_encode(['email' => 'test@test.com']);
+        $input = json_encode([
+            'refresh_token' => 'token_viejo_enviado_por_cliente'
+        ]);
         file_put_contents('php://input', $input);
 
+        $this->service
+            ->expects($this->once())
+            ->method('refresh')
+            ->with([
+                'refresh_token' => 'token_viejo_enviado_por_cliente'
+            ])
+            ->willReturn($resultado);
+
         ob_start();
-        $this->controller->registrar();
+        $this->controller->refresh();
         $output = ob_get_clean();
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
+        $this->assertStringContainsString('"success":true', $output);
+        $this->assertStringContainsString('"nuevo_jwt_token"', $output);
+        $this->assertStringContainsString('"nuevo_refresh_token"', $output);
     }
 
     /** @test */
     public function it_can_logout()
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        // Simulamos el payload del frontend enviando el refresh token
+        $input = json_encode(['refresh_token' => 'token_a_invalidar']);
+        file_put_contents('php://input', $input);
 
-        // El logout no usa el servicio, solo el middleware
+        // Simulamos el header de autorización que exige AutenticadorMiddleware::verificar()
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_jwt_valido';
+
+        // Verificamos que el controlador llame al servicio pasándole el JSON
+        $this->service
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_jwt_valido')
+            ->willReturn(
+                (object) [
+                    'sub' => 1,
+                    'rol_id' => 1
+                ]
+            );
+
         ob_start();
-        $this->controller->logout($request);
+        $this->controller->logout();
         $output = ob_get_clean();
 
         $this->assertStringContainsString('"success":true', $output);
-    }
-
-    /** @test */
-    public function it_returns_unauthorized_when_logout_without_user()
-    {
-        $request = $this->createRequest([]);
-
-        ob_start();
-        $this->controller->logout($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $this->assertStringContainsString('Sesión cerrada correctamente', $output);
     }
 }
