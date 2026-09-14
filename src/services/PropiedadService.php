@@ -35,6 +35,16 @@ class PropiedadService
         ];
     }
 
+    public function misPropiedades(int $usuarioId): array
+    {
+        $propiedades = $this->repository->porUsuario($usuarioId);
+
+        return [
+            'items' => $propiedades,
+            'total' => $propiedades->count(),
+        ];
+    }
+
     public function obtener($rawId): Propiedad
     {
         $id = PropiedadSanitizer::sanitizarIdPropiedad($rawId);

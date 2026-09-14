@@ -47,6 +47,25 @@ class PropiedadController
     }
 
     /**
+     * GET /api/propiedades/mis-propiedades
+     * Devuelve solo las propiedades del usuario autenticado.
+     */
+    public function misPropiedades(): void
+    {
+        try {
+            $user = AutenticadorMiddleware::verificar();
+
+            Response::success(
+                $this->service->misPropiedades((int) $user->sub)
+            );
+        } catch (UnauthorizedException $e) {
+            Response::unauthorized($e->getMessage());
+        } catch (\Exception $e) {
+            Response::serverError('Error al listar tus propiedades');
+        }
+    }
+
+    /**
      * GET /api/propiedades/{id}
      */
     public function show($id): void

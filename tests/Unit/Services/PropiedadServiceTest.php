@@ -38,6 +38,23 @@ final class PropiedadServiceTest extends TestCase
         $this->assertSame(2, $resultado['total']);
     }
 
+    public function test_mis_propiedades_devuelve_solo_las_del_usuario(): void
+    {
+        $propiedades = new Collection([
+            new Propiedad(['titulo' => 'Casa del usuario 7']),
+        ]);
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->once())
+            ->method('porUsuario')
+            ->with(7)
+            ->willReturn($propiedades);
+
+        $resultado = $this->crearServicio($repository)->misPropiedades(7);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
     public function test_obtener_devuelve_una_propiedad_existente(): void
     {
         $propiedad = $this->propiedad();

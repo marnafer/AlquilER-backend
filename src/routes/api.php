@@ -264,6 +264,8 @@ $router->get('/api/logs-actividad/{id}', [$logActividadController, 'show']);
 
 $router->get('/api/propiedades', [$propiedadController, 'index']);
 
+$router->get('/api/propiedades/mis-propiedades', [$propiedadController, 'misPropiedades']);
+
 $router->post('/api/propiedades', [$propiedadController, 'store']);
 
 $router->get('/api/propiedades/{id}', [$propiedadController, 'show']);

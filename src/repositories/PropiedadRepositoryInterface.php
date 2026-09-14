@@ -9,6 +9,8 @@ interface PropiedadRepositoryInterface
 {
     public function all(): Collection;
 
+    public function porUsuario(int $usuarioId): Collection;
+
     public function findById(int $id): ?Propiedad;
 
     public function findDeletedById(int $id): ?Propiedad;

@@ -15,6 +15,15 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ->get();
     }
 
+    public function porUsuario(int $usuarioId): Collection
+    {
+        return Propiedad::query()
+            ->with(['imagenes', 'imagenPrincipal'])
+            ->where('usuario_id', $usuarioId)
+            ->orderBy('id', 'asc')
+            ->get();
+    }
+
     public function findById(int $id): ?Propiedad
     {
         return Propiedad::query()
