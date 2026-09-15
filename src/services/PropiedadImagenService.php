@@ -15,6 +15,7 @@ use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\PropiedadImagenValidator;
 use App\Validators\CargaImagenValidatorInterface;
 use App\Services\PropiedadService;
+use App\Policies\PropiedadImagenPolicy;
 
 class PropiedadImagenService
 {
@@ -24,19 +25,9 @@ class PropiedadImagenService
         private readonly PropiedadService $propiedadService,
         private readonly LogActividadService $logActividadService,
         private readonly GestorArchivosInterface $gestorArchivos,
-        private readonly CargaImagenValidatorInterface $cargaImagenValidator
+        private readonly CargaImagenValidatorInterface $cargaImagenValidator,
+        private readonly PropiedadImagenPolicy $policy
     ) {
-    }
-
-    private function verificarPermiso(Propiedad $propiedad, object $user): void {
-        if (
-            (int) $user->rol_id !== 2 &&
-            (int) $propiedad->usuario_id !== (int) $user->sub
-        ) {
-            throw new ForbiddenException(
-                'No tiene permisos sobre esta propiedad'
-            );
-        }
     }
 
     public function listar($rawId = null): array
@@ -111,7 +102,7 @@ class PropiedadImagenService
 
         $propiedad = $this->propiedadService->obtener($propiedadId);
 
-        $this->verificarPermiso($propiedad, $user);
+        $this->policy->gestionarPropiedad($propiedad, $user);
 
         $uploadDir = dirname(__DIR__, 2) . '/public/uploads/propiedades';
 
@@ -139,7 +130,7 @@ class PropiedadImagenService
     {
         $imagen = $this->obtener($rawId);
 
-        $this->verificarPermiso($imagen->propiedad, $user);
+        $this->policy->gestionar($imagen, $user);
 
         $this->repository->clearPrincipalByPropiedadId((int) $imagen->propiedad_id);
         $this->repository->setPrincipal($imagen);
@@ -151,7 +142,7 @@ class PropiedadImagenService
     {
         $imagen = $this->obtener($rawId);
 
-        $this->verificarPermiso($imagen->propiedad, $user);
+        $this->policy->gestionar($imagen, $user);
 
         $rutaFisica = dirname(__DIR__, 2) . '/public' . $imagen->ruta;
 

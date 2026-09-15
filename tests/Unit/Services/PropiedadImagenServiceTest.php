@@ -15,8 +15,10 @@ use App\Services\PropiedadImagenService;
 use App\Services\PropiedadService;
 use App\Services\GestorArchivosInterface; 
 use App\Validators\CargaImagenValidatorInterface;
+use App\Policies\PropiedadImagenPolicy;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
+
 
 final class PropiedadImagenServiceTest extends TestCase
 {
@@ -32,6 +34,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $repository
             ->expects($this->once())
@@ -43,7 +46,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         ))->listar();
 
         $this->assertSame($imagenes, $resultado['items']);
@@ -60,6 +64,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $repository
             ->expects($this->once())
@@ -72,7 +77,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         ))->listar(1);
 
         $this->assertSame([$imagen], $resultado['items']);
@@ -86,6 +92,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $repository
             ->expects($this->never())
@@ -96,7 +103,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         );
 
         $this->expectException(ValidationException::class);
@@ -114,6 +122,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $repository
             ->expects($this->once())
@@ -126,7 +135,9 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
+
         ))->obtener(1);
 
         $this->assertSame($imagen, $resultado);
@@ -139,6 +150,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $repository
             ->expects($this->once())
@@ -151,7 +163,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         );
 
         $this->expectException(NotFoundException::class);
@@ -167,6 +180,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $propiedadService
             ->expects($this->never())
@@ -184,7 +198,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         );
 
         $this->expectException(ValidationException::class);
@@ -196,17 +211,81 @@ final class PropiedadImagenServiceTest extends TestCase
         );
     }
 
+    public function test_crear_sin_permiso(): void 
+    { 
+        $repository = $this->createMock( PropiedadImagenRepositoryInterface::class ); 
+        $propiedadService = $this->createMock( PropiedadService::class ); 
+        $logActividadService = $this->createMock( LogActividadService::class ); 
+        $gestorArchivos = $this->createMock( GestorArchivosInterface::class ); 
+        $cargaImagenValidator = $this->createMock( CargaImagenValidatorInterface::class ); 
+        $policy = $this->createMock( PropiedadImagenPolicy::class ); 
+
+        $service = new PropiedadImagenService( 
+            $repository, 
+            $propiedadService, 
+            $logActividadService, 
+            $gestorArchivos, 
+            $cargaImagenValidator, 
+            $policy 
+        ); 
+        
+        $rawData = [ 'propiedad_id' => 1, 'descripcion' => 'Imagen de prueba', ]; 
+        $file = [ 'name' => 'imagen.jpg', 
+                'type' => 'image/jpeg', 
+                'tmp_name' => '/tmp/imagen.jpg', 
+                'error' => UPLOAD_ERR_OK, 
+                'size' => 1000, 
+        ]; 
+        $user = (object) [ 'sub' => 7, 'rol_id' => 1, ]; 
+        $propiedad = new Propiedad([ 'id' => 1, 'usuario_id' => 99, ]); 
+
+        $cargaImagenValidator 
+            ->expects($this->once()) 
+            ->method('validate')
+            ->with($file)   
+            ->willReturn(null); 
+        $propiedadService 
+            ->expects($this->once()) 
+            ->method('obtener') 
+            ->with(1) 
+            ->willReturn($propiedad);
+        $policy 
+            ->expects($this->once()) 
+            ->method('gestionarPropiedad') 
+            ->with($propiedad, $user) 
+            ->willThrowException( new ForbiddenException( 'No tiene permisos sobre esta propiedad' ) ); 
+        $gestorArchivos 
+            ->expects($this->never()) 
+            ->method('upload'); 
+        $repository 
+            ->expects($this->never()) 
+            ->method('countByPropiedadId'); 
+        $repository 
+            ->expects($this->never()) 
+            ->method('create'); 
+        $logActividadService 
+            ->expects($this->never()) 
+            ->method('registrar'); 
+
+        $this->expectException(ForbiddenException::class); 
+
+        $service->crear($rawData, $file, $user); 
+    }
+
     public function test_creacion_exitosa(): void
     {
         $propiedad = new Propiedad();
         $propiedad->id = 1;
         $propiedad->usuario_id = 7;
 
+        $user = (object) ['sub' => 7, 'rol_id' => 1];
+
         $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
         $propiedadService = $this->createMock(PropiedadService::class);
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $propiedadService
             ->expects($this->once())
@@ -220,7 +299,16 @@ final class PropiedadImagenServiceTest extends TestCase
         $gestorArchivos
             ->expects($this->once())
             ->method('upload')
-            ->willReturn('/uploads/imagen.jpg');
+            ->willReturn('imagen.jpg');
+        $policy
+            ->expects($this->once())
+            ->method('gestionarPropiedad')
+            ->with($propiedad, $user);
+        $repository
+            ->expects($this->once())
+            ->method('countByPropiedadId')
+            ->with(1)
+            ->willReturn(0);
         $repository
             ->expects($this->once())
             ->method('create')
@@ -231,11 +319,12 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         ))->crear(
             ['propiedad_id' => 1],
             ['tmp_name' => '/tmp/php123', 'size' => 1024],
-            (object) ['sub' => 7, 'rol_id' => 1]
+            $user
         );
 
         $this->assertInstanceOf(PropiedadImagen::class, $resultado);
@@ -245,6 +334,8 @@ final class PropiedadImagenServiceTest extends TestCase
     {
         $propiedad = new Propiedad();
         $propiedad->usuario_id = 7;
+
+        $user = (object) ['sub' => 7, 'rol_id' => 1];
 
         $imagen = $this->getMockBuilder(PropiedadImagen::class)
             ->onlyMethods(['refresh'])
@@ -262,7 +353,12 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
+        $policy
+            ->expects($this->once())
+            ->method('gestionar')
+            ->with($imagen, $user);
         $repository
             ->expects($this->once())
             ->method('findById')
@@ -284,7 +380,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         ))->establecerPrincipal(1, (object) ['sub' => 7, 'rol_id' => 1]);
 
         $this->assertSame($imagen, $resultado);
@@ -305,12 +402,19 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
         $repository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($imagen);
+        $policy
+            ->expects($this->once())
+            ->method('gestionar')
+            ->willThrowException(
+                new ForbiddenException('No tiene permisos sobre esta imagen')
+            );
         $repository
             ->expects($this->never())
             ->method('clearPrincipalByPropiedadId');
@@ -320,7 +424,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         );
 
         $this->expectException(ForbiddenException::class);
@@ -333,6 +438,8 @@ final class PropiedadImagenServiceTest extends TestCase
         $propiedad = new Propiedad();
         $propiedad->usuario_id = 7;
 
+        $user = (object) ['sub' => 7, 'rol_id' => 1];
+
         $imagen = new PropiedadImagen(['ruta' => '/uploads/no-existe.jpg']);
         $imagen->id = 1;
         $imagen->propiedad_id = 3;
@@ -343,7 +450,12 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
 
+        $policy
+            ->expects($this->once())
+            ->method('gestionar')
+            ->with($imagen, $user);
         $repository
             ->expects($this->once())
             ->method('findById')
@@ -364,7 +476,8 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         ))->eliminar(1, (object) ['sub' => 7, 'rol_id' => 1]);
 
         $this->addToAssertionCount(1);
@@ -384,11 +497,19 @@ final class PropiedadImagenServiceTest extends TestCase
         $logService = $this->createMock(LogActividadService::class);
         $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
         $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+
         $repository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($imagen);
+        $policy
+            ->expects($this->once())
+            ->method('gestionar')
+            ->willThrowException(
+                new ForbiddenException('No tiene permisos sobre esta imagen')
+            );
         $repository
             ->expects($this->never())
             ->method('delete');
@@ -401,53 +522,12 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
-            $cargaImagenValidator
+            $cargaImagenValidator,
+            $policy
         );
 
         $this->expectException(ForbiddenException::class);
 
         $service->eliminar(1, (object) ['sub' => 8, 'rol_id' => 1]);
-    }
-
-    public function test_eliminar_permite_al_administrador(): void
-    {
-        $propiedad = new Propiedad();
-        $propiedad->usuario_id = 7;
-
-        $imagen = new PropiedadImagen(['ruta' => '/uploads/no-existe.jpg']);
-        $imagen->id = 1;
-        $imagen->propiedad_id = 3;
-        $imagen->setRelation('propiedad', $propiedad);
-
-        $repository = $this->createMock(PropiedadImagenRepositoryInterface::class);
-        $propiedadService = $this->createMock(PropiedadService::class);
-        $logService = $this->createMock(LogActividadService::class);
-        $gestorArchivos = $this->createMock(GestorArchivosInterface::class);
-        $cargaImagenValidator = $this->createMock(CargaImagenValidatorInterface::class);
-
-        $repository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(1)
-            ->willReturn($imagen);
-        $repository
-            ->expects($this->once())
-            ->method('delete')
-            ->with($imagen)
-            ->willReturn(true);
-        $logService
-            ->expects($this->once())
-            ->method('registrar')
-            ->with(99, 'Eliminación de imagen para propiedad ID: 3');
-
-        (new PropiedadImagenService(
-            $repository,
-            $propiedadService,
-            $logService,
-            $gestorArchivos,
-            $cargaImagenValidator
-        ))->eliminar(1, (object) ['sub' => 99, 'rol_id' => 2]);
-
-        $this->addToAssertionCount(1);
     }
 }
