@@ -38,9 +38,6 @@ class UsuarioValidator
             if (!$resultado['success']) $errores['contrasena'] = $resultado['error'];
         }
 
-        $resultado = self::validarRolIdUsuario($data['rol_id'] ?? null);
-        if (!$resultado['success']) $errores['rol_id'] = $resultado['error'];
-
         if (!empty($errores)) {
             return [
                 'success' => false,
@@ -188,16 +185,6 @@ class UsuarioValidator
 
         if (strlen($contrasena) > 255)
             return ['success' => false, 'error' => 'No puede exceder los 255 caracteres'];
-
-        return ['success' => true, 'error' => null];
-    }
-
-    public static function validarRolIdUsuario($rolId) {
-        if ($rolId === null || $rolId === '')
-            return ['success' => false, 'error' => 'El rol es requerido'];
-
-        if (!in_array((int)$rolId, [1, 2, 3]))
-            return ['success' => false, 'error' => 'Rol inválido'];
 
         return ['success' => true, 'error' => null];
     }

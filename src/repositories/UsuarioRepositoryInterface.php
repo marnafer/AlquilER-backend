@@ -26,4 +26,6 @@ interface UsuarioRepositoryInterface
     public function findByEmail(string $email): ?Usuario;
 
     public function createWithRole(array $data, int $roleId): Usuario;
+
+    public function findByIdWithRole(int $id): ?Usuario;
 }

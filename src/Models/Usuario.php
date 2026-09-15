@@ -24,18 +24,6 @@ class Usuario extends Model
 
     protected $hidden = ['contrasena', 'deleted_at'];
 
-    protected $appends = ['rol'];
-
-    public function getRolAttribute(): string
-    {
-        return match ((int) $this->rol_id) {
-            2 => 'administrador',
-            3 => 'administrador',
-            4 => 'propietario',
-            default => 'inquilino',
-        };
-    }
-
     // Relaciones 
 
     public function rol()

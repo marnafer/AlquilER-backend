@@ -73,5 +73,13 @@ class EloquentUsuarioRepository implements UsuarioRepositoryInterface
         return $usuario;
     }
 
+    public function findByIdWithRole(int $id): ?Usuario
+    {
+        return Usuario::query()
+            ->with('rol')
+            ->whereKey($id)
+            ->first();
+    }
+
     
 }
