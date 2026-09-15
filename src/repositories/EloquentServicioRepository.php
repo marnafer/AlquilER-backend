@@ -20,6 +20,13 @@ class EloquentServicioRepository implements ServicioRepositoryInterface
             ->find($id);
     }
 
+    public function findByIds(array $ids): Collection
+    {
+        return Servicio::query()
+            ->whereIn('id', $ids)
+            ->get();
+    }
+
     public function findDeletedById(int $id): ?Servicio
     {
         return Servicio::query()

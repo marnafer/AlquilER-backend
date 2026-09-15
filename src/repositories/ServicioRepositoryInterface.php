@@ -11,6 +11,8 @@ interface ServicioRepositoryInterface
 
     public function findById(int $id): ?Servicio;
 
+    public function findByIds(array $ids): Collection;
+
     public function findDeletedById(int $id): ?Servicio;
 
     public function existsByName(
