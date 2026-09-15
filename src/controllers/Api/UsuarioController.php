@@ -50,7 +50,7 @@ class UsuarioController
         $user = AutenticadorMiddleware::verificar();
 
         Response::success(
-            $this->service->obtener((int) $user->sub)
+            $this->service->obtenerConRol((int) $user->sub)
         );
     }
 

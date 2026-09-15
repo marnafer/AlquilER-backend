@@ -49,6 +49,25 @@ class UsuarioService
         return $usuario;
     }
 
+    public function obtenerConRol($rawId): Usuario
+    {
+        $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
+
+        $validacion = UsuarioValidator::validarSoloIdUsuario($id);
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
+        }
+
+        $usuario = $this->repository->findByIdWithRole($id);
+
+        if (!$usuario) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        return $usuario;
+    }
+
     public function eliminar($rawId): void
     {
         $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);

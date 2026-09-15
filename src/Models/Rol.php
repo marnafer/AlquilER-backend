@@ -18,6 +18,8 @@ class Rol extends Model
         'nombre'
     ];
 
+    protected $hidden = ['deleted_at'];
+
     /**
      * Relación con usuarios
      */
