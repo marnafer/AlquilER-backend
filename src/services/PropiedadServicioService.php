@@ -2,183 +2,397 @@
 
 namespace App\Services;
 
-use App\Repositories\PropiedadServicioRepositoryInterface;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
+use App\Policies\PropiedadPolicy;
 use App\Repositories\PropiedadRepositoryInterface;
+use App\Repositories\PropiedadServicioRepositoryInterface;
 use App\Repositories\ServicioRepositoryInterface;
+use App\Sanitizers\PropiedadServicioSanitizer;
+use App\Validators\PropiedadServicioValidator;
 use App\Services\LogActividadService;
 
 class PropiedadServicioService
 {
-    private PropiedadServicioRepositoryInterface $propiedadServicioRepository;
-    private PropiedadRepositoryInterface $propiedadRepository;
-    private ServicioRepositoryInterface $servicioRepository;
-    private LogActividadService $logService;
-    
     public function __construct(
-        PropiedadServicioRepositoryInterface $propiedadServicioRepository,
-        PropiedadRepositoryInterface $propiedadRepository,
-        ServicioRepositoryInterface $servicioRepository,
-        LogActividadService $logService
+        private readonly PropiedadServicioRepositoryInterface $propiedadServicioRepository,
+        private readonly PropiedadRepositoryInterface $propiedadRepository,
+        private readonly ServicioRepositoryInterface $servicioRepository,
+        private readonly LogActividadService $logService,
+        private readonly PropiedadPolicy $policy
     ) {
-        $this->propiedadServicioRepository = $propiedadServicioRepository;
-        $this->propiedadRepository = $propiedadRepository;
-        $this->servicioRepository = $servicioRepository;
-        $this->logService = $logService;
     }
-    
-    /**
-     * Obtener servicios de una propiedad
-     */
+
     public function obtenerServiciosPorPropiedad(int $propiedadId): array
     {
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
-        if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
+        $propiedadId = PropiedadServicioSanitizer::sanitizarPropiedadId(
+            $propiedadId
+        );
+
+        $validacion = PropiedadServicioValidator::validarSoloId(
+            $propiedadId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
         }
-        
-        return $this->propiedadServicioRepository->getByPropiedad($propiedadId);
+
+        $propiedad = $this->propiedadRepository->findById($propiedadId);
+
+        if (!$propiedad) {
+            throw new NotFoundException('La propiedad no existe');
+        }
+
+        return $this->propiedadServicioRepository->getByPropiedad(
+            $propiedadId
+        );
     }
-    
-    /**
-     * Obtener propiedades de un servicio
-     */
+
     public function obtenerPropiedadesPorServicio(int $servicioId): array
     {
-        $servicio = $this->servicioRepository->findById($servicioId);
-        if (!$servicio) {
-            throw new \Exception("El servicio no existe", 404);
+        $servicioId = PropiedadServicioSanitizer::sanitizarServicioId(
+            $servicioId
+        );
+
+        $validacion = PropiedadServicioValidator::validarSoloId(
+            $servicioId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
         }
-        
-        return $this->propiedadServicioRepository->getByServicio($servicioId);
+
+        $servicio = $this->servicioRepository->findById($servicioId);
+
+        if (!$servicio) {
+            throw new NotFoundException('El servicio no existe');
+        }
+
+        return $this->propiedadServicioRepository->getByServicio(
+            $servicioId
+        );
     }
-    
-    /**
-     * Verificar si una propiedad tiene un servicio
-     */
-    public function tieneServicio(int $propiedadId, int $servicioId): bool
-    {
-        return $this->propiedadServicioRepository->exists($propiedadId, $servicioId);
+
+    public function tieneServicio(
+        int $propiedadId,
+        int $servicioId
+    ): bool {
+        $data = PropiedadServicioSanitizer::sanitizar([
+            'propiedad_id' => $propiedadId,
+            'servicio_id' => $servicioId,
+        ]);
+
+        $validacion = PropiedadServicioValidator::validarCrear($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
+        }
+
+        return $this->propiedadServicioRepository->exists(
+            $data['propiedad_id'],
+            $data['servicio_id']
+        );
     }
-    
-    /**
-     * Asignar un servicio a una propiedad
-     */
-    public function asignarServicio(int $propiedadId, int $servicioId, int $usuarioId): bool
-    {
-        // Validar que la propiedad existe
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
+
+    public function asignarServicio(
+        int $propiedadId,
+        int $servicioId,
+        int $usuarioId,
+        int $rolId
+    ): bool {
+        $data = PropiedadServicioSanitizer::sanitizar([
+            'propiedad_id' => $propiedadId,
+            'servicio_id' => $servicioId,
+        ]);
+
+        $validacion = PropiedadServicioValidator::validarCrear($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
+        }
+
+        $propiedad = $this->propiedadRepository->findById(
+            $data['propiedad_id']
+        );
+
         if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
+            throw new NotFoundException('La propiedad no existe');
         }
-        
-        // Validar que el servicio existe
-        $servicio = $this->servicioRepository->findById($servicioId);
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        $servicio = $this->servicioRepository->findById(
+            $data['servicio_id']
+        );
+
         if (!$servicio) {
-            throw new \Exception("El servicio no existe", 404);
+            throw new NotFoundException('El servicio no existe');
         }
-        
-        // Intentar asignar
-        $resultado = $this->propiedadServicioRepository->attach($propiedadId, $servicioId);
-        
+
+        $resultado = $this->propiedadServicioRepository->attach(
+            $data['propiedad_id'],
+            $data['servicio_id']
+        );
+
         if ($resultado) {
             $this->logService->registrar(
-                (int) $usuarioId,
+                $usuarioId,
                 'servicio_asignado'
             );
         }
-        
+
         return $resultado;
     }
-    
-    /**
-     * Desasignar un servicio de una propiedad
-     */
-    public function desasignarServicio(int $propiedadId, int $servicioId, int $usuarioId): bool
-    {
-        // Verificar que existe la relación
-        if (!$this->propiedadServicioRepository->exists($propiedadId, $servicioId)) {
-            throw new \Exception("La propiedad no tiene este servicio asignado", 404);
+
+    public function desasignarServicio(
+        int $propiedadId,
+        int $servicioId,
+        int $usuarioId,
+        int $rolId
+    ): bool {
+        $data = PropiedadServicioSanitizer::sanitizar([
+            'propiedad_id' => $propiedadId,
+            'servicio_id' => $servicioId,
+        ]);
+
+        $validacion = PropiedadServicioValidator::validarCrear($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
         }
-        
-        $resultado = $this->propiedadServicioRepository->detach($propiedadId, $servicioId);
-        
+
+        $propiedad = $this->propiedadRepository->findById(
+            $data['propiedad_id']
+        );
+
+        if (!$propiedad) {
+            throw new NotFoundException('La propiedad no existe');
+        }
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        if (!$this->propiedadServicioRepository->exists(
+            $data['propiedad_id'],
+            $data['servicio_id']
+        )) {
+            throw new NotFoundException(
+                'La propiedad no tiene este servicio asignado'
+            );
+        }
+
+        $resultado = $this->propiedadServicioRepository->detach(
+            $data['propiedad_id'],
+            $data['servicio_id']
+        );
+
         if ($resultado) {
             $this->logService->registrar(
-                (int) $usuarioId,
+                $usuarioId,
                 'servicio_desasignado'
             );
         }
-        
+
         return $resultado;
     }
-    
-    /**
-     * Asignar múltiples servicios a una propiedad
-     */
-    public function asignarMultiplesServicios(int $propiedadId, array $servicioIds, int $usuarioId): array
-    {
-        // Validar que la propiedad existe
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
+
+    public function asignarMultiplesServicios(
+        int $propiedadId,
+        array $servicioIds,
+        int $usuarioId,
+        int $rolId
+    ): array {
+        $propiedadId = PropiedadServicioSanitizer::sanitizarPropiedadId(
+            $propiedadId
+        );
+
+        $servicioIds = PropiedadServicioSanitizer::sanitizarServicioIds(
+            $servicioIds
+        );
+
+        $validacionPropiedad = PropiedadServicioValidator::validarSoloId(
+            $propiedadId
+        );
+
+        if (!$validacionPropiedad['success']) {
+            throw new ValidationException(
+                $validacionPropiedad['errors']
+            );
+        }
+
+        $validacionServicios = PropiedadServicioValidator::validarServicioIds(
+            $servicioIds,
+            false
+        );
+
+        if (!$validacionServicios['success']) {
+            throw new ValidationException(
+                $validacionServicios['errors']
+            );
+        }
+
+        $propiedad = $this->propiedadRepository->findById(
+            $propiedadId
+        );
+
         if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
+            throw new NotFoundException('La propiedad no existe');
         }
-        
-        // Validar que todos los servicios existan
-        foreach ($servicioIds as $servicioId) {
-            $servicio = $this->servicioRepository->findById($servicioId);
-            if (!$servicio) {
-                throw new \Exception("El servicio ID {$servicioId} no existe", 404);
-            }
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        $servicios = $this->servicioRepository->findByIds($servicioIds);
+
+        $idsEncontrados = $servicios
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $idsFaltantes = array_values(
+            array_diff($servicioIds, $idsEncontrados)
+        );
+
+        if (!empty($idsFaltantes)) {
+            throw new NotFoundException(
+                'Los siguientes servicios no existen: ' .
+                implode(', ', $idsFaltantes)
+            );
         }
-        
-        $resultados = $this->propiedadServicioRepository->attachMultiple($propiedadId, $servicioIds);
-        
-        // Registrar actividad
+
+        $resultados = $this->propiedadServicioRepository->attachMultiple(
+            $propiedadId,
+            $servicioIds
+        );
+
         if (!empty($resultados['asignados'])) {
             $this->logService->registrar(
-                (int) $usuarioId,
+                $usuarioId,
                 'servicios_multiples_asignados'
             );
         }
-        
+
         return $resultados;
     }
-    
-    /**
-     * Sincronizar servicios de una propiedad (reemplaza todos)
-     */
-    public function sincronizarServicios(int $propiedadId, array $servicioIds, int $usuarioId): array
-    {
-        // Validar que la propiedad existe
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
-        if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
+
+    public function sincronizarServicios(
+        int $propiedadId,
+        array $servicioIds,
+        int $usuarioId,
+        int $rolId
+    ): array {
+        $propiedadId = PropiedadServicioSanitizer::sanitizarPropiedadId(
+            $propiedadId
+        );
+
+        $servicioIds = PropiedadServicioSanitizer::sanitizarServicioIds(
+            $servicioIds
+        );
+
+        $validacionPropiedad = PropiedadServicioValidator::validarSoloId(
+            $propiedadId
+        );
+
+        if (!$validacionPropiedad['success']) {
+            throw new ValidationException(
+                $validacionPropiedad['errors']
+            );
         }
-        
-        // Validar que todos los servicios existan
-        foreach ($servicioIds as $servicioId) {
-            $servicio = $this->servicioRepository->findById($servicioId);
-            if (!$servicio) {
-                throw new \Exception("El servicio ID {$servicioId} no existe", 404);
+
+        $validacionServicios = PropiedadServicioValidator::validarServicioIds(
+            $servicioIds,
+            true
+        );
+
+        if (!$validacionServicios['success']) {
+            throw new ValidationException(
+                $validacionServicios['errors']
+            );
+        }
+
+        $propiedad = $this->propiedadRepository->findById(
+            $propiedadId
+        );
+
+        if (!$propiedad) {
+            throw new NotFoundException('La propiedad no existe');
+        }
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        if (!empty($servicioIds)) {
+            $servicios = $this->servicioRepository->findByIds(
+                $servicioIds
+            );
+
+            $idsEncontrados = $servicios
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $idsFaltantes = array_values(
+                array_diff($servicioIds, $idsEncontrados)
+            );
+
+            if (!empty($idsFaltantes)) {
+                throw new NotFoundException(
+                    'Los siguientes servicios no existen: ' .
+                    implode(', ', $idsFaltantes)
+                );
             }
         }
-        
-        $resultados = $this->propiedadServicioRepository->sync($propiedadId, $servicioIds);
-        
-        // Registrar actividad
+
+        $resultados = $this->propiedadServicioRepository->sync(
+            $propiedadId,
+            $servicioIds
+        );
+
         $this->logService->registrar(
-            (int) $usuarioId,
+            $usuarioId,
             'servicios_sincronizados'
         );
-        
+
         return $resultados;
     }
-    
-    /**
-     * Obtener IDs de servicios de una propiedad
-     */
-    public function obtenerIdsServiciosPorPropiedad(int $propiedadId): array
-    {
-        return $this->propiedadServicioRepository->getServicioIdsByPropiedad($propiedadId);
+
+    public function obtenerIdsServiciosPorPropiedad(
+        int $propiedadId
+    ): array {
+        $propiedadId = PropiedadServicioSanitizer::sanitizarPropiedadId(
+            $propiedadId
+        );
+
+        $validacion = PropiedadServicioValidator::validarSoloId(
+            $propiedadId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
+        }
+
+        $propiedad = $this->propiedadRepository->findById(
+            $propiedadId
+        );
+
+        if (!$propiedad) {
+            throw new NotFoundException('La propiedad no existe');
+        }
+
+        return $this->propiedadServicioRepository
+            ->getServicioIdsByPropiedad($propiedadId);
     }
 }
