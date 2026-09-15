@@ -140,7 +140,7 @@ final class MensajeConsultaServiceTest extends TestCase
 
         $this->service->crearMensaje([
             'consulta_id' => 100,
-            'mensaje' => 'Hola'
+            'mensaje' => 'Hola!'
         ], 5);
     }
 
