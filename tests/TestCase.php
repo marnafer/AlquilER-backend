@@ -114,9 +114,10 @@ abstract class TestCase extends BaseTestCase
     protected function captureResponse(callable $fn): string
     {
         ob_start();
+
         try {
             $fn();
-        } catch (\RuntimeException $e) {
+        } catch (\Error $e) {
             if ($e->getMessage() !== '__RESPONSE_SENT__') {
                 ob_end_clean();
                 throw $e;
@@ -125,6 +126,7 @@ abstract class TestCase extends BaseTestCase
             ob_end_clean();
             throw $e;
         }
+
         return ob_get_clean() ?: '';
     }
 
