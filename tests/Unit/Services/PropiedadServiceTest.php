@@ -11,6 +11,7 @@ use App\Exceptions\ValidationException;
 use App\Models\Categoria;
 use App\Models\Localidad;
 use App\Models\Propiedad;
+use App\Policies\PropiedadPolicy;
 use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
@@ -27,7 +28,9 @@ final class PropiedadServiceTest extends TestCase
             new Propiedad(['titulo' => 'Casa']),
             new Propiedad(['titulo' => 'Departamento']),
         ]);
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
             ->method('all')
             ->willReturn($propiedades);
@@ -43,7 +46,9 @@ final class PropiedadServiceTest extends TestCase
         $propiedades = new Collection([
             new Propiedad(['titulo' => 'Casa del usuario 7']),
         ]);
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
             ->method('porUsuario')
             ->with(7)
@@ -58,7 +63,9 @@ final class PropiedadServiceTest extends TestCase
     public function test_obtener_devuelve_una_propiedad_existente(): void
     {
         $propiedad = $this->propiedad();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
             ->method('findById')
             ->with(1)
@@ -73,7 +80,9 @@ final class PropiedadServiceTest extends TestCase
     public function test_obtener_lanza_excepcion_si_el_id_es_invalido(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->never())->method('findById');
+
+        $repository->expects($this->never())
+            ->method('findById');
 
         $this->expectException(ValidationException::class);
 
@@ -83,6 +92,7 @@ final class PropiedadServiceTest extends TestCase
     public function test_obtener_lanza_excepcion_si_no_existe(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
             ->method('findById')
             ->with(1)
@@ -97,6 +107,7 @@ final class PropiedadServiceTest extends TestCase
     public function test_crea_una_propiedad_y_registra_la_actividad(): void
     {
         $propiedad = $this->propiedad();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
         $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
         $localidadRepository = $this->createMock(LocalidadRepositoryInterface::class);
@@ -106,13 +117,12 @@ final class PropiedadServiceTest extends TestCase
             ->method('findById')
             ->with(2)
             ->willReturn(new Categoria());
+
         $localidadRepository->expects($this->once())
             ->method('findById')
             ->with(3)
             ->willReturn(new Localidad());
-        $logService->expects($this->once())
-            ->method('registrar')
-            ->with(7, 'Creación de propiedad');
+
         $repository->expects($this->once())
             ->method('create')
             ->with($this->callback(function (array $data): bool {
@@ -124,6 +134,10 @@ final class PropiedadServiceTest extends TestCase
                     && $data['usuario_id'] === 7;
             }))
             ->willReturn($propiedad);
+
+        $logService->expects($this->once())
+            ->method('registrar')
+            ->with(7, 'Creación de propiedad');
 
         $resultado = $this->crearServicio(
             $repository,
@@ -138,11 +152,17 @@ final class PropiedadServiceTest extends TestCase
     public function test_crear_lanza_excepcion_si_los_datos_son_invalidos(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->never())->method('create');
         $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
-        $categoriaRepository->expects($this->never())->method('findById');
         $logService = $this->createMock(LogActividadService::class);
-        $logService->expects($this->never())->method('registrar');
+
+        $repository->expects($this->never())
+            ->method('create');
+
+        $categoriaRepository->expects($this->never())
+            ->method('findById');
+
+        $logService->expects($this->never())
+            ->method('registrar');
 
         $this->expectException(ValidationException::class);
 
@@ -156,14 +176,19 @@ final class PropiedadServiceTest extends TestCase
     public function test_crear_lanza_excepcion_si_no_existe_la_categoria(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->never())->method('create');
         $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
+        $logService = $this->createMock(LogActividadService::class);
+
+        $repository->expects($this->never())
+            ->method('create');
+
         $categoriaRepository->expects($this->once())
             ->method('findById')
             ->with(2)
             ->willReturn(null);
-        $logService = $this->createMock(LogActividadService::class);
-        $logService->expects($this->never())->method('registrar');
+
+        $logService->expects($this->never())
+            ->method('registrar');
 
         $this->expectException(ValidationException::class);
 
@@ -177,19 +202,25 @@ final class PropiedadServiceTest extends TestCase
     public function test_crear_lanza_excepcion_si_no_existe_la_localidad(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->never())->method('create');
         $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
+        $localidadRepository = $this->createMock(LocalidadRepositoryInterface::class);
+        $logService = $this->createMock(LogActividadService::class);
+
+        $repository->expects($this->never())
+            ->method('create');
+
         $categoriaRepository->expects($this->once())
             ->method('findById')
             ->with(2)
             ->willReturn(new Categoria());
-        $localidadRepository = $this->createMock(LocalidadRepositoryInterface::class);
+
         $localidadRepository->expects($this->once())
             ->method('findById')
             ->with(3)
             ->willReturn(null);
-        $logService = $this->createMock(LogActividadService::class);
-        $logService->expects($this->never())->method('registrar');
+
+        $logService->expects($this->never())
+            ->method('registrar');
 
         $this->expectException(ValidationException::class);
 
@@ -204,27 +235,40 @@ final class PropiedadServiceTest extends TestCase
     public function test_actualiza_una_propiedad_y_registra_la_actividad(): void
     {
         $propiedad = $this->propiedad();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
+        $localidadRepository = $this->createMock(LocalidadRepositoryInterface::class);
+        $logService = $this->createMock(LogActividadService::class);
+
         $repository->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
+
         $repository->expects($this->once())
             ->method('update')
-            ->with($propiedad, $this->callback(function (array $data): bool {
-                return $data['titulo'] === 'Casa renovada'
-                    && $data['precio'] === 150000.0
-                    && $data['categoria_id'] === 2
-                    && $data['localidad_id'] === 3;
-            }))
+            ->with(
+                $propiedad,
+                $this->callback(function (array $data): bool {
+                    return $data['titulo'] === 'Casa renovada'
+                        && $data['precio'] === 150000.0
+                        && $data['categoria_id'] === 2
+                        && $data['localidad_id'] === 3;
+                })
+            )
             ->willReturn(true);
-        $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
+
         $categoriaRepository->expects($this->once())
-            ->method('findById')->with(2)->willReturn(new Categoria());
-        $localidadRepository = $this->createMock(LocalidadRepositoryInterface::class);
+            ->method('findById')
+            ->with(2)
+            ->willReturn(new Categoria());
+
         $localidadRepository->expects($this->once())
-            ->method('findById')->with(3)->willReturn(new Localidad());
-        $logService = $this->createMock(LogActividadService::class);
+            ->method('findById')
+            ->with(3)
+            ->willReturn(new Localidad());
+
         $logService->expects($this->once())
             ->method('registrar')
             ->with(7, 'Actualización de propiedad');
@@ -240,13 +284,67 @@ final class PropiedadServiceTest extends TestCase
         ]);
     }
 
+    public function test_actualiza_una_propiedad_si_es_administrador(): void
+    {
+        $propiedad = $this->propiedad();
+
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $categoriaRepository = $this->createMock(CategoriaRepositoryInterface::class);
+        $localidadRepository = $this->createMock(LocalidadRepositoryInterface::class);
+        $logService = $this->createMock(LogActividadService::class);
+
+        $repository->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository->expects($this->once())
+            ->method('update')
+            ->with(
+                $propiedad,
+                $this->callback(function (array $data): bool {
+                    return $data['titulo'] === 'Casa administrada';
+                })
+            )
+            ->willReturn(true);
+
+        $categoriaRepository->expects($this->once())
+            ->method('findById')
+            ->with(2)
+            ->willReturn(new Categoria());
+
+        $localidadRepository->expects($this->once())
+            ->method('findById')
+            ->with(3)
+            ->willReturn(new Localidad());
+
+        $logService->expects($this->once())
+            ->method('registrar')
+            ->with(8, 'Actualización de propiedad');
+
+        $this->crearServicio(
+            $repository,
+            $logService,
+            $categoriaRepository,
+            $localidadRepository
+        )->actualizar(8, 2, 1, [
+            'titulo' => 'Casa administrada',
+        ]);
+    }
+
     public function test_actualizar_lanza_excepcion_si_no_tiene_permiso(): void
     {
         $propiedad = $this->propiedad();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
-            ->method('findById')->with(1)->willReturn($propiedad);
-        $repository->expects($this->never())->method('update');
+            ->method('findById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository->expects($this->never())
+            ->method('update');
 
         $this->expectException(ForbiddenException::class);
 
@@ -258,19 +356,35 @@ final class PropiedadServiceTest extends TestCase
     public function test_actualizar_lanza_excepcion_si_no_hay_campos(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->once())
-            ->method('findById')->with(1)->willReturn($this->propiedad());
+
+        $repository->expects($this->never())
+            ->method('findById');
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
 
         $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage(
+            'Debe enviar al menos un campo para actualizar'
+        );
 
-        $this->crearServicio($repository)->actualizar(7, 1, 1, []);
+        $service->actualizar(
+            7,
+            1,
+            1,
+            []
+        );
     }
 
     public function test_actualizar_lanza_excepcion_si_no_hay_campos_actualizables(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
-            ->method('findById')->with(1)->willReturn($this->propiedad());
+            ->method('findById')
+            ->with(1)
+            ->willReturn($this->propiedad());
 
         $this->expectException(BadRequestException::class);
 
@@ -282,26 +396,41 @@ final class PropiedadServiceTest extends TestCase
     public function test_elimina_una_propiedad_y_registra_la_actividad(): void
     {
         $propiedad = $this->propiedad();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->once())
-            ->method('findById')->with(1)->willReturn($propiedad);
-        $repository->expects($this->once())
-            ->method('delete')->with($propiedad)->willReturn(true);
         $logService = $this->createMock(LogActividadService::class);
+
+        $repository->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository->expects($this->once())
+            ->method('delete')
+            ->with($propiedad)
+            ->willReturn(true);
+
         $logService->expects($this->once())
-            ->method('registrar')->with(7, 'Eliminación de propiedad');
+            ->method('registrar')
+            ->with(7, 'Eliminación de propiedad');
 
-        $this->crearServicio($repository, $logService)->eliminar(7, 1, 1);
-
-        $this->addToAssertionCount(1);
+        $this->crearServicio(
+            $repository,
+            $logService
+        )->eliminar(7, 1, 1);
     }
 
     public function test_eliminar_lanza_excepcion_si_no_tiene_permiso(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
-            ->method('findById')->with(1)->willReturn($this->propiedad());
-        $repository->expects($this->never())->method('delete');
+            ->method('findById')
+            ->with(1)
+            ->willReturn($this->propiedad());
+
+        $repository->expects($this->never())
+            ->method('delete');
 
         $this->expectException(ForbiddenException::class);
 
@@ -311,25 +440,38 @@ final class PropiedadServiceTest extends TestCase
     public function test_restaura_una_propiedad_eliminada(): void
     {
         $propiedad = $this->propiedadEliminada();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
-        $repository->expects($this->once())
-            ->method('findDeletedById')->with(1)->willReturn($propiedad);
-        $repository->expects($this->once())
-            ->method('restore')->with($propiedad)->willReturn(true);
         $logService = $this->createMock(LogActividadService::class);
+
+        $repository->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository->expects($this->once())
+            ->method('restore')
+            ->with($propiedad)
+            ->willReturn(true);
+
         $logService->expects($this->once())
-            ->method('registrar')->with(7, 'Restauración de propiedad');
+            ->method('registrar')
+            ->with(7, 'Restauración de propiedad');
 
-        $this->crearServicio($repository, $logService)->restaurar(7, 1, 1);
-
-        $this->addToAssertionCount(1);
+        $this->crearServicio(
+            $repository,
+            $logService
+        )->restaurar(7, 1, 1);
     }
 
     public function test_restaurar_lanza_excepcion_si_no_existe(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
-            ->method('findDeletedById')->with(1)->willReturn(null);
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn(null);
 
         $this->expectException(NotFoundException::class);
 
@@ -339,10 +481,16 @@ final class PropiedadServiceTest extends TestCase
     public function test_restaurar_lanza_excepcion_si_no_tiene_permiso(): void
     {
         $propiedad = $this->propiedadEliminada();
+
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
-            ->method('findDeletedById')->with(1)->willReturn($propiedad);
-        $repository->expects($this->never())->method('restore');
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository->expects($this->never())
+            ->method('restore');
 
         $this->expectException(ForbiddenException::class);
 
@@ -352,9 +500,14 @@ final class PropiedadServiceTest extends TestCase
     public function test_restaurar_lanza_excepcion_si_la_propiedad_no_esta_eliminada(): void
     {
         $repository = $this->createMock(PropiedadRepositoryInterface::class);
+
         $repository->expects($this->once())
-            ->method('findDeletedById')->with(1)->willReturn($this->propiedad());
-        $repository->expects($this->never())->method('restore');
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($this->propiedad());
+
+        $repository->expects($this->never())
+            ->method('restore');
 
         $this->expectException(BadRequestException::class);
 
@@ -371,7 +524,8 @@ final class PropiedadServiceTest extends TestCase
             $repository ?? $this->createMock(PropiedadRepositoryInterface::class),
             $logService ?? $this->createMock(LogActividadService::class),
             $categoriaRepository ?? $this->createMock(CategoriaRepositoryInterface::class),
-            $localidadRepository ?? $this->createMock(LocalidadRepositoryInterface::class)
+            $localidadRepository ?? $this->createMock(LocalidadRepositoryInterface::class),
+            new PropiedadPolicy()
         );
     }
 
@@ -392,6 +546,7 @@ final class PropiedadServiceTest extends TestCase
             'localidad_id' => 3,
             'usuario_id' => 7,
         ]);
+
         $propiedad->id = 1;
 
         return $propiedad;
@@ -402,7 +557,9 @@ final class PropiedadServiceTest extends TestCase
         $propiedad = $this->getMockBuilder(Propiedad::class)
             ->onlyMethods(['getAttribute'])
             ->getMock();
+
         $propiedad->id = 1;
+
         $propiedad->method('getAttribute')
             ->willReturnCallback(function (string $attribute) {
                 return match ($attribute) {
