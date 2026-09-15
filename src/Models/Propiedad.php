@@ -94,14 +94,13 @@ class Propiedad extends Model
 
     public function imagenDestacada()
     {
-        // 1. Intenta obtener la marcada como principal
-        $principal = $this->imagenPrincipal; // Relación 'imagenPrincipal' definida
+        $principal = $this->imagenPrincipal;
+
         if ($principal) {
             return $principal;
         }
 
-        // 2. Si no hay principal, toma la primera de la lista de todas las imágenes
-        return $this->imagenes()->first(); 
+        return $this->imagenes->first();
     }
 
     /**

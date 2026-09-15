@@ -221,19 +221,20 @@ class PropiedadSanitizer
     /**
      * Sanitizar disponible
      */
-    public static function sanitizarDisponible(
-        $disponible
-    ): int {
-
+    public static function sanitizarDisponible($disponible): ?int
+    {
         if ($disponible === null || $disponible === '') {
             return 1;
         }
 
-        return filter_var(
+        $valor = filter_var(
             $disponible,
-            FILTER_VALIDATE_BOOLEAN
-        )
-            ? 1
-            : 0;
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        return $valor === null
+            ? null
+            : ($valor ? 1 : 0);
     }
 }

@@ -10,6 +10,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\UnauthorizedException;
+use App\Exceptions\BadRequestException;
 
 
 class PropiedadController
@@ -39,8 +40,6 @@ class PropiedadController
             Response::success(
                 $this->service->listar()
             );
-        } catch (UnauthorizedException $e) {
-            Response::unauthorized($e->getMessage());
         } catch (\Exception $e) {
             Response::serverError('Error al listar propiedades');
         }
@@ -81,9 +80,7 @@ class PropiedadController
             );
         } catch (NotFoundException $e) {
             Response::notFound($e->getMessage());
-        } catch (UnauthorizedException $e) {
-            Response::unauthorized($e->getMessage());
-        }
+        } 
     }
 
     /**
@@ -145,6 +142,8 @@ class PropiedadController
             Response::validationError($e->errors());
         } catch (UnauthorizedException $e) {
             Response::unauthorized($e->getMessage());
+        } catch (BadRequestException $e) {
+            Response::badRequest($e->getMessage());
         }
     }
 
@@ -211,6 +210,8 @@ class PropiedadController
             Response::forbidden($e->getMessage());
         } catch (UnauthorizedException $e) {
             Response::unauthorized($e->getMessage());
+        } catch (BadRequestException $e) {
+            Response::badRequest($e->getMessage());
         }
     }
 

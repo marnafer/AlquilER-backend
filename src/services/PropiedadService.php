@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\BadRequestException;
-use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Propiedad;
@@ -14,6 +13,7 @@ use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
+use App\Policies\PropiedadPolicy;
 
 class PropiedadService
 {
@@ -21,7 +21,8 @@ class PropiedadService
         private readonly PropiedadRepositoryInterface $repository,
         private readonly LogActividadService $logActividadService,
         private readonly CategoriaRepositoryInterface $categoriaRepository,
-        private readonly LocalidadRepositoryInterface $localidadRepository
+        private readonly LocalidadRepositoryInterface $localidadRepository,
+        private readonly PropiedadPolicy $policy
     ) {
     }
 
@@ -99,29 +100,31 @@ class PropiedadService
             ]);
         }
 
+       $propiedad = $this->repository->create($data);
+
         $this->logActividadService->registrar(
             $usuarioId,
             'Creación de propiedad'
         );
 
-        return $this->repository->create($data);
+        return $propiedad;
     }
 
     public function actualizar(int $usuarioId, int $rolId, $propiedadId, array $rawData): void
     {
-        $propiedad = $this->obtener($propiedadId);
-
-        if ($rolId !== 2 && (int) $propiedad->usuario_id !== $usuarioId) {
-            throw new ForbiddenException(
-                'No tienes permiso para modificar esta propiedad'
-            );
-        }
-
         if ($rawData === []) {
             throw new BadRequestException(
                 'Debe enviar al menos un campo para actualizar'
             );
-        }
+        }   
+
+        $propiedad = $this->obtener($propiedadId);
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
 
         unset(
             $rawData['id'],
@@ -202,30 +205,30 @@ class PropiedadService
             ]);
         }
 
+        $this->repository->update($propiedad, $data);
+
         $this->logActividadService->registrar(
             $usuarioId,
             'Actualización de propiedad'
         );
-
-        $this->repository->update($propiedad, $data);
     }
 
     public function eliminar(int $usuarioId, int $rolId, $propiedadId): void
     {
         $propiedad = $this->obtener($propiedadId);
 
-        if ($rolId !== 2 && (int) $propiedad->usuario_id !== $usuarioId) {
-            throw new ForbiddenException(
-                'No tienes permiso para eliminar esta propiedad'
-            );
-        }
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        $this->repository->delete($propiedad);
 
         $this->logActividadService->registrar(
             $usuarioId,
             'Eliminación de propiedad'
         );
-
-        $this->repository->delete($propiedad);
     }
 
     public function restaurar(int $usuarioId, int $rolId, $propiedadId): void
@@ -244,21 +247,21 @@ class PropiedadService
             throw new NotFoundException('Propiedad no encontrada');
         }
 
-        if ($rolId !== 2 && (int) $propiedad->usuario_id !== $usuarioId) {
-            throw new ForbiddenException(
-                'No tienes permiso para restaurar esta propiedad'
-            );
-        }
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
 
         if ($propiedad->deleted_at === null) {
             throw new BadRequestException('La propiedad no está eliminada');
         }
 
+        $this->repository->restore($propiedad);
+
         $this->logActividadService->registrar(
             $usuarioId,
             'Restauración de propiedad'
         );
-
-        $this->repository->restore($propiedad);
     }
 }
