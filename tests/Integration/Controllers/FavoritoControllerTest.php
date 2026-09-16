@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Integration\Controllers;
 
 use App\Controllers\Api\FavoritoController;
-use App\Helpers\Request;
 use App\Services\FavoritoService;
 use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
@@ -40,17 +41,12 @@ class FavoritoControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerFavoritos')
+            ->method('listar')
             ->with(5, 5, 1)
             ->willReturn($favoritos);
 
-        ob_start();
-
-        $this->controller->index();
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
         );
 
         $this->assertTrue($response['success']);
@@ -64,25 +60,15 @@ class FavoritoControllerTest extends TestCase
     {
         $this->actingAs(5, 1);
 
-        Request::setTestBody(
-            json_encode([
-                'propiedad_id' => 20
-            ])
-        );
-
         $this->service
             ->expects($this->once())
-            ->method('agregarFavorito')
+            ->method('agregar')
             ->with(5, 20)
             ->willReturn(true);
 
-        ob_start();
-
-        $this->controller->store();
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJsonWithBody(
+            '{"propiedad_id":20}',
+            fn() => $this->controller->store()
         );
 
         $this->assertTrue($response['success']);
@@ -99,21 +85,33 @@ class FavoritoControllerTest extends TestCase
     {
         $this->actingAs(5, 1);
 
-        Request::setTestBody(
-            json_encode([])
+        $this->service
+            ->expects($this->never())
+            ->method('agregar');
+
+        $response = $this->captureJsonWithBody(
+            '{}',
+            fn() => $this->controller->store()
         );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'El campo propiedad_id es requerido y debe ser numérico',
+            $response['error']
+        );
+    }
+
+    public function test_store_rechaza_propiedad_id_no_numerico(): void
+    {
+        $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->never())
-            ->method('agregarFavorito');
+            ->method('agregar');
 
-        ob_start();
-
-        $this->controller->store();
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJsonWithBody(
+            '{"propiedad_id":"abc"}',
+            fn() => $this->controller->store()
         );
 
         $this->assertFalse($response['success']);
@@ -137,17 +135,12 @@ class FavoritoControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerFavoritos')
+            ->method('listar')
             ->with(5, 8, 2)
             ->willReturn($favoritos);
 
-        ob_start();
-
-        $this->controller->indexByUsuario(8);
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->indexByUsuario(8)
         );
 
         $this->assertTrue($response['success']);
@@ -163,15 +156,10 @@ class FavoritoControllerTest extends TestCase
 
         $this->service
             ->expects($this->never())
-            ->method('obtenerFavoritos');
+            ->method('listar');
 
-        ob_start();
-
-        $this->controller->indexByUsuario(0);
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->indexByUsuario(0)
         );
 
         $this->assertFalse($response['success']);
@@ -187,17 +175,12 @@ class FavoritoControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('eliminarFavorito')
+            ->method('eliminar')
             ->with(5, 20)
             ->willReturn(true);
 
-        ob_start();
-
-        $this->controller->deleteByPropiedad(20);
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->deleteByPropiedad(20)
         );
 
         $this->assertTrue($response['success']);
@@ -213,15 +196,10 @@ class FavoritoControllerTest extends TestCase
 
         $this->service
             ->expects($this->never())
-            ->method('eliminarFavorito');
+            ->method('eliminar');
 
-        ob_start();
-
-        $this->controller->deleteByPropiedad(0);
-
-        $response = json_decode(
-            ob_get_clean(),
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->deleteByPropiedad(0)
         );
 
         $this->assertFalse($response['success']);

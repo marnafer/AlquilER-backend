@@ -1,12 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use App\Models\Favorito;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\ConflictException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
 use App\Policies\FavoritoPolicy;
 use App\Repositories\FavoritoRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
-use App\Services\LogActividadService;
 
 class FavoritoService
 {
@@ -27,13 +31,7 @@ class FavoritoService
         $this->policy = $policy;
     }
 
-    /**
-     * Obtener los favoritos de un usuario.
-     *
-     * La autorización de qué usuario puede consultar
-     * estos favoritos se realiza en el Policy.
-     */
-    public function obtenerFavoritos(
+    public function listar(
         int $usuarioId,
         int $usuarioConsultadoId,
         int $rolId
@@ -42,14 +40,15 @@ class FavoritoService
             return [];
         }
 
-        if (!$this->policy->puedeVerDeUsuario(
-            $usuarioId,
-            $rolId,
-            $usuarioConsultadoId
-        )) {
-            throw new \Exception(
-                'No tienes permiso para consultar los favoritos de este usuario',
-                403
+        if (
+            !$this->policy->puedeVerDeUsuario(
+                $usuarioId,
+                $rolId,
+                $usuarioConsultadoId
+            )
+        ) {
+            throw new ForbiddenException(
+                'No tienes permiso para consultar los favoritos de este usuario'
             );
         }
 
@@ -58,27 +57,18 @@ class FavoritoService
         );
     }
 
-    /**
-     * Obtener los IDs de propiedades favoritas de un usuario.
-     *
-     * Este método se utiliza internamente para marcar propiedades
-     * como favoritas en listados.
-     */
-    public function obtenerIdsFavoritos(int $usuarioId): array
+    public function listarIds(int $usuarioId): array
     {
         if ($usuarioId <= 0) {
             return [];
         }
 
-        return $this->favoritoRepository->getPropiedadIdsByUser($usuarioId);
+        return $this->favoritoRepository->getPropiedadIdsByUser(
+            $usuarioId
+        );
     }
 
-    /**
-     * Verificar si una propiedad es favorita del usuario.
-     *
-     * Método auxiliar para lógica interna.
-     */
-    public function esFavorito(
+    public function verificar(
         int $usuarioId,
         int $propiedadId
     ): bool {
@@ -92,36 +82,29 @@ class FavoritoService
         );
     }
 
-    /**
-     * Agregar una propiedad a favoritos.
-     *
-     * La imposibilidad de agregar la propia propiedad
-     * es una regla de negocio y permanece en el Service.
-     */
-    public function agregarFavorito(
+    public function agregar(
         int $usuarioId,
         int $propiedadId
     ): bool {
         if ($usuarioId <= 0) {
-            throw new \InvalidArgumentException(
-                'ID de usuario inválido',
-                400
+            throw new BadRequestException(
+                'ID de usuario inválido'
             );
         }
 
         if ($propiedadId <= 0) {
-            throw new \InvalidArgumentException(
-                'ID de propiedad inválido',
-                400
+            throw new BadRequestException(
+                'ID de propiedad inválido'
             );
         }
 
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
+        $propiedad = $this->propiedadRepository->findById(
+            $propiedadId
+        );
 
         if (!$propiedad) {
-            throw new \Exception(
-                'La propiedad no existe',
-                404
+            throw new NotFoundException(
+                'La propiedad no existe'
             );
         }
 
@@ -129,9 +112,8 @@ class FavoritoService
             isset($propiedad->usuario_id)
             && (int) $propiedad->usuario_id === $usuarioId
         ) {
-            throw new \Exception(
-                'No puedes agregar tu propia propiedad a favoritos',
-                400
+            throw new BadRequestException(
+                'No puedes agregar tu propia propiedad a favoritos'
             );
         }
 
@@ -140,37 +122,33 @@ class FavoritoService
             $propiedadId
         );
 
-        if ($resultado) {
-            $this->logService->registrar(
-                $usuarioId,
-                'favorito_agregado'
+        if (!$resultado) {
+            throw new ConflictException(
+                'La propiedad ya está en favoritos'
             );
         }
 
-        return $resultado;
+        $this->logService->registrar(
+            $usuarioId,
+            'favorito_agregado'
+        );
+
+        return true;
     }
 
-    /**
-     * Eliminar un favorito.
-     *
-     * Primero se obtiene el recurso concreto y luego
-     * se verifica la autorización mediante FavoritoPolicy.
-     */
-    public function eliminarFavorito(
+    public function eliminar(
         int $usuarioId,
         int $propiedadId
     ): bool {
         if ($usuarioId <= 0) {
-            throw new \InvalidArgumentException(
-                'ID de usuario inválido',
-                400
+            throw new BadRequestException(
+                'ID de usuario inválido'
             );
         }
 
         if ($propiedadId <= 0) {
-            throw new \InvalidArgumentException(
-                'ID de propiedad inválido',
-                400
+            throw new BadRequestException(
+                'ID de propiedad inválido'
             );
         }
 
@@ -181,16 +159,14 @@ class FavoritoService
             );
 
         if (!$favorito) {
-            throw new \Exception(
-                'La propiedad no está en favoritos',
-                404
+            throw new NotFoundException(
+                'La propiedad no está en favoritos'
             );
         }
 
         if (!$this->policy->puedeEliminar($usuarioId, $favorito)) {
-            throw new \Exception(
-                'No tienes permiso para eliminar este favorito',
-                403
+            throw new ForbiddenException(
+                'No tienes permiso para eliminar este favorito'
             );
         }
 
@@ -199,23 +175,21 @@ class FavoritoService
             $propiedadId
         );
 
-        if ($resultado) {
-            $this->logService->registrar(
-                $usuarioId,
-                'favorito_eliminado'
+        if (!$resultado) {
+            throw new NotFoundException(
+                'No se pudo eliminar el favorito'
             );
         }
 
-        return $resultado;
+        $this->logService->registrar(
+            $usuarioId,
+            'favorito_eliminado'
+        );
+
+        return true;
     }
 
-    /**
-     * Contar favoritos de una propiedad.
-     *
-     * No requiere autorización porque se trata de un dato
-     * agregado de la propiedad y no de favoritos personales.
-     */
-    public function contarFavoritos(int $propiedadId): int
+    public function contar(int $propiedadId): int
     {
         if ($propiedadId <= 0) {
             return 0;
@@ -226,11 +200,7 @@ class FavoritoService
         );
     }
 
-    /**
-     * Marcar las propiedades que pertenecen a los favoritos
-     * del usuario autenticado.
-     */
-    public function marcarFavoritosEnListado(
+    public function marcarEnListado(
         int $usuarioId,
         array $propiedades
     ): array {
@@ -244,7 +214,8 @@ class FavoritoService
         foreach ($propiedades as &$propiedad) {
             $propiedad['es_favorito'] = in_array(
                 $propiedad['id'] ?? null,
-                $idsFavoritos
+                $idsFavoritos,
+                true
             );
         }
 

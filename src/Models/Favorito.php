@@ -19,6 +19,11 @@ class Favorito extends Model
         'propiedad_id'
     ];
 
+    protected $casts = [
+        'usuario_id' => 'integer',
+        'propiedad_id' => 'integer',
+    ];
+
     public function usuario()
     {
         return $this->belongsTo(
