@@ -55,7 +55,7 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
      */
     public function findById(int $id)
     {
-        return Reserva::with(['propiedad', 'usuario', 'resena'])
+        return Reserva::with(['propiedad', 'usuario', 'resenas'])
             ->withTrashed()
             ->find($id);
     }

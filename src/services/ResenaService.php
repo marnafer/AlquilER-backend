@@ -1,256 +1,339 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\ConflictException;
+use App\Models\Resena;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
-use App\Repositories\PropiedadRepositoryInterface;
-use App\Repositories\UsuarioRepositoryInterface;
-use App\Services\LogActividadService;
+use App\Policies\ResenaPolicy;
+use App\Sanitizers\ResenaSanitizer;
+use App\Validators\ResenaValidator;
+use Illuminate\Database\Eloquent\Collection;
 
 class ResenaService
 {
-    private ResenaRepositoryInterface $resenaRepository;
-    private ReservaRepositoryInterface $reservaRepository;
-    private PropiedadRepositoryInterface $propiedadRepository;
-    private UsuarioRepositoryInterface $usuarioRepository;
-    private LogActividadService $logService;
-    
     public function __construct(
-        ResenaRepositoryInterface $resenaRepository,
-        ReservaRepositoryInterface $reservaRepository,
-        PropiedadRepositoryInterface $propiedadRepository,
-        UsuarioRepositoryInterface $usuarioRepository,
-        LogActividadService $logService
+        private readonly ResenaRepositoryInterface $repository,
+        private readonly ReservaRepositoryInterface $reservaRepository,
+        private readonly ResenaPolicy $policy,
+        private readonly LogActividadService $logActividadService
     ) {
-        $this->resenaRepository = $resenaRepository;
-        $this->reservaRepository = $reservaRepository;
-        $this->propiedadRepository = $propiedadRepository;
-        $this->usuarioRepository = $usuarioRepository;
-        $this->logService = $logService;
     }
-    
-    public function listarResenas(array $filtros = []): array
+
+    public function listar(array $filtros = []): array
     {
-        return $this->resenaRepository->getAll($filtros);
+        $resenas = $this->repository->all($filtros);
+
+        return [
+            'items' => $resenas,
+            'total' => $resenas->count(),
+        ];
     }
-    
-    public function obtenerResena(int $id)
+
+    public function obtener($rawId): Resena
     {
-        $resena = $this->resenaRepository->findById($id);
-        if (!$resena) {
-            throw new \Exception("Reseña no encontrada", 404);
+        $id = ResenaSanitizer::sanitizarId($rawId);
+
+        $validacion = ResenaValidator::validarSoloId($id);
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
+
+        $resena = $this->repository->findById($id);
+
+        if (!$resena) {
+            throw new NotFoundException(
+                'Reseña no encontrada'
+            );
+        }
+
         return $resena;
     }
-    
-    /**
-     * Crear una nueva reseña (bidireccional)
-     */
-    public function crearResena(array $data): int
+
+    public function obtenerPorReserva($rawReservaId): Collection
     {
-        // Validar que la reserva existe y está finalizada
-        $reserva = $this->reservaRepository->findById($data['reserva_id']);
-        if (!$reserva) {
-            throw new \Exception("La reserva no existe", 404);
-        }
-        
-        if ($reserva->estado !== 'finalizada') {
-            throw new \Exception("Solo se pueden calificar reservas finalizadas", 400);
-        }
-        
-        // Validar tipo
-        $tiposValidos = ['propiedad', 'inquilino'];
-        if (!in_array($data['tipo'], $tiposValidos)) {
-            throw new \Exception("Tipo de reseña inválido. Debe ser 'propiedad' o 'inquilino'", 400);
-        }
-        
-        // Validar calificación
-        if ($data['calificacion'] < 1 || $data['calificacion'] > 5) {
-            throw new \Exception("La calificación debe ser entre 1 y 5", 400);
-        }
-        
-        // Obtener la propiedad de la reserva
-        $propiedad = $this->propiedadRepository->findById($reserva->propiedad_id);
-        if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
-        }
-        
-        // Determinar calificado y calificador según el tipo
-        if ($data['tipo'] === 'propiedad') {
-            // El inquilino califica la propiedad → calificado = propietario
-            $data['calificado_id'] = $propiedad->usuario_id;
-            $data['calificador_id'] = $reserva->usuario_id;
-        } else {
-            // El propietario califica al inquilino → calificado = inquilino
-            $data['calificado_id'] = $reserva->usuario_id;
-            $data['calificador_id'] = $propiedad->usuario_id;
-        }
-        
-        // Validar que no sea auto-calificación
-        if ($data['calificado_id'] == $data['calificador_id']) {
-            throw new \Exception("No puedes calificarte a ti mismo", 400);
-        }
-        
-        // Validar que no exista una reseña de este tipo para esta reserva
-        if ($this->resenaRepository->existePorReservaYTipo($data['reserva_id'], $data['tipo'])) {
-            throw new \Exception("Esta reserva ya tiene una reseña de tipo '{$data['tipo']}'", 409);
-        }
-        
-        // Establecer fecha de publicación
-        $data['fecha_publicacion'] = date('Y-m-d H:i:s');
-        
-        // Crear reseña
-        $id = $this->resenaRepository->create($data);
-        
-        // Registrar actividad (Respetando la firma: int $usuarioId, string $accion)
-        $this->logService->registrar(
-            (int) $data['calificador_id'],
-            'resena_creada'
+        $reservaId = ResenaSanitizer::sanitizarId(
+            $rawReservaId
         );
-        
-        return $id;
-    }
-    
-    public function actualizarResena(int $id, array $data, int $usuarioId): bool
-    {
-        $resena = $this->resenaRepository->findById($id);
-        if (!$resena) {
-            throw new \Exception("Reseña no encontrada", 404);
+
+        $validacion = ResenaValidator::validarReservaId(
+            $reservaId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'reserva_id' => [
+                    $validacion['error']
+                ]
+            ]);
         }
-        
-        // Verificar permisos (solo el calificador o admin)
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || ($usuario->rol_id != 3 && $resena->calificador_id != $usuarioId)) {
-            throw new \Exception("No autorizado", 403);
-        }
-        
-        // Validar calificación si viene
-        if (isset($data['calificacion']) && ($data['calificacion'] < 1 || $data['calificacion'] > 5)) {
-            throw new \Exception("La calificación debe ser entre 1 y 5", 400);
-        }
-        
-        // No permitir cambiar campos críticos
-        unset($data['tipo']);
-        unset($data['calificado_id']);
-        unset($data['calificador_id']);
-        unset($data['reserva_id']);
-        unset($data['fecha_publicacion']);
-        
-        $resultado = $this->resenaRepository->update($id, $data);
-        
-        if ($resultado) {
-            $this->logService->registrar(
-                (int) $usuarioId,
-                'resena_actualizada'
+
+        if (!$this->reservaRepository->findById($reservaId)) {
+            throw new NotFoundException(
+                'Reserva no encontrada'
             );
         }
-        
-        return $resultado;
+
+        return $this->repository->getByReserva(
+            $reservaId
+        );
     }
-    
-    public function eliminarResena(int $id, int $usuarioId): bool
+
+    public function obtenerPorPropiedad($rawPropiedadId): Collection
     {
-        $resena = $this->resenaRepository->findById($id);
-        if (!$resena) {
-            throw new \Exception("Reseña no encontrada", 404);
+        $propiedadId = ResenaSanitizer::sanitizarId(
+            $rawPropiedadId
+        );
+
+        $validacion = ResenaValidator::validarPropiedadId(
+            $propiedadId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'propiedad_id' => [
+                    $validacion['error']
+                ]
+            ]);
         }
-        
-        // Solo admin puede eliminar
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || $usuario->rol_id != 3) {
-            throw new \Exception("No autorizado", 403);
+
+        return $this->repository->getByPropiedad(
+            $propiedadId
+        );
+    }
+
+    public function obtenerPorUsuario($rawUsuarioId): Collection
+    {
+        $usuarioId = ResenaSanitizer::sanitizarId(
+            $rawUsuarioId
+        );
+
+        $validacion = ResenaValidator::validarUsuarioId(
+            $usuarioId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'usuario_id' => [
+                    $validacion['error']
+                ]
+            ]);
         }
-        
-        $resultado = $this->resenaRepository->delete($id);
-        
-        if ($resultado) {
-            $this->logService->registrar(
-                (int) $usuarioId,
-                'resena_eliminada'
+
+        return $this->repository->getByUsuario(
+            $usuarioId
+        );
+    }
+
+    public function obtenerPorCalificador($rawCalificadorId): Collection
+    {
+        $calificadorId = ResenaSanitizer::sanitizarId(
+            $rawCalificadorId
+        );
+
+        $validacion = ResenaValidator::validarCalificadorId(
+            $calificadorId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'calificador_id' => [
+                    $validacion['error']
+                ]
+            ]);
+        }
+
+        return $this->repository->getByCalificador(
+            $calificadorId
+        );
+    }
+
+    public function crear(
+        array $rawData,
+        int $usuarioId
+    ): Resena {
+        $data = ResenaSanitizer::sanitizarCrear(
+            $rawData
+        );
+
+        $validacion = ResenaValidator::validarCrear(
+            $data
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
             );
         }
-        
-        return $resultado;
-    }
-    
-    public function restaurarResena(int $id, int $usuarioId): bool
-    {
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || $usuario->rol_id != 3) {
-            throw new \Exception("No autorizado", 403);
-        }
-        
-        $resultado = $this->resenaRepository->restore($id);
-        
-        if ($resultado) {
-            $this->logService->registrar(
-                (int) $usuarioId,
-                'resena_restaurada'
-            );
-        } else {
-            throw new \Exception("No se pudo restaurar la reseña o no existe", 404);
-        }
-        
-        return $resultado;
-    }
-    
-    public function obtenerResenasPorReserva(int $reservaId): array
-    {
-        $reserva = $this->reservaRepository->findById($reservaId);
+
+        $reserva = $this->reservaRepository->findById(
+            (int) $data['reserva_id']
+        );
+
         if (!$reserva) {
-            throw new \Exception("La reserva no existe", 404);
+            throw new NotFoundException(
+                'Reserva no encontrada'
+            );
         }
-        return $this->resenaRepository->getByReserva($reservaId);
-    }
-    
-    public function obtenerResenasPorPropiedad(int $propiedadId): array
-    {
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
-        if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
+
+        if ($reserva->estado !== 'finalizada') {
+            throw new BadRequestException(
+                'Solo se puede crear una reseña para una reserva finalizada'
+            );
         }
-        return $this->resenaRepository->getByPropiedad($propiedadId);
-    }
-    
-    public function obtenerResenasPorUsuario(int $usuarioId): array
-    {
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario) {
-            throw new \Exception("El usuario no existe", 404);
+
+        $this->policy->crear(
+            $reserva,
+            $usuarioId,
+            $data['tipo']
+        );
+
+        if (
+            $this->repository->existePorReservaYTipo(
+                (int) $data['reserva_id'],
+                $data['tipo']
+            )
+        ) {
+            throw new ConflictException(
+                'Ya existe una reseña de este tipo para la reserva'
+            );
         }
-        return $this->resenaRepository->getByUsuario($usuarioId);
+
+        $data['calificador_id'] = $usuarioId;
+
+        $resena = $this->repository->create(
+            $data
+        );
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Creación de reseña'
+        );
+
+        return $resena;
     }
-    
-    public function obtenerResenasPorCalificador(int $calificadorId): array
-    {
-        $usuario = $this->usuarioRepository->findById($calificadorId);
-        if (!$usuario) {
-            throw new \Exception("El usuario no existe", 404);
+
+    public function eliminar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): void {
+        $resena = $this->obtener($rawId);
+
+        $this->policy->eliminar(
+            $resena,
+            $usuarioId,
+            $rolId
+        );
+
+        $this->repository->delete(
+            $resena
+        );
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Eliminación de reseña'
+        );
+    }
+
+    // Futura ruta administrativa
+    public function restaurar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): void {
+        $id = ResenaSanitizer::sanitizarId(
+            $rawId
+        );
+
+        $validacion = ResenaValidator::validarSoloId(
+            $id
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
-        return $this->resenaRepository->getByCalificador($calificadorId);
-    }
-    
-    public function obtenerPromedioPropiedad(int $propiedadId): float
-    {
-        $propiedad = $this->propiedadRepository->findById($propiedadId);
-        if (!$propiedad) {
-            throw new \Exception("La propiedad no existe", 404);
+
+        $resena = $this->repository->findDeletedById(
+            $id
+        );
+
+        if (!$resena) {
+            throw new NotFoundException(
+                'Reseña eliminada no encontrada'
+            );
         }
-        return $this->resenaRepository->getPromedioByPropiedad($propiedadId);
+
+        $this->policy->restaurar(
+            $rolId
+        );
+
+        $this->repository->restore(
+            $resena
+        );
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Restauración de reseña'
+        );
     }
-    
-    public function obtenerPromedioUsuario(int $usuarioId): float
-    {
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario) {
-            throw new \Exception("El usuario no existe", 404);
+
+    public function promedioPropiedad(
+        $rawPropiedadId
+    ): float {
+        $propiedadId = ResenaSanitizer::sanitizarId(
+            $rawPropiedadId
+        );
+
+        $validacion = ResenaValidator::validarPropiedadId(
+            $propiedadId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'propiedad_id' => [
+                    $validacion['error']
+                ]
+            ]);
         }
-        return $this->resenaRepository->getPromedioByUsuario($usuarioId);
+
+        return $this->repository->getPromedioByPropiedad(
+            $propiedadId
+        );
     }
-    
-    public function existeResenaPorReservaYTipo(int $reservaId, string $tipo): bool
-    {
-        return $this->resenaRepository->existePorReservaYTipo($reservaId, $tipo);
+
+    public function promedioUsuario(
+        $rawUsuarioId
+    ): float {
+        $usuarioId = ResenaSanitizer::sanitizarId(
+            $rawUsuarioId
+        );
+
+        $validacion = ResenaValidator::validarUsuarioId(
+            $usuarioId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'usuario_id' => [
+                    $validacion['error']
+                ]
+            ]);
+        }
+
+        return $this->repository->getPromedioByUsuario(
+            $usuarioId
+        );
     }
 }

@@ -69,6 +69,7 @@ use App\Policies\ConsultaPolicy;
 use App\Policies\FavoritoPolicy;
 use App\Policies\PropiedadImagenPolicy;
 use App\Policies\PropiedadPolicy;
+use App\Policies\ResenaPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
@@ -97,6 +98,7 @@ $consultaPolicy = new ConsultaPolicy();
 $favoritoPolicy = new FavoritoPolicy(); 
 $propiedadPolicy = new PropiedadPolicy();
 $propiedadImagenPolicy = new PropiedadImagenPolicy();
+$resenaPolicy = new ResenaPolicy();
 
 // INSTANCIAR SERVICES
 $logActividadService = new LogActividadService(
@@ -181,8 +183,7 @@ $consultaService = new ConsultaService(
 $resenaService = new ResenaService(
     $resenaRepository,
     $reservaRepository,
-    $propiedadRepository,
-    $usuarioRepository,
+    $resenaPolicy,
     $logActividadService
 );
 

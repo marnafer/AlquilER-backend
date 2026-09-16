@@ -261,9 +261,11 @@ CREATE TABLE `refresh_tokens` (
 -- Estructura de tabla para la tabla `resenas`
 --
 
-CREATE TABLE IF NOT EXISTS `resenas` (
+  CREATE TABLE `resenas` (
   `id` int(11) UNSIGNED NOT NULL,
   `reserva_id` int(11) UNSIGNED NOT NULL,
+  `tipo` enum('propiedad','inquilino') NOT NULL,
+  `calificador_id` int(11) UNSIGNED NOT NULL,
   `calificacion` tinyint(1) UNSIGNED NOT NULL,
   `comentario` text DEFAULT NULL,
   `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -323,7 +325,6 @@ CREATE TABLE IF NOT EXISTS `roles` (
 INSERT INTO `roles` (`id`, `nombre`) VALUES
 (1, 'usuario'),
 (2, 'administrador'),
-(4, 'propietario');
 
 -- --------------------------------------------------------
 
@@ -491,8 +492,11 @@ ALTER TABLE `refresh_tokens`
 --
 ALTER TABLE `resenas`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uk_resena_reserva` (`reserva_id`),
-  ADD KEY `fk_reseña_reserva` (`reserva_id`);
+  ADD UNIQUE KEY `unique_resena_reserva_tipo` (`reserva_id`,`tipo`),
+  ADD KEY `idx_resenas_reserva_id` (`reserva_id`),
+  ADD KEY `idx_resenas_calificador_id` (`calificador_id`),
+  ADD KEY `idx_resenas_tipo` (`tipo`),
+  ADD KEY `idx_resenas_calificacion` (`calificacion`);
 
 --
 -- Indices de la tabla `reservas`
@@ -595,7 +599,8 @@ ALTER TABLE `refresh_tokens`
 -- AUTO_INCREMENT de la tabla `resenas`
 --
 ALTER TABLE `resenas`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
 
 --
 -- AUTO_INCREMENT de la tabla `reservas`
@@ -689,8 +694,9 @@ ALTER TABLE `refresh_tokens`
 -- Filtros para la tabla `resenas`
 --
 ALTER TABLE `resenas`
-  ADD CONSTRAINT `fk_resenas_reserva` FOREIGN KEY (`reserva_id`) REFERENCES `reservas` (`id`) ON UPDATE CASCADE;
-
+  ADD CONSTRAINT `fk_resenas_calificador` FOREIGN KEY (`calificador_id`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_resenas_reserva` FOREIGN KEY (`reserva_id`) REFERENCES `reservas` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+COMMIT;
 --
 -- Filtros para la tabla `reservas`
 --

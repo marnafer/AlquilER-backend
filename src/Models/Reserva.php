@@ -50,9 +50,9 @@ class Reserva extends Model
         );
     }
 
-    public function resena()
+    public function resenas()
     {
-        return $this->hasOne(
+        return $this->hasMany(
             Resena::class,
             'reserva_id'
         );
