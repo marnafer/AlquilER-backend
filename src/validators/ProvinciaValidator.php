@@ -116,11 +116,6 @@ class ProvinciaValidator
         return self::validarProvincia($data, false);
     }
 
-    public static function validarActualizarProvincia(array $data): array
-    {
-        return self::validarProvincia($data, true);
-    }
-
     public static function validarSoloIdProvincia($id): array
     {
         $resultado = self::validarIdProvincia($id);

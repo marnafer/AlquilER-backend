@@ -7,7 +7,6 @@ class ProvinciaSanitizer
     public static function sanitizarProvincia(array $data): array
     {
         return [
-            'id' => self::sanitizarIdProvincia($data['id'] ?? null),
             'nombre' => self::sanitizarNombre($data['nombre'] ?? null)
         ];
     }
