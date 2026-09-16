@@ -15,7 +15,7 @@ class ResenaController
         $this->service = $service;
     }
     
-    public function index($request)
+    public function index()
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -47,7 +47,7 @@ class ResenaController
                 $filtros['propiedad_id'] = (int)$_GET['propiedad_id'];
             }
             if (isset($_GET['usuario_id'])) {
-                if ($user->rol_id != 3 && $user->sub != (int)$_GET['usuario_id']) {
+                if ($user->rol_id != 2 && $user->sub != (int)$_GET['usuario_id']) {
                     throw new \Exception("No autorizado", 403);
                 }
                 $filtros['usuario_id'] = (int)$_GET['usuario_id'];
@@ -59,13 +59,13 @@ class ResenaController
                 $filtros['fecha_hasta'] = $_GET['fecha_hasta'];
             }
             if (isset($_GET['incluir_eliminados']) && $_GET['incluir_eliminados'] === 'true') {
-                if ($user->rol_id != 3) {
+                if ($user->rol_id != 2) {
                     throw new \Exception("No autorizado", 403);
                 }
                 $filtros['incluir_eliminados'] = true;
             }
             if (isset($_GET['solo_eliminados']) && $_GET['solo_eliminados'] === 'true') {
-                if ($user->rol_id != 3) {
+                if ($user->rol_id != 2) {
                     throw new \Exception("No autorizado", 403);
                 }
                 $filtros['solo_eliminados'] = true;
@@ -84,14 +84,14 @@ class ResenaController
         }
     }
     
-    public function show($request, $id)
+    public function show($id)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
             
             $resena = $this->service->obtenerResena((int)$id);
             
-            if ($user->rol_id != 3 && 
+            if ($user->rol_id != 2 && 
                 $resena['calificador_id'] != $user->sub && 
                 $resena['calificado_id'] != $user->sub) {
                 throw new \Exception("No autorizado", 403);
@@ -114,7 +114,7 @@ class ResenaController
         }
     }
     
-    public function getByReserva($request, $reservaId)
+    public function getByReserva($reservaId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorReserva((int)$reservaId);
@@ -130,7 +130,7 @@ class ResenaController
         }
     }
     
-    public function getByPropiedad($request, $propiedadId)
+    public function getByPropiedad($propiedadId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorPropiedad((int)$propiedadId);
@@ -152,7 +152,7 @@ class ResenaController
         }
     }
     
-    public function getByUsuario($request, $usuarioId)
+    public function getByUsuario($usuarioId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorUsuario((int)$usuarioId);
@@ -174,7 +174,7 @@ class ResenaController
         }
     }
     
-    public function getByCalificador($request, $calificadorId)
+    public function getByCalificador($calificadorId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorCalificador((int)$calificadorId);
@@ -195,7 +195,7 @@ class ResenaController
         }
     }
     
-    public function store($request)
+    public function store()
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -248,7 +248,7 @@ class ResenaController
         }
     }
     
-    public function update($request, $id)
+    public function update($id)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -286,7 +286,7 @@ class ResenaController
         }
     }
     
-    public function delete($request, $id)
+    public function delete($id)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -315,48 +315,48 @@ class ResenaController
     /**
      * Métodos alias en español para compatibilidad con tests
      */
-    public function listar($request)
+    public function listar()
     {
-        return $this->index($request);
+        return $this->index();
     }
 
-    public function obtener($request, $id)
+    public function obtener($id)
     {
-        return $this->show($request, $id);
+        return $this->show($id);
     }
 
-    public function crear($request)
+    public function crear()
     {
-        return $this->store($request);
+        return $this->store();
     }
 
-    public function actualizar($request, $id)
+    public function actualizar($id)
     {
-        return $this->update($request, $id);
+        return $this->update($id);
     }
 
-    public function eliminar($request, $id)
+    public function eliminar($id)
     {
-        return $this->delete($request, $id);
+        return $this->delete($id);
     }
 
-    public function listarPorReserva($request, $reservaId)
+    public function listarPorReserva($reservaId)
     {
-        return $this->getByReserva($request, $reservaId);
+        return $this->getByReserva($reservaId);
     }
 
-    public function listarPorPropiedad($request, $propiedadId)
+    public function listarPorPropiedad($propiedadId)
     {
-        return $this->getByPropiedad($request, $propiedadId);
+        return $this->getByPropiedad($propiedadId);
     }
 
-    public function listarPorUsuario($request, $usuarioId)
+    public function listarPorUsuario($usuarioId)
     {
-        return $this->getByUsuario($request, $usuarioId);
+        return $this->getByUsuario($usuarioId);
     }
 
-    public function listarPorCalificador($request, $calificadorId)
+    public function listarPorCalificador($calificadorId)
     {
-        return $this->getByCalificador($request, $calificadorId);
+        return $this->getByCalificador($calificadorId);
     }
 }

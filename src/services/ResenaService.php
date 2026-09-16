@@ -121,7 +121,7 @@ class ResenaService
         
         // Verificar permisos (solo el calificador o admin)
         $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || ($usuario->rol_id != 3 && $resena->calificador_id != $usuarioId)) {
+        if (!$usuario || ($usuario->rol_id != 2 && $resena->calificador_id != $usuarioId)) {
             throw new \Exception("No autorizado", 403);
         }
         
@@ -158,7 +158,7 @@ class ResenaService
         
         // Solo admin puede eliminar
         $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || $usuario->rol_id != 3) {
+        if (!$usuario || $usuario->rol_id != 2) {
             throw new \Exception("No autorizado", 403);
         }
         
@@ -177,7 +177,7 @@ class ResenaService
     public function restaurarResena(int $id, int $usuarioId): bool
     {
         $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || $usuario->rol_id != 3) {
+        if (!$usuario || $usuario->rol_id != 2) {
             throw new \Exception("No autorizado", 403);
         }
         
