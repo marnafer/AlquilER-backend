@@ -15,7 +15,7 @@ class ResenaController
         $this->service = $service;
     }
     
-    public function index()
+    public function index($request)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -84,7 +84,7 @@ class ResenaController
         }
     }
     
-    public function show($id)
+    public function show($request, $id)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -114,7 +114,7 @@ class ResenaController
         }
     }
     
-    public function getByReserva($reservaId)
+    public function getByReserva($request, $reservaId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorReserva((int)$reservaId);
@@ -130,7 +130,7 @@ class ResenaController
         }
     }
     
-    public function getByPropiedad($propiedadId)
+    public function getByPropiedad($request, $propiedadId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorPropiedad((int)$propiedadId);
@@ -152,7 +152,7 @@ class ResenaController
         }
     }
     
-    public function getByUsuario($usuarioId)
+    public function getByUsuario($request, $usuarioId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorUsuario((int)$usuarioId);
@@ -174,7 +174,7 @@ class ResenaController
         }
     }
     
-    public function getByCalificador($calificadorId)
+    public function getByCalificador($request, $calificadorId)
     {
         try {
             $resenas = $this->service->obtenerResenasPorCalificador((int)$calificadorId);
@@ -195,7 +195,7 @@ class ResenaController
         }
     }
     
-    public function store()
+    public function store($request)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -248,7 +248,7 @@ class ResenaController
         }
     }
     
-    public function update($id)
+    public function update($request, $id)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -286,7 +286,7 @@ class ResenaController
         }
     }
     
-    public function delete($id)
+    public function delete($request, $id)
     {
         try {
             $user = AutenticadorMiddleware::verificar();
@@ -315,48 +315,48 @@ class ResenaController
     /**
      * Métodos alias en español para compatibilidad con tests
      */
-    public function listar()
+    public function listar($request)
     {
-        return $this->index();
+        return $this->index($request);
     }
 
-    public function obtener($id)
+    public function obtener($request, $id)
     {
-        return $this->show($id);
+        return $this->show($request, $id);
     }
 
-    public function crear()
+    public function crear($request)
     {
-        return $this->store();
+        return $this->store($request);
     }
 
-    public function actualizar($id)
+    public function actualizar($request, $id)
     {
-        return $this->update($id);
+        return $this->update($request, $id);
     }
 
-    public function eliminar($id)
+    public function eliminar($request, $id)
     {
-        return $this->delete($id);
+        return $this->delete($request, $id);
     }
 
-    public function listarPorReserva($reservaId)
+    public function listarPorReserva($request, $reservaId)
     {
-        return $this->getByReserva($reservaId);
+        return $this->getByReserva($request, $reservaId);
     }
 
-    public function listarPorPropiedad($propiedadId)
+    public function listarPorPropiedad($request, $propiedadId)
     {
-        return $this->getByPropiedad($propiedadId);
+        return $this->getByPropiedad($request, $propiedadId);
     }
 
-    public function listarPorUsuario($usuarioId)
+    public function listarPorUsuario($request, $usuarioId)
     {
-        return $this->getByUsuario($usuarioId);
+        return $this->getByUsuario($request, $usuarioId);
     }
 
-    public function listarPorCalificador($calificadorId)
+    public function listarPorCalificador($request, $calificadorId)
     {
-        return $this->getByCalificador($calificadorId);
+        return $this->getByCalificador($request, $calificadorId);
     }
 }
