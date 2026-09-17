@@ -1,485 +1,411 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Integration\Controllers;
 
-use Tests\TestCase;
 use App\Controllers\Api\ResenaController;
+use App\Helpers\Request;
+use App\Helpers\Response;
+use App\Middlewares\AutenticadorMiddleware;
+use App\Models\Resena;
 use App\Services\ResenaService;
+use Illuminate\Database\Eloquent\Collection;
+use Tests\TestCase;
+use PHPUnit\Framework\MockObject\MockObject;
 
 class ResenaControllerTest extends TestCase
 {
-    private $controller;
-    private $service;
+    /** @var ResenaService&MockObject */
+    private ResenaService $service;
+    private ResenaController $controller;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        Response::setTesting(true);
+
         $this->service = $this->createMock(ResenaService::class);
         $this->controller = new ResenaController($this->service);
+
+        $this->actingAs(1, 1);
     }
 
-    
-    public function it_can_listar()
+    protected function tearDown(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        Request::setTestBody(null);
+
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        unset(
+            $_GET['tipo'],
+            $_GET['calificacion'],
+            $_GET['calificacion_min'],
+            $_GET['calificacion_max'],
+            $_GET['calificador_id'],
+            $_GET['reserva_id'],
+            $_GET['propiedad_id'],
+            $_GET['usuario_id'],
+            $_GET['fecha_desde'],
+            $_GET['fecha_hasta']
+        );
+
+        Response::setTesting(false);
+
+        parent::tearDown();
+    }
+
+    public function test_el_controlador_puede_listar_resenas(): void
+    {
+        $resenas = [
+            [
+                'id' => 1,
+                'reserva_id' => 10,
+                'calificacion' => 5,
+                'comentario' => 'Excelente'
+            ],
+            [
+                'id' => 2,
+                'reserva_id' => 11,
+                'calificacion' => 4,
+                'comentario' => 'Muy buena'
+            ]
+        ];
 
         $this->service
             ->expects($this->once())
             ->method('listar')
-            ->willReturn([]);
+            ->with([])
+            ->willReturn([
+                'items' => $resenas,
+                'total' => 2
+            ]);
 
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame($resenas, $response['data']['items']);
+        $this->assertSame(2, $response['data']['total']);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_returns_unauthorized_when_listar_without_user()
+    public function test_el_controlador_puede_listar_resenas_con_filtros(): void
     {
-        $request = $this->createRequest([]);
+        $_GET['tipo'] = 'propietario';
+        $_GET['calificacion'] = '5';
+        $_GET['calificacion_min'] = '3';
+        $_GET['calificacion_max'] = '5';
+        $_GET['calificador_id'] = '10';
+        $_GET['reserva_id'] = '20';
+        $_GET['propiedad_id'] = '30';
+        $_GET['usuario_id'] = '40';
+        $_GET['fecha_desde'] = '2026-01-01';
+        $_GET['fecha_hasta'] = '2026-12-31';
 
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    
-    public function it_can_obtener()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('obtener')
-            ->with(1)
-            ->willReturn((object) ['id' => 1, 'calificador_id' => 1, 'calificado_id' => 2]);
-
-        ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    
-    public function it_returns_not_found_when_resena_not_exists()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('obtener')
-            ->with(999)
-            ->willThrowException(new \Exception("Reseña no encontrada", 404));
-
-        ob_start();
-        $this->controller->obtener($request, 999);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
-    }
-
-    
-    public function it_returns_forbidden_when_user_not_authorized_to_view_resena()
-    {
-        $request = $this->createRequest(['usuario_id' => 3]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('obtener')
-            ->with(1)
-            ->willThrowException(new \Exception("No autorizado", 403));
-
-        ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('403', $output);
-    }
-
-    
-    public function it_can_crear_resena_propiedad()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([
-            'reserva_id' => 5,
-            'tipo' => 'propiedad',
+        $filtrosEsperados = [
+            'tipo' => 'propietario',
             'calificacion' => 5,
-            'comentario' => 'Excelente propiedad'
-        ]);
-        file_put_contents('php://input', $input);
+            'calificacion_min' => 3,
+            'calificacion_max' => 5,
+            'calificador_id' => 10,
+            'reserva_id' => 20,
+            'propiedad_id' => 30,
+            'usuario_id' => 40,
+            'fecha_desde' => '2026-01-01',
+            'fecha_hasta' => '2026-12-31'
+        ];
 
         $this->service
             ->expects($this->once())
-            ->method('crear')
-            ->willReturn(1);
+            ->method('listar')
+            ->with($filtrosEsperados)
+            ->willReturn([
+                'items' => [],
+                'total' => 0
+            ]);
 
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
 
-        $this->assertStringContainsString('201', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame([], $response['data']['items']);
+        $this->assertSame(0, $response['data']['total']);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_can_crear_resena_inquilino()
+    public function test_el_controlador_puede_obtener_una_resena(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([
-            'reserva_id' => 5,
-            'tipo' => 'inquilino',
-            'calificacion' => 4,
-            'comentario' => 'Buen inquilino'
-        ]);
-        file_put_contents('php://input', $input);
+        $resena = $this->createMock(Resena::class);
 
         $this->service
             ->expects($this->once())
-            ->method('crear')
-            ->willReturn(1);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('201', $output);
-    }
-
-    
-    public function it_returns_bad_request_when_crear_missing_fields()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_returns_bad_request_when_crear_missing_tipo()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([
-            'reserva_id' => 5,
-            'calificacion' => 5
-        ]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_returns_unauthorized_when_crear_without_user()
-    {
-        $request = $this->createRequest([]);
-        $input = json_encode([
-            'reserva_id' => 5,
-            'tipo' => 'propiedad',
-            'calificacion' => 5
-        ]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    
-    public function it_returns_conflict_when_resena_already_exists()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([
-            'reserva_id' => 5,
-            'tipo' => 'propiedad',
-            'calificacion' => 5
-        ]);
-        file_put_contents('php://input', $input);
-
-        $this->service
-            ->expects($this->once())
-            ->method('crear')
-            ->willThrowException(new \Exception("Esta reserva ya tiene una reseña de tipo 'propiedad'", 409));
-
-        ob_start();
-        $this->controller->crear($request);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('409', $output);
-    }
-
-    
-    public function it_can_actualizar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['calificacion' => 4]);
-        file_put_contents('php://input', $input);
-
-        $this->service
-            ->expects($this->once())
-            ->method('actualizar')
-            ->with(1, ['calificacion' => 4], 1)
-            ->willReturn(true);
-
-        ob_start();
-        $this->controller->actualizar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    
-    public function it_returns_bad_request_when_actualizar_with_empty_data()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->actualizar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_returns_forbidden_when_actualizar_without_permission()
-    {
-        $request = $this->createRequest(['usuario_id' => 2]);
-        $input = json_encode(['calificacion' => 4]);
-        file_put_contents('php://input', $input);
-
-        $this->service
-            ->expects($this->once())
-            ->method('actualizar')
-            ->with(1, ['calificacion' => 4], 2)
-            ->willThrowException(new \Exception("No autorizado", 403));
-
-        ob_start();
-        $this->controller->actualizar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('403', $output);
-    }
-
-    
-    public function it_can_eliminar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('eliminar')
-            ->with(1, 1)
-            ->willReturn(true);
-
-        ob_start();
-        $this->controller->eliminar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    
-    public function it_returns_forbidden_when_eliminar_without_permission()
-    {
-        $request = $this->createRequest(['usuario_id' => 2]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('eliminar')
-            ->with(1, 2)
-            ->willThrowException(new \Exception("No autorizado", 403));
-
-        ob_start();
-        $this->controller->eliminar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('403', $output);
-    }
-
-    
-    public function it_can_listar_por_reserva()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-
-        $this->service
-            ->expects($this->once())
-            ->method('listarPorReserva')
+            ->method('obtener')
             ->with(1)
-            ->willReturn([]);
+            ->willReturn($resena);
 
-        ob_start();
-        $this->controller->listarPorReserva($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->show(1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue($response['success']);
+        $this->assertArrayHasKey('data', $response);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_returns_not_found_when_reserva_not_exists()
+    public function test_el_controlador_puede_obtener_resenas_por_reserva(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $resenas = new Collection([
+            ['id' => 1, 'reserva_id' => 10],
+            ['id' => 2, 'reserva_id' => 10]
+        ]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarPorReserva')
-            ->with(999)
-            ->willThrowException(new \Exception("La reserva no existe", 404));
+            ->method('obtenerPorReserva')
+            ->with(10)
+            ->willReturn($resenas);
 
-        ob_start();
-        $this->controller->listarPorReserva($request, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->getByReserva(10)
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertTrue($response['success']);
+        $this->assertCount(2, $response['data']);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_can_listar_por_propiedad()
+    public function test_el_controlador_puede_obtener_resenas_por_propiedad(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $resenas = new Collection([
+            ['id' => 1, 'calificacion' => 5],
+            ['id' => 2, 'calificacion' => 4]
+        ]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarPorPropiedad')
-            ->with(1)
-            ->willReturn([]);
+            ->method('obtenerPorPropiedad')
+            ->with(30)
+            ->willReturn($resenas);
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerPromedioPropiedad')
-            ->with(1)
+            ->method('promedioPropiedad')
+            ->with(30)
             ->willReturn(4.5);
 
-        ob_start();
-        $this->controller->listarPorPropiedad($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->getByPropiedad(30)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('"promedio":4.5', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(2, $response['data']['total']);
+        $this->assertSame(4.5, $response['data']['promedio']);
+        $this->assertCount(2, $response['data']['items']);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_returns_not_found_when_property_not_exists()
+    public function test_el_controlador_puede_obtener_resenas_por_usuario(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $resenas = new Collection([
+            ['id' => 1, 'calificacion' => 5],
+            ['id' => 2, 'calificacion' => 3]
+        ]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarPorPropiedad')
-            ->with(999)
-            ->willThrowException(new \Exception("La propiedad no existe", 404));
+            ->method('obtenerPorUsuario')
+            ->with(40)
+            ->willReturn($resenas);
 
-        ob_start();
-        $this->controller->listarPorPropiedad($request, 999);
-        $output = ob_get_clean();
+        $this->service
+            ->expects($this->once())
+            ->method('promedioUsuario')
+            ->with(40)
+            ->willReturn(4.0);
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $response = $this->captureJson(
+            fn() => $this->controller->getByUsuario(40)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(2, $response['data']['total']);
+        $this->assertEquals(4.0, $response['data']['promedio']);
+        $this->assertCount(2, $response['data']['items']);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_can_listar_por_usuario()
+    public function test_el_controlador_puede_obtener_resenas_por_calificador(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $resenas = new Collection([
+            ['id' => 1, 'calificador_id' => 50],
+            ['id' => 2, 'calificador_id' => 50]
+        ]);
 
         $this->service
             ->expects($this->once())
-            ->method('listarPorUsuario')
-            ->with(1)
-            ->willReturn([]);
+            ->method('obtenerPorCalificador')
+            ->with(50)
+            ->willReturn($resenas);
 
-        $this->service
-            ->expects($this->once())
-            ->method('obtenerPromedioUsuario')
-            ->with(1)
-            ->willReturn(4.2);
+        $response = $this->captureJson(
+            fn() => $this->controller->getByCalificador(50)
+        );
 
-        ob_start();
-        $this->controller->listarPorUsuario($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('"promedio":4.2', $output);
+        $this->assertTrue($response['success']);
+        $this->assertCount(2, $response['data']);
+        $this->assertSame(200, http_response_code());
     }
 
-    
-    public function it_returns_not_found_when_usuario_not_exists()
+    public function test_el_controlador_puede_crear_una_resena(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $datos = [
+            'reserva_id' => 10,
+            'tipo' => 'propietario',
+            'calificacion' => 5,
+            'comentario' => 'Excelente propiedad'
+        ];
+
+        $resena = $this->createMock(Resena::class);
+
+        Request::setTestBody(
+            json_encode($datos, JSON_THROW_ON_ERROR)
+        );
 
         $this->service
             ->expects($this->once())
-            ->method('listarPorUsuario')
-            ->with(999)
-            ->willThrowException(new \Exception("El usuario no existe", 404));
+            ->method('crear')
+            ->with($datos, 1)
+            ->willReturn($resena);
 
-        ob_start();
-        $this->controller->listarPorUsuario($request, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->store()
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
+        );
+
+        $this->assertArrayHasKey('data', $response);
+        $this->assertSame(
+            'Reseña creada exitosamente',
+            $response['message']
+        );
     }
 
-    
-    public function it_can_listar_por_calificador()
+    public function test_el_controlador_verifica_el_token_al_crear_una_resena(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $datos = [
+            'reserva_id' => 10,
+            'tipo' => 'propietario',
+            'calificacion' => 5,
+            'comentario' => 'Excelente propiedad'
+        ];
+
+        $resena = $this->createMock(Resena::class);
+
+        $tokenProvider = $this->createMock(\App\Helpers\TokenProviderInterface::class);
+
+        $tokenProvider
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_usuario')
+            ->willReturn((object) [
+                'sub' => 1,
+                'rol_id' => 1,
+                'email' => 'test@test.com'
+            ]);
+
+        AutenticadorMiddleware::configure($tokenProvider);
+
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_usuario';
+
+        Request::setTestBody(
+            json_encode($datos, JSON_THROW_ON_ERROR)
+        );
 
         $this->service
-            ->expects($this->once())
-            ->method('listarPorCalificador')
-            ->with(1)
-            ->willReturn([]);
+            ->method('crear')
+            ->willReturn($resena);
 
-        ob_start();
-        $this->controller->listarPorCalificador($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->store()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
+        );
     }
 
-    
-    public function it_returns_not_found_when_calificador_not_exists()
+    public function test_el_controlador_puede_eliminar_una_resena(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->service
+            ->expects($this->once())
+            ->method('eliminar')
+            ->with(1, 1, 1);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(1)
+        );
+
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
+        );
+
+        $this->assertSame(
+            'Reseña eliminada exitosamente',
+            $response['message']
+        );
+    }
+
+    public function test_el_controlador_verifica_el_token_al_eliminar_una_resena(): void
+    {
+        $tokenProvider = $this->createMock(\App\Helpers\TokenProviderInterface::class);
+
+        $tokenProvider
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_usuario')
+            ->willReturn((object) [
+                'sub' => 1,
+                'rol_id' => 1,
+                'email' => 'test@test.com'
+            ]);
+
+        AutenticadorMiddleware::configure($tokenProvider);
+
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_usuario';
 
         $this->service
             ->expects($this->once())
-            ->method('listarPorCalificador')
-            ->with(999)
-            ->willThrowException(new \Exception("El usuario no existe", 404));
+            ->method('eliminar')
+            ->with(1, 1, 1);
 
-        ob_start();
-        $this->controller->listarPorCalificador($request, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(1)
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
+        );
     }
 }
