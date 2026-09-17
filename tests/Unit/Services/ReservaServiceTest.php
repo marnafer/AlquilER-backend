@@ -1000,6 +1000,15 @@ final class ReservaServiceTest extends TestCase
             ->with(2)
             ->willReturn(true);
 
+        $reservaEliminada = new Reserva();
+        $reservaEliminada->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($reservaEliminada);
+
         $this->reservaRepository
             ->expects($this->once())
             ->method('restore')
@@ -1057,9 +1066,19 @@ final class ReservaServiceTest extends TestCase
 
         $this->reservaRepository
             ->expects($this->once())
-            ->method('restore')
+            ->method('findDeletedById')
             ->with(999)
-            ->willReturn(false);
+            ->willReturn(null);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(999)
+            ->willReturn(null);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('restore');
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(
@@ -1068,6 +1087,45 @@ final class ReservaServiceTest extends TestCase
 
         $this->reservaService->restaurar(
             999,
+            99,
+            2
+        );
+    }
+
+    public function test_it_throws_exception_when_restoring_active_reserva(): void
+    {
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeRestaurar')
+            ->with(2)
+            ->willReturn(true);
+
+        $reservaActiva = new Reserva();
+        $reservaActiva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn(null);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reservaActiva);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La reserva no está eliminada'
+        );
+
+        $this->reservaService->restaurar(
+            1,
             99,
             2
         );

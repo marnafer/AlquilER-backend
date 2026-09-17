@@ -464,11 +464,17 @@ class ReservaService
         }
 
         $reserva = $this->reservaRepository
-            ->findById($id);
+            ->findDeletedById($id);
 
-        if ($reserva) {
-            throw new ConflictException(
-                'La reserva no está eliminada'
+        if (!$reserva) {
+            if ($this->reservaRepository->findById($id)) {
+                throw new ConflictException(
+                    'La reserva no está eliminada'
+                );
+            }
+
+            throw new NotFoundException(
+                'Reserva eliminada no encontrada'
             );
         }
 
