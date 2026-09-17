@@ -204,6 +204,8 @@ $router->get('/api/resenas/calificador/{calificadorId}', [$resenaController, 'ge
 
 $router->post('/api/resenas', [$resenaController, 'store']);
 
+$router->put('/api/resenas/{id}', [$resenaController, 'update']);
+
 $router->delete('/api/resenas/{id}', [$resenaController, 'delete']);
 
 /*

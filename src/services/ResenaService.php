@@ -8,6 +8,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
@@ -76,38 +77,10 @@ class ResenaService
                 ]
             ]);
         }
-<<<<<<< HEAD
-        
-        // Verificar permisos (solo el calificador o admin)
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || ($usuario->rol_id != 2 && $resena->calificador_id != $usuarioId)) {
-            throw new \Exception("No autorizado", 403);
-        }
-        
-        // Validar calificación si viene
-        if (isset($data['calificacion']) && ($data['calificacion'] < 1 || $data['calificacion'] > 5)) {
-            throw new \Exception("La calificación debe ser entre 1 y 5", 400);
-        }
-        
-        // No permitir cambiar campos críticos
-        unset($data['tipo']);
-        unset($data['calificado_id']);
-        unset($data['calificador_id']);
-        unset($data['reserva_id']);
-        unset($data['fecha_publicacion']);
-        
-        $resultado = $this->resenaRepository->update($id, $data);
-        
-        if ($resultado) {
-            $this->logService->registrar(
-                (int) $usuarioId,
-                'resena_actualizada'
-=======
 
         if (!$this->reservaRepository->findById($reservaId)) {
             throw new NotFoundException(
                 'Reserva no encontrada'
->>>>>>> fba7cc3816277d17ecfffab65957c9e1cd3c7f5d
             );
         }
 
@@ -133,13 +106,6 @@ class ResenaService
                 ]
             ]);
         }
-<<<<<<< HEAD
-        
-        // Solo admin puede eliminar
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || $usuario->rol_id != 2) {
-            throw new \Exception("No autorizado", 403);
-=======
 
         return $this->repository->getByPropiedad(
             $propiedadId
@@ -162,7 +128,6 @@ class ResenaService
                     $validacion['error']
                 ]
             ]);
->>>>>>> fba7cc3816277d17ecfffab65957c9e1cd3c7f5d
         }
 
         return $this->repository->getByUsuario(
@@ -210,42 +175,11 @@ class ResenaService
                 $validacion['errors']
             );
         }
-<<<<<<< HEAD
-        
-        return $resultado;
-    }
-    
-    public function restaurarResena(int $id, int $usuarioId): bool
-    {
-        $usuario = $this->usuarioRepository->findById($usuarioId);
-        if (!$usuario || $usuario->rol_id != 2) {
-            throw new \Exception("No autorizado", 403);
-        }
-        
-        $resultado = $this->resenaRepository->restore($id);
-        
-        if ($resultado) {
-            $this->logService->registrar(
-                (int) $usuarioId,
-                'resena_restaurada'
-            );
-        } else {
-            throw new \Exception("No se pudo restaurar la reseña o no existe", 404);
-        }
-        
-        return $resultado;
-    }
-    
-    public function obtenerResenasPorReserva(int $reservaId): array
-    {
-        $reserva = $this->reservaRepository->findById($reservaId);
-=======
 
         $reserva = $this->reservaRepository->findById(
             (int) $data['reserva_id']
         );
 
->>>>>>> fba7cc3816277d17ecfffab65957c9e1cd3c7f5d
         if (!$reserva) {
             throw new NotFoundException(
                 'Reserva no encontrada'
@@ -287,6 +221,95 @@ class ResenaService
         );
 
         return $resena;
+    }
+
+    public function actualizar(
+        $rawId,
+        array $rawData,
+        int $usuarioId,
+        int $rolId
+    ): void {
+        $id = ResenaSanitizer::sanitizarId(
+            $rawId
+        );
+
+        $validacion = ResenaValidator::validarSoloId(
+            $id
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        $resena = $this->repository->findById($id);
+
+        if (!$resena) {
+            throw new NotFoundException(
+                'Reseña no encontrada'
+            );
+        }
+
+        if ($rolId !== 2 && (int) $resena->calificador_id !== $usuarioId) {
+            throw new ForbiddenException(
+                'No tienes permiso para editar esta reseña'
+            );
+        }
+
+        $data = ResenaSanitizer::sanitizarActualizar(
+            $rawData
+        );
+
+        $cambios = [];
+
+        if ($data['calificacion'] !== null) {
+            $resultado = ResenaValidator::validarCalificacion(
+                $data['calificacion']
+            );
+
+            if (!$resultado['success']) {
+                throw new ValidationException([
+                    'calificacion' => [
+                        $resultado['error']
+                    ]
+                ]);
+            }
+
+            $cambios['calificacion'] = $data['calificacion'];
+        }
+
+        if ($data['comentario'] !== null) {
+            $resultado = ResenaValidator::validarComentario(
+                $data['comentario']
+            );
+
+            if (!$resultado['success']) {
+                throw new ValidationException([
+                    'comentario' => [
+                        $resultado['error']
+                    ]
+                ]);
+            }
+
+            $cambios['comentario'] = $data['comentario'];
+        }
+
+        if (empty($cambios)) {
+            throw new BadRequestException(
+                'No hay datos para actualizar'
+            );
+        }
+
+        $this->repository->update(
+            $resena,
+            $cambios
+        );
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Actualización de reseña'
+        );
     }
 
     public function eliminar(
