@@ -23,6 +23,11 @@ interface MensajeConsultaRepositoryInterface
     public function findById(int $id): ?MensajeConsulta;
 
     /**
+     * Actualiza el contenido de un mensaje existente.
+     */
+    public function update(int $id, array $data): bool;
+
+    /**
      * Elimina un mensaje (Soft Delete).
      */
     public function delete(int $id): void;
