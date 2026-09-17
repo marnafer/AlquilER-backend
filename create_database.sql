@@ -293,6 +293,7 @@ CREATE TABLE IF NOT EXISTS `reservas` (
   `fecha_fin_alquiler` date DEFAULT NULL,
   `estado` enum('pendiente','confirmada','rechazada','cancelada','finalizada') DEFAULT 'pendiente',
   `fecha_reserva` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_confirmacion` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

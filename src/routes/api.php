@@ -158,6 +158,10 @@ $router->put('/api/reservas/{id}/confirmar',[$reservaController, 'confirm']);
 
 $router->put('/api/reservas/{id}/rechazar',[$reservaController, 'reject']);
 
+$router->put('/api/reservas/{id}/finalizar',[$reservaController, 'finalize']);
+
+$router->put('/api/reservas/{id}/cancelar',[$reservaController, 'cancel']);
+
 $router->delete('/api/reservas/{id}', [$reservaController, 'delete']);
 
 $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);

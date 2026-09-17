@@ -242,6 +242,100 @@ class ReservaService
         return $resultado;
     }
 
+    public function finalizar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): bool {
+        $reserva = $this->obtener(
+            $rawId,
+            $usuarioId,
+            $rolId
+        );
+
+        if (!$this->policy->puedeFinalizar(
+            $usuarioId,
+            $rolId,
+            $reserva
+        )) {
+            throw new ForbiddenException(
+                'No tienes permiso para finalizar esta reserva'
+            );
+        }
+
+        if ($reserva->estado !== 'confirmada') {
+            throw new BadRequestException(
+                'Solo se puede finalizar una reserva confirmada'
+            );
+        }
+
+        $resultado = $this->reservaRepository->update(
+            $reserva->id,
+            [
+                'estado' => 'finalizada'
+            ]
+        );
+
+        if ($resultado) {
+            $this->logService->registrar(
+                $usuarioId,
+                'reserva_finalizada'
+            );
+        }
+
+        return $resultado;
+    }
+
+    public function cancelar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): bool {
+        $reserva = $this->obtener(
+            $rawId,
+            $usuarioId,
+            $rolId
+        );
+
+        if (!$this->policy->puedeCancelar(
+            $usuarioId,
+            $rolId,
+            $reserva
+        )) {
+            throw new ForbiddenException(
+                'No tienes permiso para cancelar esta reserva'
+            );
+        }
+
+        if (
+            !in_array(
+                $reserva->estado,
+                ['pendiente', 'confirmada'],
+                true
+            )
+        ) {
+            throw new BadRequestException(
+                'Solo se puede cancelar una reserva pendiente o confirmada'
+            );
+        }
+
+        $resultado = $this->reservaRepository->update(
+            $reserva->id,
+            [
+                'estado' => 'cancelada'
+            ]
+        );
+
+        if ($resultado) {
+            $this->logService->registrar(
+                $usuarioId,
+                'reserva_cancelada'
+            );
+        }
+
+        return $resultado;
+    }
+
     public function actualizar(
         $rawId,
         array $rawData,
