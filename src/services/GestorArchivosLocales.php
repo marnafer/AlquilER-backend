@@ -10,7 +10,7 @@ final class GestorArchivosLocales implements GestorArchivosInterface
 {
     public function upload(array $file, string $directory): string
     {
-        if (!is_dir($directory) && !mkdir($directory, 0755, true)) {
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new BadRequestException(
                 'No se pudo crear el directorio de imágenes'
             );
