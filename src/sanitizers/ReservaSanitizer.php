@@ -5,18 +5,14 @@ namespace App\Sanitizers;
 class ReservaSanitizer
 {
     /**
-     * Sanitizar reserva completa
+     * Sanitizar datos para crear reserva
      */
-    public static function sanitizar(array $data): array
+    public static function sanitizarCrear(array $data): array
     {
         return [
-            'id' => self::sanitizarId($data['id'] ?? null),
-            'propiedad_id' => self::sanitizarId($data['propiedad_id'] ?? null),
-            'usuario_id' => self::sanitizarId($data['usuario_id'] ?? null),
-            'fecha_inicio_alquiler' => self::sanitizarFecha($data['fecha_inicio_alquiler'] ?? null),
-            'fecha_fin_alquiler' => self::sanitizarFecha($data['fecha_fin_alquiler'] ?? null),
-            'estado' => self::sanitizarEstado($data['estado'] ?? null),
-            'fecha_reserva' => self::sanitizarFechaHora($data['fecha_reserva'] ?? null)
+            'propiedad_id' => self::sanitizarId(
+                $data['propiedad_id'] ?? null
+            )
         ];
     }
 
@@ -29,42 +25,16 @@ class ReservaSanitizer
             return null;
         }
 
-        $id = filter_var($id, FILTER_VALIDATE_INT);
+        $id = filter_var(
+            $id,
+            FILTER_VALIDATE_INT
+        );
 
-        return ($id !== false && $id > 0)
+        return (
+            $id !== false &&
+            $id > 0
+        )
             ? $id
-            : null;
-    }
-
-    /**
-     * Sanitizar fecha (Y-m-d)
-     */
-    public static function sanitizarFecha($fecha): ?string
-    {
-        if ($fecha === null || $fecha === '') {
-            return null;
-        }
-
-        $timestamp = strtotime($fecha);
-
-        return $timestamp
-            ? date('Y-m-d', $timestamp)
-            : null;
-    }
-
-    /**
-     * Sanitizar fecha y hora
-     */
-    public static function sanitizarFechaHora($fecha): ?string
-    {
-        if ($fecha === null || $fecha === '') {
-            return null;
-        }
-
-        $timestamp = strtotime($fecha);
-
-        return $timestamp
-            ? date('Y-m-d H:i:s', $timestamp)
             : null;
     }
 
@@ -73,7 +43,10 @@ class ReservaSanitizer
      */
     public static function sanitizarEstado($estado): ?string
     {
-        if ($estado === null || $estado === '') {
+        if (
+            $estado === null ||
+            trim($estado) === ''
+        ) {
             return null;
         }
 
@@ -83,22 +56,23 @@ class ReservaSanitizer
     }
 
     /**
-     * Sanitizar solo estado
+     * Sanitizar ID de reserva
      */
-    public static function sanitizarSoloEstado($estado): ?string
+    public static function sanitizarReservaId($id): ?int
     {
-        return self::sanitizarEstado($estado);
+        return self::sanitizarId($id);
     }
 
     /**
-     * Sanitizar solo IDs
+     * Sanitizar estado para actualización
      */
-    public static function sanitizarIds(array $data): array
-    {
+    public static function sanitizarActualizarEstado(
+        array $data
+    ): array {
         return [
-            'id' => self::sanitizarId($data['id'] ?? null),
-            'propiedad_id' => self::sanitizarId($data['propiedad_id'] ?? null),
-            'usuario_id' => self::sanitizarId($data['usuario_id'] ?? null)
+            'estado' => self::sanitizarEstado(
+                $data['estado'] ?? null
+            )
         ];
     }
 }

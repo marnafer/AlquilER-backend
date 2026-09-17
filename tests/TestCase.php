@@ -8,6 +8,7 @@ use App\Helpers\Request;
 use App\Helpers\TokenProviderInterface;
 use App\Middlewares\AutenticadorMiddleware;
 use PHPUnit\Framework\MockObject\MockObject;
+use App\Exceptions\GlobalExceptionHandler;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -108,8 +109,8 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Ejecuta $fn capturando el output y atrapando el throw
-     * que Response::json lanza en APP_ENV=testing.
+     * Captura la respuesta de un controlador durante $fn.
+     * 
      */
     protected function captureResponse(callable $fn): string
     {
@@ -123,8 +124,14 @@ abstract class TestCase extends BaseTestCase
                 throw $e;
             }
         } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
+            try {
+                GlobalExceptionHandler::handle($e);
+            } catch (\Error $responseError) {
+                if ($responseError->getMessage() !== '__RESPONSE_SENT__') {
+                    ob_end_clean();
+                    throw $responseError;
+                }
+            }
         }
 
         return ob_get_clean() ?: '';
@@ -138,6 +145,15 @@ abstract class TestCase extends BaseTestCase
         $body = $this->captureResponse($fn);
         $decoded = json_decode($body, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    protected function captureJsonWithBody(
+        string $json,
+        callable $fn
+    ): array {
+        return $this->captureJson(
+            fn() => $this->withJsonBody($json, $fn)
+        );
     }
 
     /**

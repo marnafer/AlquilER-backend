@@ -1,7 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Services;
 
+use App\Exceptions\BadRequestException;
+use App\Exceptions\ConflictException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
 use App\Models\Favorito;
 use App\Models\Propiedad;
 use App\Policies\FavoritoPolicy;
@@ -11,7 +18,7 @@ use App\Services\FavoritoService;
 use App\Services\LogActividadService;
 use PHPUnit\Framework\TestCase;
 
-class FavoritoServiceTest extends TestCase
+final class FavoritoServiceTest extends TestCase
 {
     private $favoritoRepository;
     private $propiedadRepository;
@@ -24,7 +31,7 @@ class FavoritoServiceTest extends TestCase
         parent::setUp();
 
         $this->favoritoRepository = $this->createMock(
-        FavoritoRepositoryInterface::class
+            FavoritoRepositoryInterface::class
         );
 
         $this->propiedadRepository = $this->createMock(
@@ -36,7 +43,7 @@ class FavoritoServiceTest extends TestCase
         );
 
         $this->policyMock = $this->createMock(
-            \App\Policies\FavoritoPolicy::class
+            FavoritoPolicy::class
         );
 
         $this->service = new FavoritoService(
@@ -47,7 +54,13 @@ class FavoritoServiceTest extends TestCase
         );
     }
 
-    public function test_obtener_favoritos_devuelve_los_favoritos_autorizados(): void
+    /*
+    |--------------------------------------------------------------------------
+    | LISTAR
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_it_can_list_favoritos_of_authorized_user(): void
     {
         $favoritos = [
             [
@@ -69,41 +82,16 @@ class FavoritoServiceTest extends TestCase
             ->with(5)
             ->willReturn($favoritos);
 
-        $resultado = $this->service->obtenerFavoritos(
+        $result = $this->service->listar(
             5,
-            5,
+            '5',
             1
         );
 
-        $this->assertSame($favoritos, $resultado);
+        $this->assertSame($favoritos, $result);
     }
 
-    public function test_obtener_favoritos_lanza_excepcion_si_no_tiene_permiso(): void
-    {
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeVerDeUsuario')
-            ->with(5, 1, 8)
-            ->willReturn(false);
-
-        $this->favoritoRepository
-            ->expects($this->never())
-            ->method('getByUserId');
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionCode(403);
-        $this->expectExceptionMessage(
-            'No tienes permiso para consultar los favoritos de este usuario'
-        );
-
-        $this->service->obtenerFavoritos(
-            5,
-            8,
-            1
-        );
-    }
-
-    public function test_obtener_favoritos_permite_a_un_administrador(): void
+    public function test_it_can_list_favoritos_as_admin(): void
     {
         $favoritos = [
             [
@@ -125,44 +113,145 @@ class FavoritoServiceTest extends TestCase
             ->with(8)
             ->willReturn($favoritos);
 
-        $resultado = $this->service->obtenerFavoritos(
+        $result = $this->service->listar(
             5,
-            8,
+            '8',
             2
         );
 
-        $this->assertSame($favoritos, $resultado);
+        $this->assertSame($favoritos, $result);
     }
 
-    public function test_obtener_ids_favoritos_devuelve_los_ids(): void
+    public function test_it_throws_validation_exception_when_listar_id_is_invalid(): void
     {
-        $ids = [10, 20, 30];
+        $this->policyMock
+            ->expects($this->never())
+            ->method('puedeVerDeUsuario');
 
         $this->favoritoRepository
-            ->expects($this->once())
-            ->method('getPropiedadIdsByUser')
-            ->with(5)
-            ->willReturn($ids);
+            ->expects($this->never())
+            ->method('getByUserId');
 
-        $resultado = $this->service->obtenerIdsFavoritos(5);
+        $this->expectException(ValidationException::class);
 
-        $this->assertSame($ids, $resultado);
+        $this->service->listar(
+            5,
+            'abc',
+            1
+        );
     }
 
-    public function test_es_favorito_devuelve_true_si_existe(): void
+    public function test_it_throws_validation_exception_when_listar_id_is_zero(): void
     {
+        $this->policyMock
+            ->expects($this->never())
+            ->method('puedeVerDeUsuario');
+
         $this->favoritoRepository
-            ->expects($this->once())
-            ->method('exists')
-            ->with(5, 10)
-            ->willReturn(true);
+            ->expects($this->never())
+            ->method('getByUserId');
 
-        $resultado = $this->service->esFavorito(5, 10);
+        $this->expectException(ValidationException::class);
 
-        $this->assertTrue($resultado);
+        $this->service->listar(
+            5,
+            '0',
+            1
+        );
     }
 
-    public function test_agregar_favorito_rechaza_propiedad_inexistente(): void
+    public function test_it_throws_forbidden_exception_when_user_is_not_authorized(): void
+    {
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeVerDeUsuario')
+            ->with(5, 1, 8)
+            ->willReturn(false);
+
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('getByUserId');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para consultar los favoritos de este usuario'
+        );
+
+        $this->service->listar(
+            5,
+            '8',
+            1
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | AGREGAR
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_it_throws_validation_exception_when_create_data_is_invalid(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('add');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->agregar(
+            [
+                'propiedad_id' => null
+            ],
+            5
+        );
+    }
+
+    public function test_it_throws_validation_exception_when_property_id_is_invalid(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('add');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->agregar(
+            [
+                'propiedad_id' => 'abc'
+            ],
+            5
+        );
+    }
+
+    public function test_it_rejects_invalid_user_id_when_adding_favorito(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('add');
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage('ID de usuario inválido');
+
+        $this->service->agregar(
+            [
+                'propiedad_id' => 10
+            ],
+            0
+        );
+    }
+
+    public function test_it_throws_exception_when_property_does_not_exist(): void
     {
         $this->propiedadRepository
             ->expects($this->once())
@@ -170,16 +259,25 @@ class FavoritoServiceTest extends TestCase
             ->with(10)
             ->willReturn(null);
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionCode(404);
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('add');
+
+        $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('La propiedad no existe');
 
-        $this->service->agregarFavorito(5, 10);
+        $this->service->agregar(
+            [
+                'propiedad_id' => '10'
+            ],
+            5
+        );
     }
 
-    public function test_agregar_favorito_rechaza_la_propia_propiedad(): void
+    public function test_it_rejects_own_property(): void
     {
         $propiedad = new Propiedad();
+
         $propiedad->id = 10;
         $propiedad->usuario_id = 5;
 
@@ -193,18 +291,59 @@ class FavoritoServiceTest extends TestCase
             ->expects($this->never())
             ->method('add');
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionCode(400);
+        $this->expectException(BadRequestException::class);
         $this->expectExceptionMessage(
             'No puedes agregar tu propia propiedad a favoritos'
         );
 
-        $this->service->agregarFavorito(5, 10);
+        $this->service->agregar(
+            [
+                'propiedad_id' => '10'
+            ],
+            5
+        );
     }
 
-    public function test_agregar_favorito_crea_el_favorito_y_registra_actividad(): void
+    public function test_it_throws_conflict_when_favorito_already_exists(): void
     {
         $propiedad = new Propiedad();
+
+        $propiedad->id = 10;
+        $propiedad->usuario_id = 8;
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($propiedad);
+
+        $this->favoritoRepository
+            ->expects($this->once())
+            ->method('add')
+            ->with(5, 10)
+            ->willReturn(false);
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La propiedad ya está en favoritos'
+        );
+
+        $this->service->agregar(
+            [
+                'propiedad_id' => '10'
+            ],
+            5
+        );
+    }
+
+    public function test_it_can_create_favorito_and_register_activity(): void
+    {
+        $propiedad = new Propiedad();
+
         $propiedad->id = 10;
         $propiedad->usuario_id = 8;
 
@@ -223,14 +362,71 @@ class FavoritoServiceTest extends TestCase
         $this->logService
             ->expects($this->once())
             ->method('registrar')
-            ->with(5, 'favorito_agregado');
+            ->with(
+                5,
+                'favorito_agregado'
+            );
 
-        $resultado = $this->service->agregarFavorito(5, 10);
+        $result = $this->service->agregar(
+            [
+                'propiedad_id' => '10'
+            ],
+            5
+        );
 
-        $this->assertTrue($resultado);
+        $this->assertTrue($result);
     }
 
-    public function test_eliminar_favorito_rechaza_favorito_inexistente(): void
+    /*
+    |--------------------------------------------------------------------------
+    | ELIMINAR
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_it_throws_validation_exception_when_property_id_is_invalid_on_delete(): void
+    {
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('findByUsuarioAndPropiedad');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->eliminar(
+            'abc',
+            5
+        );
+    }
+
+    public function test_it_throws_validation_exception_when_property_id_is_zero_on_delete(): void
+    {
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('findByUsuarioAndPropiedad');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->eliminar(
+            '0',
+            5
+        );
+    }
+
+    public function test_it_rejects_invalid_user_id_when_deleting(): void
+    {
+        $this->favoritoRepository
+            ->expects($this->never())
+            ->method('findByUsuarioAndPropiedad');
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage('ID de usuario inválido');
+
+        $this->service->eliminar(
+            '10',
+            0
+        );
+    }
+
+    public function test_it_throws_exception_when_favorito_does_not_exist(): void
     {
         $this->favoritoRepository
             ->expects($this->once())
@@ -238,18 +434,21 @@ class FavoritoServiceTest extends TestCase
             ->with(5, 10)
             ->willReturn(null);
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionCode(404);
+        $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(
             'La propiedad no está en favoritos'
         );
 
-        $this->service->eliminarFavorito(5, 10);
+        $this->service->eliminar(
+            '10',
+            5
+        );
     }
 
-    public function test_eliminar_favorito_rechaza_si_policy_no_autoriza(): void
+    public function test_it_throws_forbidden_exception_when_policy_does_not_allow_delete(): void
     {
         $favorito = new Favorito();
+
         $favorito->usuario_id = 8;
         $favorito->propiedad_id = 10;
 
@@ -269,18 +468,61 @@ class FavoritoServiceTest extends TestCase
             ->expects($this->never())
             ->method('remove');
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionCode(403);
+        $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage(
             'No tienes permiso para eliminar este favorito'
         );
 
-        $this->service->eliminarFavorito(5, 10);
+        $this->service->eliminar(
+            '10',
+            5
+        );
     }
 
-    public function test_eliminar_favorito_elimina_y_registra_actividad(): void
+    public function test_it_throws_exception_when_repository_does_not_delete(): void
     {
         $favorito = new Favorito();
+
+        $favorito->usuario_id = 5;
+        $favorito->propiedad_id = 10;
+
+        $this->favoritoRepository
+            ->expects($this->once())
+            ->method('findByUsuarioAndPropiedad')
+            ->with(5, 10)
+            ->willReturn($favorito);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeEliminar')
+            ->with(5, $favorito)
+            ->willReturn(true);
+
+        $this->favoritoRepository
+            ->expects($this->once())
+            ->method('remove')
+            ->with(5, 10)
+            ->willReturn(false);
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'No se pudo eliminar el favorito'
+        );
+
+        $this->service->eliminar(
+            '10',
+            5
+        );
+    }
+
+    public function test_it_can_delete_favorito_and_register_activity(): void
+    {
+        $favorito = new Favorito();
+
         $favorito->usuario_id = 5;
         $favorito->propiedad_id = 10;
 
@@ -305,47 +547,16 @@ class FavoritoServiceTest extends TestCase
         $this->logService
             ->expects($this->once())
             ->method('registrar')
-            ->with(5, 'favorito_eliminado');
+            ->with(
+                5,
+                'favorito_eliminado'
+            );
 
-        $resultado = $this->service->eliminarFavorito(5, 10);
-
-        $this->assertTrue($resultado);
-    }
-
-    public function test_contar_favoritos_devuelve_la_cantidad(): void
-    {
-        $this->favoritoRepository
-            ->expects($this->once())
-            ->method('countByPropiedad')
-            ->with(10)
-            ->willReturn(4);
-
-        $resultado = $this->service->contarFavoritos(10);
-
-        $this->assertSame(4, $resultado);
-    }
-
-    public function test_marcar_favoritos_en_listado_agrega_la_marca_correctamente(): void
-    {
-        $propiedades = [
-            ['id' => 10, 'titulo' => 'Casa'],
-            ['id' => 20, 'titulo' => 'Departamento'],
-            ['id' => 30, 'titulo' => 'Local']
-        ];
-
-        $this->favoritoRepository
-            ->expects($this->once())
-            ->method('getPropiedadIdsByUser')
-            ->with(5)
-            ->willReturn([10, 30]);
-
-        $resultado = $this->service->marcarFavoritosEnListado(
-            5,
-            $propiedades
+        $result = $this->service->eliminar(
+            '10',
+            5
         );
 
-        $this->assertTrue($resultado[0]['es_favorito']);
-        $this->assertFalse($resultado[1]['es_favorito']);
-        $this->assertTrue($resultado[2]['es_favorito']);
+        $this->assertTrue($result);
     }
 }

@@ -4,185 +4,270 @@ namespace App\Repositories;
 
 use App\Models\Resena;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class EloquentResenaRepository implements ResenaRepositoryInterface
 {
-    public function getAll(array $filtros = []): array
+    public function all(array $filtros = []): Collection
     {
-        $query = Resena::with([
-            'reserva',
-            'reserva.propiedad',
-            'reserva.usuario',
-            'calificado',
-            'calificador'
-        ]);
-        
-        // Filtros
+        $query = Resena::query()
+            ->with([
+                'reserva',
+                'reserva.propiedad',
+                'reserva.usuario',
+                'calificador',
+            ]);
+
         if (!empty($filtros['tipo'])) {
             $query->where('tipo', $filtros['tipo']);
         }
-        
-        if (!empty($filtros['calificacion'])) {
-            $query->where('calificacion', $filtros['calificacion']);
+
+        if (isset($filtros['calificacion'])) {
+            $query->where(
+                'calificacion',
+                $filtros['calificacion']
+            );
         }
-        
-        if (!empty($filtros['calificacion_min'])) {
-            $query->where('calificacion', '>=', $filtros['calificacion_min']);
+
+        if (isset($filtros['calificacion_min'])) {
+            $query->where(
+                'calificacion',
+                '>=',
+                $filtros['calificacion_min']
+            );
         }
-        
-        if (!empty($filtros['calificacion_max'])) {
-            $query->where('calificacion', '<=', $filtros['calificacion_max']);
+
+        if (isset($filtros['calificacion_max'])) {
+            $query->where(
+                'calificacion',
+                '<=',
+                $filtros['calificacion_max']
+            );
         }
-        
-        if (!empty($filtros['calificado_id'])) {
-            $query->where('calificado_id', $filtros['calificado_id']);
-        }
-        
-        if (!empty($filtros['calificador_id'])) {
-            $query->where('calificador_id', $filtros['calificador_id']);
-        }
-        
+
         if (!empty($filtros['reserva_id'])) {
-            $query->where('reserva_id', $filtros['reserva_id']);
+            $query->where(
+                'reserva_id',
+                $filtros['reserva_id']
+            );
         }
-        
+
+        if (!empty($filtros['calificador_id'])) {
+            $query->where(
+                'calificador_id',
+                $filtros['calificador_id']
+            );
+        }
+
         if (!empty($filtros['propiedad_id'])) {
-            $query->whereHas('reserva', function (Builder $q) use ($filtros) {
-                $q->where('propiedad_id', $filtros['propiedad_id']);
-            });
+            $query->whereHas(
+                'reserva',
+                function (Builder $query) use ($filtros): void {
+                    $query->where(
+                        'propiedad_id',
+                        $filtros['propiedad_id']
+                    );
+                }
+            );
         }
-        
+
         if (!empty($filtros['usuario_id'])) {
-            $query->whereHas('reserva', function (Builder $q) use ($filtros) {
-                $q->where('usuario_id', $filtros['usuario_id']);
-            });
+            $query->whereHas(
+                'reserva',
+                function (Builder $query) use ($filtros): void {
+                    $query->where(
+                        'usuario_id',
+                        $filtros['usuario_id']
+                    );
+                }
+            );
         }
-        
+
         if (!empty($filtros['fecha_desde'])) {
-            $query->where('fecha_publicacion', '>=', $filtros['fecha_desde']);
+            $query->where(
+                'fecha_publicacion',
+                '>=',
+                $filtros['fecha_desde']
+            );
         }
-        
+
         if (!empty($filtros['fecha_hasta'])) {
-            $query->where('fecha_publicacion', '<=', $filtros['fecha_hasta']);
+            $query->where(
+                'fecha_publicacion',
+                '<=',
+                $filtros['fecha_hasta']
+            );
         }
-        
-        if (!empty($filtros['incluir_eliminados']) && $filtros['incluir_eliminados'] === true) {
-            $query->withTrashed();
-        }
-        
-        if (!empty($filtros['solo_eliminados']) && $filtros['solo_eliminados'] === true) {
-            $query->onlyTrashed();
-        }
-        
-        $query->orderBy('fecha_publicacion', 'desc');
-        
-        return $query->get()->toArray();
+
+        return $query
+            ->orderByDesc('fecha_publicacion')
+            ->get();
     }
-    
-    public function findById(int $id)
+
+    public function findById(int $id): ?Resena
     {
-        return Resena::with([
-            'reserva',
-            'reserva.propiedad',
-            'reserva.usuario',
-            'calificado',
-            'calificador'
-        ])->withTrashed()->find($id);
+        return Resena::query()
+            ->with([
+                'reserva',
+                'reserva.propiedad',
+                'reserva.usuario',
+                'calificador',
+            ])
+            ->whereKey($id)
+            ->first();
     }
-    
-    public function create(array $data): int
+
+    public function findDeletedById(int $id): ?Resena
     {
-        $resena = Resena::create($data);
-        return $resena->id;
+        return Resena::onlyTrashed()
+            ->with([
+                'reserva',
+                'reserva.propiedad',
+                'reserva.usuario',
+                'calificador',
+            ])
+            ->whereKey($id)
+            ->first();
     }
-    
-    public function update(int $id, array $data): bool
+
+    public function create(array $data): Resena
     {
-        $resena = Resena::find($id);
-        if (!$resena) {
-            return false;
-        }
+        return Resena::create($data);
+    }
+
+    public function update(Resena $resena, array $data): bool
+    {
         return $resena->update($data);
     }
-    
-    public function delete(int $id): bool
+
+    public function delete(Resena $resena): bool
     {
-        $resena = Resena::find($id);
-        if (!$resena) {
-            return false;
-        }
-        return $resena->delete();
+        return (bool) $resena->delete();
     }
-    
-    public function restore(int $id): bool
+
+    public function restore(Resena $resena): bool
     {
-        $resena = Resena::withTrashed()->find($id);
-        if (!$resena) {
-            return false;
-        }
-        return $resena->restore();
+        return (bool) $resena->restore();
     }
-    
-    public function getByReserva(int $reservaId): array
+
+    public function getByReserva(int $reservaId): Collection
     {
-        return Resena::where('reserva_id', $reservaId)
-            ->with(['calificado', 'calificador'])
-            ->get()
-            ->toArray();
+        return Resena::query()
+            ->where('reserva_id', $reservaId)
+            ->with([
+                'reserva',
+                'reserva.propiedad',
+                'reserva.usuario',
+                'calificador',
+            ])
+            ->orderByDesc('fecha_publicacion')
+            ->get();
     }
-    
-    public function getByPropiedad(int $propiedadId): array
+
+    public function getByPropiedad(int $propiedadId): Collection
     {
-        return Resena::dePropiedad()
-            ->porPropiedad($propiedadId)
-            ->with(['calificador', 'reserva.usuario'])
-            ->orderBy('fecha_publicacion', 'desc')
-            ->get()
-            ->toArray();
+        return Resena::query()
+            ->where('tipo', 'propiedad')
+            ->whereHas(
+                'reserva',
+                function (Builder $query) use ($propiedadId): void {
+                    $query->where(
+                        'propiedad_id',
+                        $propiedadId
+                    );
+                }
+            )
+            ->with([
+                'reserva',
+                'reserva.usuario',
+                'calificador',
+            ])
+            ->orderByDesc('fecha_publicacion')
+            ->get();
     }
-    
-    public function getByUsuario(int $usuarioId): array
+
+    public function getByUsuario(int $usuarioId): Collection
     {
-        return Resena::deInquilino()
-            ->where('calificado_id', $usuarioId)
-            ->with(['calificador', 'reserva.propiedad'])
-            ->orderBy('fecha_publicacion', 'desc')
-            ->get()
-            ->toArray();
+        return Resena::query()
+            ->where('tipo', 'inquilino')
+            ->whereHas(
+                'reserva',
+                function (Builder $query) use ($usuarioId): void {
+                    $query->where(
+                        'usuario_id',
+                        $usuarioId
+                    );
+                }
+            )
+            ->with([
+                'reserva',
+                'reserva.propiedad',
+                'calificador',
+            ])
+            ->orderByDesc('fecha_publicacion')
+            ->get();
     }
-    
-    public function getByCalificador(int $calificadorId): array
+
+    public function getByCalificador(int $calificadorId): Collection
     {
-        return Resena::where('calificador_id', $calificadorId)
-            ->with(['calificado', 'reserva'])
-            ->orderBy('fecha_publicacion', 'desc')
-            ->get()
-            ->toArray();
+        return Resena::query()
+            ->where(
+                'calificador_id',
+                $calificadorId
+            )
+            ->with([
+                'reserva',
+                'reserva.propiedad',
+                'reserva.usuario',
+                'calificador',
+            ])
+            ->orderByDesc('fecha_publicacion')
+            ->get();
     }
-    
+
     public function getPromedioByPropiedad(int $propiedadId): float
     {
-        return Resena::dePropiedad()
-            ->porPropiedad($propiedadId)
-            ->avg('calificacion') ?? 0.0;
+        return (float) (
+            Resena::query()
+                ->where('tipo', 'propiedad')
+                ->whereHas(
+                    'reserva',
+                    function (Builder $query) use ($propiedadId): void {
+                        $query->where(
+                            'propiedad_id',
+                            $propiedadId
+                        );
+                    }
+                )
+                ->avg('calificacion') ?? 0
+        );
     }
-    
+
     public function getPromedioByUsuario(int $usuarioId): float
     {
-        return Resena::deInquilino()
-            ->where('calificado_id', $usuarioId)
-            ->avg('calificacion') ?? 0.0;
+        return (float) (
+            Resena::query()
+                ->where('tipo', 'inquilino')
+                ->whereHas(
+                    'reserva',
+                    function (Builder $query) use ($usuarioId): void {
+                        $query->where(
+                            'usuario_id',
+                            $usuarioId
+                        );
+                    }
+                )
+                ->avg('calificacion') ?? 0
+        );
     }
-    
-    public function existePorReservaYTipo(int $reservaId, string $tipo): bool
-    {
-        return Resena::where('reserva_id', $reservaId)
+
+    public function existePorReservaYTipo(
+        int $reservaId,
+        string $tipo
+    ): bool {
+        return Resena::query()
+            ->where('reserva_id', $reservaId)
             ->where('tipo', $tipo)
             ->exists();
-    }
-    
-    public function existePorReserva(int $reservaId): bool
-    {
-        return Resena::where('reserva_id', $reservaId)->exists();
     }
 }

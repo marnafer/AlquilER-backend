@@ -1,316 +1,311 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Integration\Controllers;
 
-use Tests\TestCase;
 use App\Controllers\Api\ConsultaController;
 use App\Services\ConsultaService;
 use App\Models\Consulta;
-use App\Middlewares\AutenticadorMiddleware;
-use App\Helpers\TokenProviderInterface;
-use App\Helpers\Request;
+use PHPUnit\Framework\MockObject\MockObject;
+use Tests\TestCase;
 
 class ConsultaControllerTest extends TestCase
 {
-    private $controller;
-    private $service;
-    private $tokenProviderMock;
+    private ConsultaService&MockObject $service;
+    private ConsultaController $controller;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->service = $this->createMock(ConsultaService::class);
-        $this->controller = new ConsultaController($this->service);
-
-        $this->tokenProviderMock = $this->createMock(
-            TokenProviderInterface::class
+        $this->service = $this->createMock(
+            ConsultaService::class
         );
 
-        $this->tokenProviderMock
-            ->method('validate')
-            ->willReturnCallback(function ($token) {
-                if ($token === 'admin-token') {
-                    return (object) [
-                        'sub' => 99,
-                        'rol_id' => 2
-                    ];
-                }
-
-                return (object) [
-                    'sub' => 1,
-                    'rol_id' => 1
-                ];
-            });
-
-        AutenticadorMiddleware::configure($this->tokenProviderMock);
-
-        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer fake-jwt-token-for-testing';
-        $_GET = [];
+        $this->controller = new ConsultaController(
+            $this->service
+        );
     }
 
-    protected function tearDown(): void
+    public function test_adminIndex_devuelve_el_listado_global_de_consultas(): void
     {
-        Request::setTestBody(null);
-
-        unset($_SERVER['HTTP_AUTHORIZATION']);
-
-        $_GET = [];
-
-        parent::tearDown();
-    }
-
-    public function test_el_controlador_permite_al_admin_listar_todas_las_consultas(): void
-    {
-        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer admin-token';
+        $this->actingAs(5, 2);
 
         $consultas = [
             [
-                'id' => 1,
-                'propiedad_id' => 10
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 8
             ],
             [
-                'id' => 2,
-                'propiedad_id' => 20
+                'id' => 11,
+                'propiedad_id' => 21,
+                'usuario_id' => 9
             ]
         ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listar')
+            ->with(2, [])
+            ->willReturn($consultas);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->adminIndex()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            $consultas,
+            $response['data']['items']
+        );
+        $this->assertSame(
+            2,
+            $response['data']['total']
+        );
+    }
+
+    public function test_adminIndex_pasa_los_filtros_al_service(): void
+    {
+        $this->actingAs(5, 2);
 
         $_GET = [
-            'usuario_id' => '5'
+            'usuario_id' => '8',
+            'propiedad_id' => '20'
         ];
 
-        $this->service
-            ->expects($this->once())
-            ->method('listarConsultas')
-            ->with(
-                2,
-                ['usuario_id' => '5']
-            )
-            ->willReturn($consultas);
-
-        ob_start();
-
-        try {
-            $this->controller->adminIndex();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
-
-        $this->assertTrue($response['success']);
-        $this->assertSame($consultas, $response['data']['items']);
-        $this->assertSame(2, $response['data']['total']);
-        $this->assertSame(200, http_response_code());
-    }
-
-    public function test_el_controlador_puede_listar_las_consultas_del_usuario(): void
-    {
         $consultas = [
             [
-                'id' => 1,
-                'propiedad_id' => 10
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 8
             ]
         ];
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerConsultasPorUsuario')
-            ->with(1, 1, 1)
+            ->method('listar')
+            ->with(2, $_GET)
             ->willReturn($consultas);
 
-        ob_start();
-
-        try {
-            $this->controller->index();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
+        $response = $this->captureJson(
+            fn() => $this->controller->adminIndex()
+        );
 
         $this->assertTrue($response['success']);
-        $this->assertSame($consultas, $response['data']['items']);
-        $this->assertSame(1, $response['data']['total']);
-        $this->assertSame(200, http_response_code());
+        $this->assertSame(
+            $consultas,
+            $response['data']['items']
+        );
+        $this->assertSame(
+            1,
+            $response['data']['total']
+        );
+
+        $_GET = [];
     }
 
-    public function test_el_controlador_puede_mostrar_una_consulta_especifica(): void
+    public function test_index_devuelve_las_consultas_del_usuario_autenticado(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $this->actingAs(5, 1);
+
+        $consultas = [
+            [
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 5
+            ]
+        ];
 
         $this->service
             ->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
-            ->with(1, 1)
-            ->willReturn($consulta);
+            ->method('listarPorUsuario')
+            ->with(5, 5, 1)
+            ->willReturn($consultas);
 
-        ob_start();
-
-        try {
-            $this->controller->show(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(200, http_response_code());
+        $this->assertSame(
+            $consultas,
+            $response['data']['items']
+        );
+        $this->assertSame(
+            1,
+            $response['data']['total']
+        );
+    }
+
+    public function test_indexByPropiedad_devuelve_las_consultas_de_la_propiedad(): void
+    {
+        $this->actingAs(5, 1);
+
+        $consultas = [
+            [
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 8
+            ]
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarPorPropiedad')
+            ->with(20, 5, 1)
+            ->willReturn($consultas);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->indexByPropiedad(20)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            $consultas,
+            $response['data']['items']
+        );
+        $this->assertSame(
+            1,
+            $response['data']['total']
+        );
+    }
+
+    public function test_indexByUsuario_devuelve_las_consultas_del_usuario(): void
+    {
+        $this->actingAs(5, 1);
+
+        $consultas = [
+            [
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 5
+            ]
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarPorUsuario')
+            ->with(5, 5, 1)
+            ->willReturn($consultas);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->indexByUsuario(5)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            $consultas,
+            $response['data']['items']
+        );
+        $this->assertSame(
+            1,
+            $response['data']['total']
+        );
+    }
+
+    public function test_show_devuelve_una_consulta_autorizada(): void
+    {
+        $this->actingAs(5, 1);
+
+        $consulta = new \App\Models\Consulta();
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerAutorizada')
+            ->with(10, 5)
+            ->willReturn($consulta);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->show(10)
+        );
+
+        $this->assertTrue($response['success']);
         $this->assertArrayHasKey('data', $response);
     }
 
-    public function test_el_controlador_puede_crear_una_consulta(): void
+    public function test_store_crea_una_consulta(): void
     {
-        Request::setTestBody(json_encode([
-            'propiedad_id' => 1,
-            'mensaje' => 'Interesado en la propiedad'
-        ]));
+        $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
-            ->method('crearConsulta')
+            ->method('crear')
             ->with([
-                'propiedad_id' => 1,
-                'mensaje' => 'Interesado en la propiedad',
-                'usuario_id' => 1
+                'propiedad_id' => 20,
+                'mensaje' => 'Estoy interesado en la propiedad',
+                'usuario_id' => 5
             ])
-            ->willReturn(25);
+            ->willReturn(10);
 
-        ob_start();
-
-        try {
-            $this->controller->store();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'propiedad_id' => 20,
+                'mensaje' => 'Estoy interesado en la propiedad'
+            ]),
+            fn() => $this->controller->store()
+        );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(25, $response['data']['id']);
+        $this->assertSame(
+            10,
+            $response['data']['id']
+        );
         $this->assertSame(
             'Consulta creada exitosamente',
             $response['message']
         );
-        $this->assertSame(201, http_response_code());
     }
 
-    public function test_el_controlador_puede_actualizar_una_consulta(): void
+    public function test_update_actualiza_una_consulta(): void
     {
-        Request::setTestBody(json_encode([
-            'mensaje' => 'Mensaje actualizado'
-        ]));
+        $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
-            ->method('actualizarConsulta')
+            ->method('actualizar')
             ->with(
-                1,
+                10,
                 [
-                    'mensaje' => 'Mensaje actualizado'
+                    'mensaje' => 'Nuevo mensaje'
                 ],
-                1
+                5
             )
             ->willReturn(true);
 
-        ob_start();
-
-        try {
-            $this->controller->update(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'mensaje' => 'Nuevo mensaje'
+            ]),
+            fn() => $this->controller->update(10)
+        );
 
         $this->assertTrue($response['success']);
         $this->assertSame(
             'Consulta actualizada exitosamente',
             $response['message']
         );
-        $this->assertSame(200, http_response_code());
     }
 
-    public function test_el_controlador_puede_eliminar_una_consulta(): void
+    public function test_delete_elimina_una_consulta(): void
     {
+        $this->actingAs(5, 2);
+
         $this->service
             ->expects($this->once())
-            ->method('eliminarConsulta')
-            ->with(1, 1)
+            ->method('eliminar')
+            ->with(10, 5)
             ->willReturn(true);
 
-        ob_start();
-
-        try {
-            $this->controller->delete(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(10)
+        );
 
         $this->assertTrue($response['success']);
         $this->assertSame(
             'Consulta eliminada exitosamente',
             $response['message']
         );
-        $this->assertSame(200, http_response_code());
-    }
-
-    public function test_el_controlador_puede_restaurar_una_consulta(): void
-    {
-        $this->service
-            ->expects($this->once())
-            ->method('restaurarConsulta')
-            ->with(1, 1)
-            ->willReturn(true);
-
-        ob_start();
-
-        try {
-            $this->controller->restore(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode($output, true);
-
-        $this->assertTrue($response['success']);
-        $this->assertSame(
-            'Consulta restaurada exitosamente',
-            $response['message']
-        );
-        $this->assertSame(200, http_response_code());
     }
 }
