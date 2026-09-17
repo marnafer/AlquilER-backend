@@ -17,6 +17,8 @@ class Reserva extends Model
         'propiedad_id',
         'usuario_id',
         'estado',
+        'fecha_inicio_alquiler',
+        'fecha_fin_alquiler',
         'fecha_confirmacion'
     ];
 

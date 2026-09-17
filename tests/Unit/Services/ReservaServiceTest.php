@@ -332,6 +332,7 @@ final class ReservaServiceTest extends TestCase
         $result = $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => '2026-10-01',
             ],
             1
         );
@@ -359,6 +360,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->crear(
             [
                 'propiedad_id' => 999,
+                'fecha_inicio_alquiler' => '2026-10-01',
             ],
             1
         );
@@ -396,6 +398,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => '2026-10-01',
             ],
             1
         );
@@ -433,6 +436,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => '2026-10-01',
             ],
             1
         );

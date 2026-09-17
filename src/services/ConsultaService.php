@@ -111,6 +111,21 @@ class ConsultaService
         return $consulta;
     }
 
+    /**
+     * Alias de obtenerAutorizada.
+     *
+     * MensajeConsultaService lo invoca con este nombre.
+     */
+    public function obtenerConsultaAutorizada(
+        $rawConsultaId,
+        int $usuarioLogueadoId
+    ): Consulta {
+        return $this->obtenerAutorizada(
+            $rawConsultaId,
+            $usuarioLogueadoId
+        );
+    }
+
     public function crear(array $rawData): int
     {
         $data = ConsultaSanitizer::sanitizarConsulta(

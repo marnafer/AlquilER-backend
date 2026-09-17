@@ -12,8 +12,32 @@ class ReservaSanitizer
         return [
             'propiedad_id' => self::sanitizarId(
                 $data['propiedad_id'] ?? null
+            ),
+            'fecha_inicio_alquiler' => self::sanitizarFecha(
+                $data['fecha_inicio_alquiler'] ?? null
+            ),
+            'fecha_fin_alquiler' => self::sanitizarFecha(
+                $data['fecha_fin_alquiler'] ?? null
             )
         ];
+    }
+
+    /**
+     * Sanitizar fecha en formato Y-m-d
+     */
+    public static function sanitizarFecha($fecha): ?string
+    {
+        if ($fecha === null || trim($fecha) === '') {
+            return null;
+        }
+
+        $fecha = trim($fecha);
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) !== 1) {
+            return null;
+        }
+
+        return $fecha;
     }
 
     /**
