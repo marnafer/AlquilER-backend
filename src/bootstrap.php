@@ -70,6 +70,7 @@ use App\Policies\FavoritoPolicy;
 use App\Policies\PropiedadImagenPolicy;
 use App\Policies\PropiedadPolicy;
 use App\Policies\ResenaPolicy;
+use App\Policies\ReservaPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
@@ -99,6 +100,7 @@ $favoritoPolicy = new FavoritoPolicy();
 $propiedadPolicy = new PropiedadPolicy();
 $propiedadImagenPolicy = new PropiedadImagenPolicy();
 $resenaPolicy = new ResenaPolicy();
+$reservaPolicy = new ReservaPolicy();
 
 // INSTANCIAR SERVICES
 $logActividadService = new LogActividadService(
@@ -168,6 +170,7 @@ $favoritoService = new FavoritoService(
 $reservaService = new ReservaService(
     $reservaRepository,
     $propiedadRepository,
+    $reservaPolicy,
     $logActividadService
 );
 
