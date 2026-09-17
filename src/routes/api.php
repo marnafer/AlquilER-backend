@@ -141,14 +141,12 @@ $router->get('/api/usuarios/{id}/favoritos', [$favoritoController, 'indexByUsuar
 $router->delete('/api/favoritos/propiedad/{propiedad_id}', [$favoritoController, 'deleteByPropiedad']);
 
 /*
-|--------------------------------------------------------------------------
-| RESERVAS
-|--------------------------------------------------------------------------
-*/
+ |--------------------------------------------------------------------------
+ | RESERVAS
+ |--------------------------------------------------------------------------
+ */
 
 $router->get('/api/reservas', [$reservaController, 'index']);
-
-$router->get('/api/reservas/mis-reservas', [$reservaController, 'misReservas']);
 
 $router->get('/api/reservas/{id}', [$reservaController, 'show']);
 
@@ -156,25 +154,13 @@ $router->post('/api/reservas', [$reservaController, 'store']);
 
 $router->put('/api/reservas/{id}', [$reservaController, 'update']);
 
-$router->put('/api/reservas/{id}/aprobar', [$reservaController, 'aprobar']);
+$router->put('/api/reservas/{id}/confirmar',[$reservaController, 'confirm']);
 
-$router->put('/api/reservas/{id}/rechazar', [$reservaController, 'rechazar']);
-
-$router->put('/api/reservas/{id}/cancelar', [$reservaController, 'cancelar']);
-
-$router->put('/api/reservas/{id}/finalizar', [$reservaController, 'finalizar']);
+$router->put('/api/reservas/{id}/rechazar',[$reservaController, 'reject']);
 
 $router->delete('/api/reservas/{id}', [$reservaController, 'delete']);
 
-$router->post('/api/reservas/{id}/restaurar', [$reservaController, 'restore']);
-
-$router->get('/api/reservas/usuario/{usuarioId}', [$reservaController, 'misReservas']);
-
-$router->get('/api/reservas/propiedad/{propiedadId}', [$reservaController, 'reservasPorPropiedad']);
-
-$router->patch('/api/reservas/{id}/estado', [$reservaController, 'cambiarEstado']);
-
-$router->get('/api/reservas/verificar-disponibilidad', [$reservaController, 'verificarDisponibilidad']);
+$router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
