@@ -8,9 +8,12 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
 use App\Policies\FavoritoPolicy;
 use App\Repositories\FavoritoRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
+use App\Sanitizers\FavoritoSanitizer;
+use App\Validators\FavoritoValidator;
 
 class FavoritoService
 {
@@ -31,13 +34,26 @@ class FavoritoService
         $this->policy = $policy;
     }
 
+    /**
+     * Obtener los favoritos de un usuario.
+     */
     public function listar(
         int $usuarioId,
-        int $usuarioConsultadoId,
+        $rawUsuarioConsultadoId,
         int $rolId
     ): array {
-        if ($usuarioId <= 0 || $usuarioConsultadoId <= 0) {
-            return [];
+        $usuarioConsultadoId = FavoritoSanitizer::sanitizarId(
+            $rawUsuarioConsultadoId
+        );
+
+        $validacion = FavoritoValidator::validarSoloId(
+            $usuarioConsultadoId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         if (
@@ -57,46 +73,35 @@ class FavoritoService
         );
     }
 
-    public function listarIds(int $usuarioId): array
-    {
-        if ($usuarioId <= 0) {
-            return [];
-        }
 
-        return $this->favoritoRepository->getPropiedadIdsByUser(
-            $usuarioId
-        );
-    }
-
-    public function verificar(
-        int $usuarioId,
-        int $propiedadId
-    ): bool {
-        if ($usuarioId <= 0 || $propiedadId <= 0) {
-            return false;
-        }
-
-        return $this->favoritoRepository->exists(
-            $usuarioId,
-            $propiedadId
-        );
-    }
-
+    /**
+     * Agregar una propiedad a favoritos.
+     */
     public function agregar(
-        int $usuarioId,
-        int $propiedadId
+        array $rawData,
+        int $usuarioId
     ): bool {
+        $data = FavoritoSanitizer::sanitizarCrear(
+            $rawData
+        );
+
+        $validacion = FavoritoValidator::validarCrear(
+            $data
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
         if ($usuarioId <= 0) {
             throw new BadRequestException(
                 'ID de usuario inválido'
             );
         }
 
-        if ($propiedadId <= 0) {
-            throw new BadRequestException(
-                'ID de propiedad inválido'
-            );
-        }
+        $propiedadId = (int) $data['propiedad_id'];
 
         $propiedad = $this->propiedadRepository->findById(
             $propiedadId
@@ -136,19 +141,30 @@ class FavoritoService
         return true;
     }
 
+    /**
+     * Eliminar una propiedad de favoritos.
+     */
     public function eliminar(
-        int $usuarioId,
-        int $propiedadId
+        $rawPropiedadId,
+        int $usuarioId
     ): bool {
-        if ($usuarioId <= 0) {
-            throw new BadRequestException(
-                'ID de usuario inválido'
+        $propiedadId = FavoritoSanitizer::sanitizarId(
+            $rawPropiedadId
+        );
+
+        $validacion = FavoritoValidator::validarSoloId(
+            $propiedadId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
             );
         }
 
-        if ($propiedadId <= 0) {
+        if ($usuarioId <= 0) {
             throw new BadRequestException(
-                'ID de propiedad inválido'
+                'ID de usuario inválido'
             );
         }
 
@@ -164,7 +180,10 @@ class FavoritoService
             );
         }
 
-        if (!$this->policy->puedeEliminar($usuarioId, $favorito)) {
+        if (!$this->policy->puedeEliminar(
+            $usuarioId,
+            $favorito
+        )) {
             throw new ForbiddenException(
                 'No tienes permiso para eliminar este favorito'
             );
@@ -187,38 +206,5 @@ class FavoritoService
         );
 
         return true;
-    }
-
-    public function contar(int $propiedadId): int
-    {
-        if ($propiedadId <= 0) {
-            return 0;
-        }
-
-        return $this->favoritoRepository->countByPropiedad(
-            $propiedadId
-        );
-    }
-
-    public function marcarEnListado(
-        int $usuarioId,
-        array $propiedades
-    ): array {
-        if (empty($propiedades) || $usuarioId <= 0) {
-            return $propiedades;
-        }
-
-        $idsFavoritos = $this->favoritoRepository
-            ->getPropiedadIdsByUser($usuarioId);
-
-        foreach ($propiedades as &$propiedad) {
-            $propiedad['es_favorito'] = in_array(
-                $propiedad['id'] ?? null,
-                $idsFavoritos,
-                true
-            );
-        }
-
-        return $propiedades;
     }
 }

@@ -1,32 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Sanitizers;
 
 class FavoritoSanitizer
 {
-    public static function sanitizarFavorito(
-        $data
-    ): array {
-
+    /**
+     * Sanitizar datos para crear un favorito.
+     *
+     * El usuario_id no se recibe del cliente.
+     * Se obtiene desde el JWT en el Service/Controller.
+     */
+    public static function sanitizarCrear(array $data): array
+    {
         return [
-            'id' => self::sanitizarIdFavorito(
-                $data['id'] ?? null
-            ),
-
-            'usuario_id' => self::sanitizarUsuarioId(
-                $data['usuario_id'] ?? null
-            ),
-
-            'propiedad_id' => self::sanitizarPropiedadId(
+            'propiedad_id' => self::sanitizarId(
                 $data['propiedad_id'] ?? null
             )
         ];
     }
 
-    public static function sanitizarIdFavorito(
-        $id
-    ) {
-
+    /**
+     * Sanitizar un ID recibido desde una ruta.
+     */
+    public static function sanitizarId($id): ?int
+    {
         if ($id === null || $id === '') {
             return null;
         }
@@ -44,51 +43,11 @@ class FavoritoSanitizer
             : null;
     }
 
-    public static function sanitizarUsuarioId(
-        $usuarioId
-    ) {
-
-        if (
-            $usuarioId === null ||
-            $usuarioId === ''
-        ) {
-            return null;
-        }
-
-        $usuarioId = filter_var(
-            $usuarioId,
-            FILTER_VALIDATE_INT
-        );
-
-        return (
-            $usuarioId !== false &&
-            $usuarioId > 0
-        )
-            ? $usuarioId
-            : null;
-    }
-
-    public static function sanitizarPropiedadId(
-        $propiedadId
-    ) {
-
-        if (
-            $propiedadId === null ||
-            $propiedadId === ''
-        ) {
-            return null;
-        }
-
-        $propiedadId = filter_var(
-            $propiedadId,
-            FILTER_VALIDATE_INT
-        );
-
-        return (
-            $propiedadId !== false &&
-            $propiedadId > 0
-        )
-            ? $propiedadId
-            : null;
+    /**
+     * Sanitizar el ID de una propiedad.
+     */
+    public static function sanitizarPropiedadId($propiedadId): ?int
+    {
+        return self::sanitizarId($propiedadId);
     }
 }

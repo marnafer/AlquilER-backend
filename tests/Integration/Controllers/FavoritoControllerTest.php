@@ -5,18 +5,25 @@ declare(strict_types=1);
 namespace Tests\Integration\Controllers;
 
 use App\Controllers\Api\FavoritoController;
+use App\Helpers\Request;
+use App\Helpers\Response;
+use App\Middlewares\AutenticadorMiddleware;
 use App\Services\FavoritoService;
 use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 class FavoritoControllerTest extends TestCase
 {
-    private FavoritoService&MockObject $service;
+    /** @var FavoritoService&MockObject */
+    private FavoritoService $service;
+
     private FavoritoController $controller;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        Response::setTesting(true);
 
         $this->service = $this->createMock(
             FavoritoService::class
@@ -25,12 +32,29 @@ class FavoritoControllerTest extends TestCase
         $this->controller = new FavoritoController(
             $this->service
         );
+
+        $this->actingAs(5, 1);
     }
 
-    public function test_index_devuelve_los_favoritos_del_usuario_autenticado(): void
+    protected function tearDown(): void
     {
-        $this->actingAs(5, 1);
+        Request::setTestBody(null);
 
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        Response::setTesting(false);
+
+        parent::tearDown();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | INDEX
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_el_controlador_puede_listar_los_favoritos_del_usuario(): void
+    {
         $favoritos = [
             [
                 'id' => 10,
@@ -50,81 +74,113 @@ class FavoritoControllerTest extends TestCase
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(
-            $favoritos,
-            $response['data']
-        );
+        $this->assertSame($favoritos, $response['data']);
+        $this->assertSame(200, http_response_code());
     }
 
-    public function test_store_agrega_una_propiedad_a_favoritos(): void
+    /*
+    |--------------------------------------------------------------------------
+    | STORE
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_el_controlador_puede_agregar_una_propiedad_a_favoritos(): void
     {
-        $this->actingAs(5, 1);
+        $datos = [
+            'propiedad_id' => 20
+        ];
+
+        Request::setTestBody(
+            json_encode($datos, JSON_THROW_ON_ERROR)
+        );
 
         $this->service
             ->expects($this->once())
             ->method('agregar')
-            ->with(5, 20)
+            ->with($datos, 5)
             ->willReturn(true);
 
-        $response = $this->captureJsonWithBody(
-            '{"propiedad_id":20}',
+        $response = $this->captureJson(
             fn() => $this->controller->store()
         );
 
         $this->assertTrue($response['success']);
+
         $this->assertSame(
             20,
             $response['data']['propiedad_id']
         );
+
         $this->assertTrue(
             $response['data']['es_favorito']
         );
+
+        $this->assertSame(
+            'Propiedad agregada a favoritos',
+            $response['message']
+        );
+
+        $this->assertSame(201, http_response_code());
     }
 
-    public function test_store_rechaza_propiedad_id_faltante(): void
+    public function test_el_controlador_verifica_el_token_al_agregar_favorito(): void
     {
-        $this->actingAs(5, 1);
+        $datos = [
+            'propiedad_id' => 20
+        ];
+
+        $tokenProvider = $this->createMock(
+            \App\Helpers\TokenProviderInterface::class
+        );
+
+        $tokenProvider
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_usuario')
+            ->willReturn((object) [
+                'sub' => 5,
+                'rol_id' => 1,
+                'email' => 'test@test.com'
+            ]);
+
+        AutenticadorMiddleware::configure(
+            $tokenProvider
+        );
+
+        $_SERVER['HTTP_AUTHORIZATION'] =
+            'Bearer token_usuario';
+
+        Request::setTestBody(
+            json_encode($datos, JSON_THROW_ON_ERROR)
+        );
 
         $this->service
-            ->expects($this->never())
-            ->method('agregar');
+            ->expects($this->once())
+            ->method('agregar')
+            ->with($datos, 5)
+            ->willReturn(true);
 
-        $response = $this->captureJsonWithBody(
-            '{}',
+        $response = $this->captureJson(
             fn() => $this->controller->store()
         );
 
-        $this->assertFalse($response['success']);
-        $this->assertSame(
-            'El campo propiedad_id es requerido y debe ser numérico',
-            $response['error']
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
         );
     }
 
-    public function test_store_rechaza_propiedad_id_no_numerico(): void
+    /*
+    |--------------------------------------------------------------------------
+    | INDEX BY USUARIO
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_el_controlador_puede_obtener_favoritos_de_otro_usuario_como_admin(): void
     {
-        $this->actingAs(5, 1);
-
-        $this->service
-            ->expects($this->never())
-            ->method('agregar');
-
-        $response = $this->captureJsonWithBody(
-            '{"propiedad_id":"abc"}',
-            fn() => $this->controller->store()
-        );
-
-        $this->assertFalse($response['success']);
-        $this->assertSame(
-            'El campo propiedad_id es requerido y debe ser numérico',
-            $response['error']
-        );
-    }
-
-    public function test_indexByUsuario_permite_al_administrador_consultar_otro_usuario(): void
-    {
-        $this->actingAs(5, 2);
-
         $favoritos = [
             [
                 'id' => 10,
@@ -132,6 +188,8 @@ class FavoritoControllerTest extends TestCase
                 'propiedad_id' => 20
             ]
         ];
+
+        $this->actingAs(5, 2);
 
         $this->service
             ->expects($this->once())
@@ -144,39 +202,72 @@ class FavoritoControllerTest extends TestCase
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(
-            $favoritos,
-            $response['data']
-        );
+        $this->assertSame($favoritos, $response['data']);
+        $this->assertSame(200, http_response_code());
     }
 
-    public function test_indexByUsuario_rechaza_id_invalido(): void
+    public function test_el_controlador_verifica_el_token_al_obtener_favoritos_de_usuario(): void
     {
-        $this->actingAs(5, 1);
-
-        $this->service
-            ->expects($this->never())
-            ->method('listar');
-
-        $response = $this->captureJson(
-            fn() => $this->controller->indexByUsuario(0)
+        $tokenProvider = $this->createMock(
+            \App\Helpers\TokenProviderInterface::class
         );
 
-        $this->assertFalse($response['success']);
-        $this->assertSame(
-            'ID de usuario inválido',
-            $response['error']
-        );
-    }
+        $tokenProvider
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_usuario')
+            ->willReturn((object) [
+                'sub' => 5,
+                'rol_id' => 1,
+                'email' => 'test@test.com'
+            ]);
 
-    public function test_deleteByPropiedad_elimina_el_favorito(): void
-    {
-        $this->actingAs(5, 1);
+        AutenticadorMiddleware::configure(
+            $tokenProvider
+        );
+
+        $_SERVER['HTTP_AUTHORIZATION'] =
+            'Bearer token_usuario';
+
+        $favoritos = [
+            [
+                'id' => 10,
+                'usuario_id' => 5,
+                'propiedad_id' => 20
+            ]
+        ];
 
         $this->service
             ->expects($this->once())
+            ->method('listar')
+            ->with(5, 5, 1)
+            ->willReturn($favoritos);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->indexByUsuario(5)
+        );
+
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE BY PROPIEDAD
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_el_controlador_puede_eliminar_un_favorito(): void
+    {
+        $this->service
+            ->expects($this->once())
             ->method('eliminar')
-            ->with(5, 20)
+            ->with(20, 5)
             ->willReturn(true);
 
         $response = $this->captureJson(
@@ -184,28 +275,54 @@ class FavoritoControllerTest extends TestCase
         );
 
         $this->assertTrue($response['success']);
+
         $this->assertSame(
             'Propiedad eliminada de favoritos',
             $response['message']
         );
+
+        $this->assertSame(200, http_response_code());
     }
 
-    public function test_deleteByPropiedad_rechaza_id_invalido(): void
+    public function test_el_controlador_verifica_el_token_al_eliminar_favorito(): void
     {
-        $this->actingAs(5, 1);
-
-        $this->service
-            ->expects($this->never())
-            ->method('eliminar');
-
-        $response = $this->captureJson(
-            fn() => $this->controller->deleteByPropiedad(0)
+        $tokenProvider = $this->createMock(
+            \App\Helpers\TokenProviderInterface::class
         );
 
-        $this->assertFalse($response['success']);
-        $this->assertSame(
-            'ID de propiedad inválido',
-            $response['error']
+        $tokenProvider
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_usuario')
+            ->willReturn((object) [
+                'sub' => 5,
+                'rol_id' => 1,
+                'email' => 'test@test.com'
+            ]);
+
+        AutenticadorMiddleware::configure(
+            $tokenProvider
+        );
+
+        $_SERVER['HTTP_AUTHORIZATION'] =
+            'Bearer token_usuario';
+
+        $this->service
+            ->expects($this->once())
+            ->method('eliminar')
+            ->with(20, 5)
+            ->willReturn(true);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->deleteByPropiedad(20)
+        );
+
+        $this->assertTrue(
+            $response['success'] ?? false,
+            json_encode(
+                $response,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
         );
     }
 }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
 use App\Helpers\Request;
-use App\Services\FavoritoService;
+use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Services\FavoritoService;
 
 class FavoritoController
 {
@@ -18,6 +18,9 @@ class FavoritoController
         $this->service = $service;
     }
 
+    /**
+     * Obtener los favoritos del usuario autenticado.
+     */
     public function index(): void
     {
         $user = AutenticadorMiddleware::verificar();
@@ -38,6 +41,9 @@ class FavoritoController
         );
     }
 
+    /**
+     * Agregar una propiedad a favoritos.
+     */
     public function store(): void
     {
         $user = AutenticadorMiddleware::verificar();
@@ -46,52 +52,33 @@ class FavoritoController
 
         $data = Request::json();
 
-        if (
-            !isset($data['propiedad_id'])
-            || !is_numeric($data['propiedad_id'])
-        ) {
-            Response::badRequest(
-                'El campo propiedad_id es requerido y debe ser numérico'
-            );
-
-            return;
-        }
-
-        $propiedadId = (int) $data['propiedad_id'];
-
         $this->service->agregar(
-            $usuarioId,
-            $propiedadId
+            $data,
+            $usuarioId
         );
 
         Response::created(
             [
-                'propiedad_id' => $propiedadId,
+                'propiedad_id' => $data['propiedad_id'] ?? null,
                 'es_favorito' => true
             ],
             'Propiedad agregada a favoritos'
         );
     }
 
+    /**
+     * Obtener los favoritos de un usuario específico.
+     */
     public function indexByUsuario($id): void
     {
         $user = AutenticadorMiddleware::verificar();
 
         $usuarioId = (int) $user->sub;
         $rolId = (int) $user->rol_id;
-        $usuarioConsultadoId = (int) $id;
-
-        if ($usuarioConsultadoId <= 0) {
-            Response::badRequest(
-                'ID de usuario inválido'
-            );
-
-            return;
-        }
 
         $favoritos = $this->service->listar(
             $usuarioId,
-            $usuarioConsultadoId,
+            $id,
             $rolId
         );
 
@@ -102,26 +89,18 @@ class FavoritoController
         );
     }
 
+    /**
+     * Eliminar una propiedad de favoritos.
+     */
     public function deleteByPropiedad($propiedadId): void
     {
         $user = AutenticadorMiddleware::verificar();
 
         $usuarioId = (int) $user->sub;
 
-        if (
-            !is_numeric($propiedadId)
-            || (int) $propiedadId <= 0
-        ) {
-            Response::badRequest(
-                'ID de propiedad inválido'
-            );
-
-            return;
-        }
-
         $this->service->eliminar(
-            $usuarioId,
-            (int) $propiedadId
+            $propiedadId,
+            $usuarioId
         );
 
         Response::success(
