@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Servicio;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 
 interface ServicioRepositoryInterface
 {
@@ -11,9 +11,9 @@ interface ServicioRepositoryInterface
 
     public function findById(int $id): ?Servicio;
 
-    public function findByIds(array $ids): Collection;
-
     public function findDeletedById(int $id): ?Servicio;
+
+    public function findByIds(array $ids): Collection;
 
     public function existsByName(
         string $nombre,
@@ -24,7 +24,10 @@ interface ServicioRepositoryInterface
 
     public function create(array $data): Servicio;
 
-    public function update(Servicio $servicio, array $data): bool;
+    public function update(
+        Servicio $servicio,
+        array $data
+    ): bool;
 
     public function delete(Servicio $servicio): bool;
 

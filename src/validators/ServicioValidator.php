@@ -4,109 +4,111 @@ namespace App\Validators;
 
 class ServicioValidator
 {
-    /**
-     * Valida ID de servicio
-     */
-    public static function validarIdServicio($id): array
+    public static function validarId($id): ?string
     {
         if ($id === null || $id === '') {
-            return [
-                'success' => false,
-                'error' => 'El ID de servicio es requerido. Debe ser un numero entero positivo'
-            ];
+            return 'El ID de servicio es requerido';
         }
 
         if (!is_numeric($id)) {
-            return [
-                'success' => false,
-                'error' => 'El ID de servicio debe ser numérico'
-            ];
+            return 'El ID de servicio debe ser numérico';
         }
 
-        if ((int)$id <= 0) {
-            return [
-                'success' => false,
-                'error' => 'El ID de servicio debe ser positivo'
-            ];
+        if ((int) $id <= 0) {
+            return 'El ID de servicio debe ser mayor a cero';
         }
 
-        return [
-            'success' => true,
-            'error' => null
-        ];
+        if (filter_var($id, FILTER_VALIDATE_INT) === false) {
+            return 'El ID de servicio debe ser un entero válido';
+        }
+
+        return null;
     }
 
-    /**
-     * Valida nombre de servicio
-     */
-    public static function validarNombreServicio(?string $nombre): array
-    {
+    public static function validarNombre(
+        ?string $nombre
+    ): ?string {
         if ($nombre === null || $nombre === '') {
-            return [
-                'success' => false,
-                'error' => 'El nombre del servicio es requerido'
-            ];
+            return 'El nombre del servicio es requerido';
         }
 
         $len = mb_strlen($nombre);
 
         if ($len < 3) {
-            return [
-                'success' => false,
-                'error' => 'El nombre debe tener al menos 3 caracteres'
-            ];
+            return 'El nombre debe tener al menos 3 caracteres';
         }
 
         if ($len > 50) {
-            return [
-                'success' => false,
-                'error' => 'El nombre no puede superar los 50 caracteres'
-            ];
+            return 'El nombre no puede superar los 50 caracteres';
         }
 
-        if (!preg_match('/^[\p{L}\p{N}\s\-\&]+$/u', $nombre)) {
-            return [
-                'success' => false,
-                'error' => 'El nombre solo puede contener letras, números, espacios, guiones y &'
-            ];
+        if (!preg_match(
+            '/^[\p{L}\p{N}\s\-\&]+$/u',
+            $nombre
+        )) {
+            return 'El nombre solo puede contener letras, números, espacios, guiones y &';
         }
 
-        return [
-            'success' => true,
-            'error' => null
-        ];
+        return null;
     }
 
-    /**
-     * Valida payload completo de servicio
-     */
-    public static function validarServicio(array $data, bool $requerirId = false): array
-    {
+    public static function validar(
+        array $data,
+        bool $requerirId = false
+    ): array {
         $errores = [];
 
         if ($requerirId) {
-            $id = self::validarIdServicio($data['id'] ?? null);
+            $error = self::validarId(
+                $data['id'] ?? null
+            );
 
-            if (!$id['success']) {
-                $errores['id'] = $id['error'];
+            if ($error) {
+                $errores['id'] = $error;
             }
         }
 
-        $nombre = self::validarNombreServicio($data['nombre'] ?? null);
+        $error = self::validarNombre(
+            $data['nombre'] ?? null
+        );
 
-        if (!$nombre['success']) {
-            $errores['nombre'] = $nombre['error'];
+        if ($error) {
+            $errores['nombre'] = $error;
         }
 
         if (!empty($errores)) {
             return [
                 'success' => false,
+                'message' => 'Error de validación',
                 'errors' => $errores
             ];
         }
 
         return [
             'success' => true,
+            'message' => 'Validación exitosa',
+            'errors' => null
+        ];
+    }
+
+    public static function validarSoloId(
+        $id
+    ): array {
+        $error = self::validarId($id);
+
+        if ($error) {
+            return [
+                'success' => false,
+                'message' => 'ID inválido',
+                'errors' => [
+                    'id' => $error
+                ]
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'ID válido',
             'errors' => null
         ];
     }

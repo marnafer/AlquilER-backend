@@ -11,19 +11,19 @@ class Servicio extends Model
 
     protected $table = 'servicios';
 
-    public $timestamps = false;
-
     protected $fillable = [
         'nombre'
     ];
+
+    public $timestamps = false;
 
     public function propiedades()
     {
         return $this->belongsToMany(
             Propiedad::class,
-            'propiedad_servicio',   
-            'servicio_id',         
-            'propiedad_id'          
+            'propiedad_servicio',
+            'servicio_id',
+            'propiedad_id'
         );
     }
 }

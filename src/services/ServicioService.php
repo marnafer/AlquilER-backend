@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Exceptions\NotFoundException;
-use App\Exceptions\ValidationException;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
 use App\Models\Servicio;
 use App\Repositories\ServicioRepositoryInterface;
 use App\Sanitizers\ServicioSanitizer;
@@ -32,20 +32,26 @@ class ServicioService
 
     public function obtener($rawId): Servicio
     {
-        $id = ServicioSanitizer::sanitizarIdServicio($rawId);
+        $id = ServicioSanitizer::sanitizarId(
+            $rawId
+        );
 
-        $validacion = ServicioValidator::validarIdServicio($id);
+        $error = ServicioValidator::validarId(
+            $id
+        );
 
-        if (!$validacion['success']) {
+        if ($error) {
             throw new ValidationException([
-                'id' => [$validacion['error']]
+                'id' => [$error]
             ]);
         }
 
         $servicio = $this->repository->findById($id);
 
         if (!$servicio) {
-            throw new NotFoundException('Servicio no encontrado');
+            throw new NotFoundException(
+                'Servicio no encontrado'
+            );
         }
 
         return $servicio;
@@ -53,26 +59,38 @@ class ServicioService
 
     public function crear(array $rawData): Servicio
     {
-        $data = ServicioSanitizer::sanitizarServicio($rawData);
+        $data = ServicioSanitizer::sanitizar(
+            $rawData
+        );
 
-        $validacion = ServicioValidator::validarServicio($data);
+        $validacion = ServicioValidator::validar(
+            $data
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
-        if ($this->repository->existsByName($data['nombre'])) {
+        if (
+            $this->repository->existsByName(
+                $data['nombre']
+            )
+        ) {
             throw new ConflictException(
-                    'Servicio existente, no se puede crear otro con el mismo nombre'
+                'Servicio existente, no se puede crear otro con el mismo nombre'
             );
         }
 
         return $this->repository->create($data);
     }
 
-    public function actualizar($rawId, array $rawData): Servicio
-    {
-         $servicio = $this->obtener($rawId);
+    public function actualizar(
+        $rawId,
+        array $rawData
+    ): void {
+        $servicio = $this->obtener($rawId);
 
         if ($rawData === []) {
             throw new BadRequestException(
@@ -100,42 +118,64 @@ class ServicioService
             );
         }
 
-        $data = ServicioSanitizer::sanitizarActualizacionServicio($datosRecibidos);
+        $data = ServicioSanitizer::sanitizarActualizacion(
+            $datosRecibidos
+        );
 
-        $validacionData = ServicioValidator::validarServicio($data);
+        $validacion = ServicioValidator::validar(
+            $data
+        );
 
-        if (!$validacionData['success']) {
-            throw new ValidationException($validacionData['errors']);
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
-        if ($this->repository->existsByName($data['nombre'], $servicio->id)) {
-            throw new ConflictException('Ya existe un servicio con ese nombre');
+        if (
+            $this->repository->existsByName(
+                $data['nombre'],
+                $servicio->id
+            )
+        ) {
+            throw new ConflictException(
+                'Ya existe un servicio con ese nombre'
+            );
         }
 
-        $this->repository->update($servicio, $data);
-
-        return $servicio;
+        $this->repository->update(
+            $servicio,
+            $data
+        );
     }
 
     public function eliminar($rawId): void
     {
-        $id = ServicioSanitizer::sanitizarIdServicio($rawId);
+        $id = ServicioSanitizer::sanitizarId(
+            $rawId
+        );
 
-        $validacionId = ServicioValidator::validarIdServicio($id);
+        $error = ServicioValidator::validarId(
+            $id
+        );
 
-        if (!$validacionId['success']) {
+        if ($error) {
             throw new ValidationException([
-                'id' => [$validacionId['error']]
+                'id' => [$error]
             ]);
         }
 
         $servicio = $this->repository->findById($id);
 
         if (!$servicio) {
-            throw new NotFoundException('Servicio no encontrado');
+            throw new NotFoundException(
+                'Servicio no encontrado'
+            );
         }
 
-        if ($this->repository->hasProperties($servicio)) {
+        if (
+            $this->repository->hasProperties($servicio)
+        ) {
             throw new ConflictException(
                 'No se puede eliminar el servicio porque tiene propiedades asociadas'
             );
@@ -146,20 +186,26 @@ class ServicioService
 
     public function restaurar($rawId): void
     {
-        $id = ServicioSanitizer::sanitizarIdServicio($rawId);
+        $id = ServicioSanitizer::sanitizarId(
+            $rawId
+        );
 
-        $validacionId = ServicioValidator::validarIdServicio($id);
+        $error = ServicioValidator::validarId(
+            $id
+        );
 
-        if (!$validacionId['success']) {
+        if ($error) {
             throw new ValidationException([
-                'id' => [$validacionId['error']]
+                'id' => [$error]
             ]);
         }
 
         $servicio = $this->repository->findDeletedById($id);
 
         if (!$servicio) {
-            throw new NotFoundException('Servicio no encontrado o no eliminado');
+            throw new NotFoundException(
+                'Servicio no encontrado o no eliminado'
+            );
         }
 
         if (
@@ -175,6 +221,4 @@ class ServicioService
 
         $this->repository->restore($servicio);
     }
-
-}    
-    
+}
