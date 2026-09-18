@@ -10,7 +10,7 @@ class EloquentRolRepository implements RolRepositoryInterface
     public function all(): Collection
     {
         return Rol::query()
-            ->orderBy('id', 'asc')
+            ->orderByDesc('id')
             ->get();
     }
 
@@ -21,8 +21,15 @@ class EloquentRolRepository implements RolRepositoryInterface
             ->first();
     }
 
-    public function existsByName(string $nombre, ?int $exceptId = null): bool
+    public function findDeletedById(int $id): ?Rol
     {
+        return Rol::onlyTrashed()->find($id);
+    }
+
+    public function existsByName(
+        string $nombre,
+        ?int $exceptId = null
+    ): bool {
         $query = Rol::query()
             ->where('nombre', $nombre);
 
@@ -51,11 +58,6 @@ class EloquentRolRepository implements RolRepositoryInterface
     public function delete(Rol $rol): bool
     {
         return (bool) $rol->delete();
-    }
-
-    public function findDeletedById(int $id): ?Rol
-    {
-        return Rol::onlyTrashed()->find($id);
     }
 
     public function restore(Rol $rol): bool

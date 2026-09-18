@@ -11,6 +11,8 @@ interface RolRepositoryInterface
 
     public function findById(int $id): ?Rol;
 
+    public function findDeletedById(int $id): ?Rol;
+
     public function existsByName(
         string $nombre,
         ?int $exceptId = null
@@ -23,8 +25,6 @@ interface RolRepositoryInterface
     public function update(Rol $rol, array $data): bool;
 
     public function delete(Rol $rol): bool;
-
-    public function findDeletedById(int $id): ?Rol;
 
     public function restore(Rol $rol): bool;
 }
