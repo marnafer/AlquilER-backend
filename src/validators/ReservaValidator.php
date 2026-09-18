@@ -153,6 +153,24 @@ class ReservaValidator
             $errores['propiedad_id'] = $resultado['error'];
         }
 
+        $fechaInicio = $data['fecha_inicio_alquiler'] ?? null;
+
+        if ($fechaInicio === null || $fechaInicio === '') {
+            $errores['fecha_inicio_alquiler'] = 'La fecha de inicio del alquiler es requerida';
+        } elseif (!self::esFechaValida((string) $fechaInicio)) {
+            $errores['fecha_inicio_alquiler'] = 'La fecha de inicio del alquiler no es válida';
+        }
+
+        if (
+            isset($data['fecha_fin_alquiler']) &&
+            $data['fecha_fin_alquiler'] !== null &&
+            $data['fecha_fin_alquiler'] !== ''
+        ) {
+            if (!self::esFechaValida((string) $data['fecha_fin_alquiler'])) {
+                $errores['fecha_fin_alquiler'] = 'La fecha de fin del alquiler no es válida';
+            }
+        }
+
         if (!empty($errores)) {
             return [
                 'success' => false,
@@ -166,6 +184,20 @@ class ReservaValidator
             'message' => 'Validación exitosa',
             'errors' => null
         ];
+    }
+
+    /**
+     * Indica si una fecha en formato Y-m-d es válida
+     */
+    private static function esFechaValida(string $fecha): bool
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) !== 1) {
+            return false;
+        }
+
+        [$anio, $mes, $dia] = array_map('intval', explode('-', $fecha));
+
+        return checkdate($mes, $dia, $anio);
     }
 
     /**

@@ -8,6 +8,8 @@ interface ReservaRepositoryInterface
 
     public function findById(int $id);
 
+    public function findDeletedById(int $id);
+
     public function create(array $data): int;
 
     public function update(int $id, array $data): bool;

@@ -8,6 +8,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
@@ -220,6 +221,95 @@ class ResenaService
         );
 
         return $resena;
+    }
+
+    public function actualizar(
+        $rawId,
+        array $rawData,
+        int $usuarioId,
+        int $rolId
+    ): void {
+        $id = ResenaSanitizer::sanitizarId(
+            $rawId
+        );
+
+        $validacion = ResenaValidator::validarSoloId(
+            $id
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        $resena = $this->repository->findById($id);
+
+        if (!$resena) {
+            throw new NotFoundException(
+                'Reseña no encontrada'
+            );
+        }
+
+        if ($rolId !== 2 && (int) $resena->calificador_id !== $usuarioId) {
+            throw new ForbiddenException(
+                'No tienes permiso para editar esta reseña'
+            );
+        }
+
+        $data = ResenaSanitizer::sanitizarActualizar(
+            $rawData
+        );
+
+        $cambios = [];
+
+        if ($data['calificacion'] !== null) {
+            $resultado = ResenaValidator::validarCalificacion(
+                $data['calificacion']
+            );
+
+            if (!$resultado['success']) {
+                throw new ValidationException([
+                    'calificacion' => [
+                        $resultado['error']
+                    ]
+                ]);
+            }
+
+            $cambios['calificacion'] = $data['calificacion'];
+        }
+
+        if ($data['comentario'] !== null) {
+            $resultado = ResenaValidator::validarComentario(
+                $data['comentario']
+            );
+
+            if (!$resultado['success']) {
+                throw new ValidationException([
+                    'comentario' => [
+                        $resultado['error']
+                    ]
+                ]);
+            }
+
+            $cambios['comentario'] = $data['comentario'];
+        }
+
+        if (empty($cambios)) {
+            throw new BadRequestException(
+                'No hay datos para actualizar'
+            );
+        }
+
+        $this->repository->update(
+            $resena,
+            $cambios
+        );
+
+        $this->logActividadService->registrar(
+            $usuarioId,
+            'Actualización de reseña'
+        );
     }
 
     public function eliminar(

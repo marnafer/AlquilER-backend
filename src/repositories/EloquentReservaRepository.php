@@ -65,6 +65,11 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
             ->find($id);
     }
 
+    public function findDeletedById(int $id)
+    {
+        return Reserva::onlyTrashed()->find($id);
+    }
+
     public function create(array $data): int
     {
         $reserva = Reserva::create($data);

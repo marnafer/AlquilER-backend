@@ -25,6 +25,17 @@ class EloquentMensajeConsultaRepository implements MensajeConsultaRepositoryInte
         return MensajeConsulta::find($id);
     }
 
+    public function update(int $id, array $data): bool
+    {
+        $mensaje = MensajeConsulta::find($id);
+
+        if (!$mensaje) {
+            return false;
+        }
+
+        return $mensaje->update($data);
+    }
+
     public function delete(int $id): void
     {
         MensajeConsulta::destroy($id);

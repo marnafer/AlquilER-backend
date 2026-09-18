@@ -62,7 +62,9 @@ class ResenaController
         }
 
         Response::success(
-            $this->service->listar($filtros)
+            $this->service->listar($filtros),
+            200,
+            'Reseñas obtenidas correctamente'
         );
     }
 
@@ -70,7 +72,9 @@ class ResenaController
     public function show($id)
     {
         Response::success(
-            $this->service->obtener($id)
+            $this->service->obtener($id),
+            200,
+            'Reseña encontrada'
         );
     }
 
@@ -78,7 +82,9 @@ class ResenaController
     public function getByReserva($reservaId)
     {
         Response::success(
-            $this->service->obtenerPorReserva($reservaId)
+            $this->service->obtenerPorReserva($reservaId),
+            200,
+            'Reseñas de la reserva obtenidas'
         );
     }
 
@@ -97,7 +103,7 @@ class ResenaController
             'items' => $resenas,
             'total' => $resenas->count(),
             'promedio' => $promedio,
-        ]);
+        ], 200, 'Reseñas de la propiedad obtenidas');
     }
 
     // GET /api/resenas/usuario/{usuarioId}
@@ -115,16 +121,16 @@ class ResenaController
             'items' => $resenas,
             'total' => $resenas->count(),
             'promedio' => $promedio,
-        ]);
+        ], 200, 'Reseñas del usuario obtenidas');
     }
 
     // GET /api/resenas/calificador/{calificadorId}
     public function getByCalificador($calificadorId)
     {
         Response::success(
-            $this->service->obtenerPorCalificador(
-                $calificadorId
-            )
+            $this->service->obtenerPorCalificador($calificadorId),
+            200,
+            'Reseñas del calificador obtenidas'
         );
     }
 
@@ -144,13 +150,32 @@ class ResenaController
         );
     }
 
+    // PUT /api/resenas/{id}
+    public function update($id)
+    {
+        $usuario = AutenticadorMiddleware::verificar();
+
+        $this->service->actualizar(
+            (int) $id,
+            Request::json(),
+            (int) $usuario->sub,
+            (int) $usuario->rol_id
+        );
+
+        Response::success(
+            null,
+            200,
+            'Reseña actualizada correctamente'
+        );
+    }
+
     // DELETE /api/resenas/{id}
     public function delete($id)
     {
         $usuario = AutenticadorMiddleware::verificar();
 
         $this->service->eliminar(
-            $id,
+            (int) $id,
             (int) $usuario->sub,
             (int) $usuario->rol_id
         );

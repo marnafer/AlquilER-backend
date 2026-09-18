@@ -110,6 +110,42 @@ class ReservaController
         );
     }
 
+    // PUT /api/reservas/{id}/finalizar
+    public function finalize($id)
+    {
+        $usuario = AutenticadorMiddleware::verificar();
+
+        $this->service->finalizar(
+            $id,
+            (int) $usuario->sub,
+            (int) $usuario->rol_id
+        );
+
+        Response::success(
+            [],
+            200,
+            'Reserva finalizada correctamente'
+        );
+    }
+
+    // PUT /api/reservas/{id}/cancelar
+    public function cancel($id)
+    {
+        $usuario = AutenticadorMiddleware::verificar();
+
+        $this->service->cancelar(
+            $id,
+            (int) $usuario->sub,
+            (int) $usuario->rol_id
+        );
+
+        Response::success(
+            [],
+            200,
+            'Reserva cancelada correctamente'
+        );
+    }
+
     // PUT /api/reservas/{id}
     public function update($id)
     {

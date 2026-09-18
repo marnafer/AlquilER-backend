@@ -111,6 +111,21 @@ class ConsultaService
         return $consulta;
     }
 
+    /**
+     * Alias de obtenerAutorizada.
+     *
+     * MensajeConsultaService lo invoca con este nombre.
+     */
+    public function obtenerConsultaAutorizada(
+        $rawConsultaId,
+        int $usuarioLogueadoId
+    ): Consulta {
+        return $this->obtenerAutorizada(
+            $rawConsultaId,
+            $usuarioLogueadoId
+        );
+    }
+
     public function crear(array $rawData): int
     {
         $data = ConsultaSanitizer::sanitizarConsulta(
@@ -185,6 +200,12 @@ class ConsultaService
 
         $consulta = $this->obtener($id);
 
+        if ($consulta->trashed()) {
+            throw new NotFoundException(
+                'Consulta no encontrada'
+            );
+        }
+
         $usuario = $this->usuarioRepository->findById(
             $usuarioId
         );
@@ -219,19 +240,30 @@ class ConsultaService
             );
         }
 
-        $resultado = $this->consultaRepository->update(
-            $id,
-            $data
-        );
+        $mensaje = $this->mensajeConsultaRepository
+            ->findByConsultaId($id)
+            ->first();
 
-        if ($resultado) {
-            $this->logService->registrar(
-                $usuarioId,
-                'consulta_actualizada'
+        if ($mensaje) {
+            $this->mensajeConsultaRepository->update(
+                $mensaje->id,
+                ['mensaje' => $data['mensaje']]
             );
+        } else {
+            $this->mensajeConsultaRepository->create([
+                'consulta_id' => $id,
+                'usuario_id' => $usuarioId,
+                'mensaje' => $data['mensaje'],
+                'fecha_mensaje' => date('Y-m-d H:i:s')
+            ]);
         }
 
-        return $resultado;
+        $this->logService->registrar(
+            $usuarioId,
+            'consulta_actualizada'
+        );
+
+        return true;
     }
 
     public function eliminar(

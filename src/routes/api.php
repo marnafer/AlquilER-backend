@@ -158,6 +158,10 @@ $router->put('/api/reservas/{id}/confirmar',[$reservaController, 'confirm']);
 
 $router->put('/api/reservas/{id}/rechazar',[$reservaController, 'reject']);
 
+$router->put('/api/reservas/{id}/finalizar',[$reservaController, 'finalize']);
+
+$router->put('/api/reservas/{id}/cancelar',[$reservaController, 'cancel']);
+
 $router->delete('/api/reservas/{id}', [$reservaController, 'delete']);
 
 $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
@@ -203,6 +207,8 @@ $router->get('/api/resenas/usuario/{usuarioId}', [$resenaController, 'getByUsuar
 $router->get('/api/resenas/calificador/{calificadorId}', [$resenaController, 'getByCalificador']);
 
 $router->post('/api/resenas', [$resenaController, 'store']);
+
+$router->put('/api/resenas/{id}', [$resenaController, 'update']);
 
 $router->delete('/api/resenas/{id}', [$resenaController, 'delete']);
 

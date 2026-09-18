@@ -80,6 +80,46 @@ class ReservaPolicy
     }
 
     /**
+     * Finalizar una reserva.
+     *
+     * Solo el propietario de la propiedad o un admin.
+     */
+    public function puedeFinalizar(
+        int $usuarioId,
+        int $rolId,
+        Reserva $reserva
+    ): bool {
+        if ($rolId === self::ROL_ADMIN) {
+            return true;
+        }
+
+        return $reserva->propiedad &&
+            (int) $reserva->propiedad->usuario_id === $usuarioId;
+    }
+
+    /**
+     * Cancelar una reserva.
+     *
+     * El inquilino, el propietario de la propiedad o un admin.
+     */
+    public function puedeCancelar(
+        int $usuarioId,
+        int $rolId,
+        Reserva $reserva
+    ): bool {
+        if ($rolId === self::ROL_ADMIN) {
+            return true;
+        }
+
+        if ($reserva->usuario_id === $usuarioId) {
+            return true;
+        }
+
+        return $reserva->propiedad &&
+            (int) $reserva->propiedad->usuario_id === $usuarioId;
+    }
+
+    /**
      * Modificar una reserva.
      *
      * Solo admin.

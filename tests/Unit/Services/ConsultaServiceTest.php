@@ -8,6 +8,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Consulta;
+use App\Models\MensajeConsulta;
 use App\Models\Propiedad;
 use App\Models\Usuario;
 use App\Policies\ConsultaPolicy;
@@ -19,6 +20,7 @@ use App\Services\ConsultaService;
 use App\Services\LogActividadService;
 use PHPUnit\Framework\TestCase;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Eloquent\Collection;
 
 class ConsultaServiceTest extends TestCase
 {
@@ -376,16 +378,23 @@ class ConsultaServiceTest extends TestCase
             ->with(5, 1, $consulta)
             ->willReturn(true);
 
-        $this->consultaRepository
+        $mensaje = new MensajeConsulta();
+        $mensaje->id = 1;
+
+        $this->mensajeConsultaRepository
+            ->expects($this->once())
+            ->method('findByConsultaId')
+            ->with(10)
+            ->willReturn(new Collection([$mensaje]));
+
+        $this->mensajeConsultaRepository
             ->expects($this->once())
             ->method('update')
             ->with(
-                10,
+                1,
                 $this->callback(
                     function (array $data): bool {
-                        return isset($data['id'])
-                            && (int) $data['id'] === 10
-                            && ($data['mensaje'] ?? null) === 'Nuevo mensaje';
+                        return ($data['mensaje'] ?? null) === 'Nuevo mensaje';
                     }
                 )
             )

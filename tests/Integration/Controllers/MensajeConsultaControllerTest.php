@@ -8,7 +8,6 @@ use App\Controllers\Api\MensajeConsultaController;
 use App\Models\MensajeConsulta;
 use App\Services\MensajeConsultaService;
 use Tests\TestCase;
-use App\Helpers\Request;
 
 final class MensajeConsultaControllerTest extends TestCase
 {
@@ -26,10 +25,6 @@ final class MensajeConsultaControllerTest extends TestCase
         $this->controller = new MensajeConsultaController($this->service);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
     public function test_index_retorna_200_con_items_y_total_al_tener_permiso(): void
     {
         $mensajesFalsos = [
@@ -42,58 +37,45 @@ final class MensajeConsultaControllerTest extends TestCase
             ->with(100, 5)
             ->willReturn(new \Illuminate\Database\Eloquent\Collection($mensajesFalsos));
 
-        ob_start();
-        $this->controller->index(100);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->index(100)
+        );
 
         $this->assertEquals(200, http_response_code());
-        $this->assertStringContainsString('"success": true', $output);
-        $this->assertStringContainsString('"items":', $output);
-        $this->assertStringContainsString('"total": 2', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(2, $response['data']['total']);
+        $this->assertCount(2, $response['data']['items']);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
     public function test_store_retorna_201_y_crea_el_mensaje_correctamente(): void
     {
         $input = json_encode(['mensaje' => 'Me interesa']);
 
-        Request::setTestBody($input);
+        $mensajeCreado = new MensajeConsulta([
+            'id' => 1,
+            'consulta_id' => 100,
+            'usuario_id' => 5,
+            'mensaje' => 'Me interesa'
+        ]);
 
-        $mensajeCreado = new MensajeConsulta([ 
-            'id' => 1, 
-            'consulta_id' => 100, 
-            'usuario_id' => 5, 
-            'mensaje' => 'Me interesa' 
-        ]); 
-        
-        $this->service->expects($this->once()) 
-            ->method('crearMensaje') 
-            ->with( 
-                $this->callback(function (array $data): bool { 
-                    return $data['consulta_id'] === 100 
-                        && $data['mensaje'] === 'Me interesa'; 
-                }), 
-                5 
-            ) 
+        $this->service->expects($this->once())
+            ->method('crearMensaje')
+            ->with(
+                $this->callback(function (array $data): bool {
+                    return $data['consulta_id'] === 100
+                        && $data['mensaje'] === 'Me interesa';
+                }),
+                5
+            )
             ->willReturn($mensajeCreado);
 
-        ob_start();
+        $response = $this->captureJsonWithBody(
+            $input,
+            fn() => $this->controller->store(100)
+        );
 
-       try { 
-            $this->controller->store(100); 
-            $output = ob_get_clean(); 
-        } catch (\Throwable $e) { 
-            ob_end_clean(); 
-            throw $e; 
-        } 
-        
-        $this->assertEquals(201, http_response_code()); 
-        $this->assertStringContainsString('"success": true', $output); 
-        $this->assertStringContainsString('Me interesa', $output);
-
-        Request::setTestBody(null);
+        $this->assertEquals(201, http_response_code());
+        $this->assertTrue($response['success']);
+        $this->assertSame('Me interesa', $response['data']['mensaje']);
     }
 }
