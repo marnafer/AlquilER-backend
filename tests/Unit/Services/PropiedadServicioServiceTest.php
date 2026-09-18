@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
+use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
@@ -16,370 +17,533 @@ use App\Repositories\ServicioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\PropiedadServicioService;
 use Illuminate\Database\Eloquent\Collection;
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 
-class PropiedadServicioServiceTest extends TestCase
+final class PropiedadServicioServiceTest extends TestCase
 {
-    private $propiedadServicioRepository;
-    private $propiedadRepository;
-    private $servicioRepository;
-    private $logService;
-    private $policy;
-    private $propiedadServicioService;
-
-    protected function setUp(): void
+    public function test_lista_servicios_de_una_propiedad(): void
     {
-        parent::setUp();
+        $propiedad = new Propiedad();
+        $propiedad->id = 1;
 
-        $this->propiedadServicioRepository = $this->createMock(
-            PropiedadServicioRepositoryInterface::class
-        );
+        $servicios = [
+            ['id' => 1, 'servicio_id' => 1],
+            ['id' => 2, 'servicio_id' => 2],
+        ];
 
-        $this->propiedadRepository = $this->createMock(
+        $propiedadRepository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
-        $this->servicioRepository = $this->createMock(
-            ServicioRepositoryInterface::class
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
         );
 
-        $this->logService = $this->createMock(
-            LogActividadService::class
-        );
-
-        $this->policy = $this->createMock(
-            PropiedadPolicy::class
-        );
-
-        $this->propiedadServicioService = new PropiedadServicioService(
-            $this->propiedadServicioRepository,
-            $this->propiedadRepository,
-            $this->servicioRepository,
-            $this->logService,
-            $this->policy
-        );
-    }
-
-    public function test_it_can_get_servicios_by_propiedad(): void
-    {
-        $expected = [
-            ['id' => 1, 'servicio_id' => 1]
-        ];
-
-        $this->propiedadRepository
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn(
-                new Propiedad([
-                    'id' => 1
-                ])
-            );
+            ->willReturn($propiedad);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('getByPropiedad')
             ->with(1)
-            ->willReturn($expected);
+            ->willReturn($servicios);
 
-        $result = $this->propiedadServicioService
-            ->obtenerServiciosPorPropiedad(1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
 
-        $this->assertSame($expected, $result);
+        $resultado = $service->listar(1);
+
+        $this->assertSame($servicios, $resultado);
     }
 
-    public function test_it_throws_exception_when_property_not_found_for_get_servicios(): void
+    public function test_listar_lanza_excepcion_si_la_propiedad_no_existe(): void
     {
-        $this->propiedadServicioRepository
-            ->expects($this->never())
-            ->method('getByPropiedad');
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
 
-        $this->propiedadRepository
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
+
+        $repository
+            ->expects($this->never())
+            ->method('getByPropiedad');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('La propiedad no existe');
 
-        $this->propiedadServicioService
-            ->obtenerServiciosPorPropiedad(999);
+        $service->listar(999);
     }
 
-    public function test_it_throws_validation_exception_when_property_id_is_invalid_for_get_servicios(): void
+    public function test_listar_lanza_excepcion_si_el_id_de_propiedad_es_invalido(): void
     {
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
             ->expects($this->never())
             ->method('findById');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('getByPropiedad');
 
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
         $this->expectException(ValidationException::class);
 
-        $this->propiedadServicioService
-            ->obtenerServiciosPorPropiedad(0);
+        $service->listar(0);
     }
 
-    public function test_it_can_get_propiedades_by_servicio(): void
+    public function test_lista_propiedades_de_un_servicio(): void
     {
-        $expected = [
-            ['id' => 1, 'propiedad_id' => 1]
+        $servicio = new Servicio();
+        $servicio->id = 1;
+
+        $propiedades = [
+            ['id' => 1, 'propiedad_id' => 1],
+            ['id' => 2, 'propiedad_id' => 2],
         ];
 
-        $this->servicioRepository
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $servicioRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn(
-                new Servicio([
-                    'id' => 1
-                ])
-            );
+            ->willReturn($servicio);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('getByServicio')
             ->with(1)
-            ->willReturn($expected);
+            ->willReturn($propiedades);
 
-        $result = $this->propiedadServicioService
-            ->obtenerPropiedadesPorServicio(1);
+        $service = $this->crearServicio(
+            $repository,
+            null,
+            $servicioRepository
+        );
 
-        $this->assertSame($expected, $result);
+        $resultado = $service->listarPorServicio(1);
+
+        $this->assertSame($propiedades, $resultado);
     }
 
-    public function test_it_throws_exception_when_service_not_found_for_get_propiedades(): void
+    public function test_listar_por_servicio_lanza_excepcion_si_el_servicio_no_existe(): void
     {
-        $this->servicioRepository
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $servicioRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('getByServicio');
+
+        $service = $this->crearServicio(
+            $repository,
+            null,
+            $servicioRepository
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('El servicio no existe');
 
-        $this->propiedadServicioService
-            ->obtenerPropiedadesPorServicio(999);
+        $service->listarPorServicio(999);
     }
 
-    public function test_it_can_check_if_property_has_service(): void
+    public function test_tiene_devuelve_true_si_la_relacion_existe(): void
     {
-        $this->propiedadServicioRepository
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $repository
             ->expects($this->once())
             ->method('exists')
             ->with(1, 2)
             ->willReturn(true);
 
-        $result = $this->propiedadServicioService
-            ->tieneServicio(1, 2);
+        $service = $this->crearServicio($repository);
 
-        $this->assertTrue($result);
+        $resultado = $service->tiene(1, 2);
+
+        $this->assertTrue($resultado);
     }
 
-    public function test_it_returns_false_when_property_does_not_have_service(): void
+    public function test_tiene_devuelve_false_si_la_relacion_no_existe(): void
     {
-        $this->propiedadServicioRepository
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $repository
             ->expects($this->once())
             ->method('exists')
             ->with(1, 2)
             ->willReturn(false);
 
-        $result = $this->propiedadServicioService
-            ->tieneServicio(1, 2);
+        $service = $this->crearServicio($repository);
 
-        $this->assertFalse($result);
+        $resultado = $service->tiene(1, 2);
+
+        $this->assertFalse($resultado);
     }
 
-    public function test_it_throws_validation_exception_when_checking_service_with_invalid_ids(): void
+    public function test_tiene_lanza_excepcion_si_los_ids_son_invalidos(): void
     {
-        $this->propiedadServicioRepository
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $repository
             ->expects($this->never())
             ->method('exists');
 
+        $service = $this->crearServicio($repository);
+
         $this->expectException(ValidationException::class);
 
-        $this->propiedadServicioService
-            ->tieneServicio(0, 2);
+        $service->tiene(0, 2);
     }
 
-    public function test_it_can_asignar_servicio_as_owner(): void
+    public function test_asigna_un_servicio_a_una_propiedad(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
-        $servicio = new Servicio([
-            'id' => 2
-        ]);
+        $servicio = new Servicio();
+        $servicio->id = 2;
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->once())
             ->method('findById')
             ->with(2)
             ->willReturn($servicio);
 
-        $this->propiedadServicioRepository
+        $repository
+            ->expects($this->once())
+            ->method('exists')
+            ->with(1, 2)
+            ->willReturn(false);
+
+        $repository
             ->expects($this->once())
             ->method('attach')
             ->with(1, 2)
             ->willReturn(true);
 
-        $this->logService
+        $logService
             ->expects($this->once())
             ->method('registrar')
             ->with(3, 'servicio_asignado');
 
-        $result = $this->propiedadServicioService
-            ->asignarServicio(1, 2, 3, 1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            $logService,
+            $policy
+        );
 
-        $this->assertTrue($result);
+        $resultado = $service->asignar(
+            1,
+            2,
+            3,
+            1
+        );
+
+        $this->assertSame([
+            'propiedad_id' => 1,
+            'servicio_id' => 2,
+        ], $resultado);
     }
 
-    public function test_it_can_asignar_servicio_as_admin(): void
+    public function test_asignar_lanza_excepcion_si_la_propiedad_no_existe(): void
     {
-        $propiedad = new Propiedad([
-            'id' => 1,
-            'usuario_id' => 99
-        ]);
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
 
-        $servicio = new Servicio([
-            'id' => 2
-        ]);
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
 
-        $this->propiedadRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(1)
-            ->willReturn($propiedad);
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
 
-        $this->policy
-            ->expects($this->once())
-            ->method('gestionar')
-            ->with($propiedad, 3, 2);
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
 
-        $this->servicioRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(2)
-            ->willReturn($servicio);
-
-        $this->propiedadServicioRepository
-            ->expects($this->once())
-            ->method('attach')
-            ->with(1, 2)
-            ->willReturn(true);
-
-        $this->logService
-            ->expects($this->once())
-            ->method('registrar')
-            ->with(3, 'servicio_asignado');
-
-        $result = $this->propiedadServicioService
-            ->asignarServicio(1, 2, 3, 2);
-
-        $this->assertTrue($result);
-    }
-
-    public function test_it_throws_exception_when_property_not_found_for_asignar(): void
-    {
-        $this->propiedadRepository
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
-        $this->policy
+        $policy
             ->expects($this->never())
             ->method('gestionar');
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->never())
             ->method('findById');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('attach');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            null,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('La propiedad no existe');
 
-        $this->propiedadServicioService
-            ->asignarServicio(999, 1, 3, 1);
+        $service->asignar(999, 2, 3, 1);
     }
 
-    public function test_it_throws_exception_when_service_not_found_for_asignar(): void
+    public function test_asignar_lanza_excepcion_si_el_servicio_no_existe(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
-        $this->propiedadServicioRepository
+        $repository
+            ->expects($this->never())
+            ->method('exists');
+
+        $repository
             ->expects($this->never())
             ->method('attach');
 
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            null,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('El servicio no existe');
 
-        $this->propiedadServicioService
-            ->asignarServicio(1, 999, 3, 1);
+        $service->asignar(1, 999, 3, 1);
     }
 
-    public function test_it_propagates_forbidden_exception_when_asignar_is_not_authorized(): void
+    public function test_asignar_lanza_excepcion_si_el_servicio_ya_esta_asignado(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
-            'usuario_id' => 99
+            'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
-        $this->propiedadRepository
+        $servicio = new Servicio();
+        $servicio->id = 2;
+
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
+            ->expects($this->once())
+            ->method('gestionar')
+            ->with($propiedad, 3, 1);
+
+        $servicioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(2)
+            ->willReturn($servicio);
+
+        $repository
+            ->expects($this->once())
+            ->method('exists')
+            ->with(1, 2)
+            ->willReturn(true);
+
+        $repository
+            ->expects($this->never())
+            ->method('attach');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            null,
+            $policy
+        );
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La propiedad ya tiene este servicio asignado'
+        );
+
+        $service->asignar(1, 2, 3, 1);
+    }
+
+    public function test_asignar_propaga_la_excepcion_si_no_tiene_permiso(): void
+    {
+        $propiedad = new Propiedad([
+            'usuario_id' => 99
+        ]);
+        $propiedad->id = 1;
+
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1)
@@ -389,147 +553,224 @@ class PropiedadServicioServiceTest extends TestCase
                 )
             );
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->never())
             ->method('findById');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('attach');
 
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            null,
+            $policy
+        );
 
         $this->expectException(ForbiddenException::class);
 
-        $this->propiedadServicioService
-            ->asignarServicio(1, 2, 3, 1);
+        $service->asignar(1, 2, 3, 1);
     }
 
-    public function test_it_can_desasignar_servicio(): void
+    public function test_desasigna_un_servicio_de_una_propiedad(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('exists')
             ->with(1, 2)
             ->willReturn(true);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('detach')
             ->with(1, 2)
             ->willReturn(true);
 
-        $this->logService
+        $logService
             ->expects($this->once())
             ->method('registrar')
             ->with(3, 'servicio_desasignado');
 
-        $result = $this->propiedadServicioService
-            ->desasignarServicio(1, 2, 3, 1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            null,
+            $logService,
+            $policy
+        );
 
-        $this->assertTrue($result);
+        $resultado = $service->desasignar(
+            1,
+            2,
+            3,
+            1
+        );
+
+        $this->assertTrue($resultado);
     }
 
-    public function test_it_throws_exception_when_property_not_found_for_desasignar(): void
+    public function test_desasignar_lanza_excepcion_si_la_propiedad_no_existe(): void
     {
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
-        $this->policy
+        $policy
             ->expects($this->never())
             ->method('gestionar');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('exists');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('detach');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            null,
+            null,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('La propiedad no existe');
 
-        $this->propiedadServicioService
-            ->desasignarServicio(999, 2, 3, 1);
+        $service->desasignar(999, 2, 3, 1);
     }
 
-    public function test_it_throws_exception_when_service_is_not_assigned_for_desasignar(): void
+    public function test_desasignar_lanza_excepcion_si_el_servicio_no_esta_asignado(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('exists')
-            ->with(1, 999)
+            ->with(1, 2)
             ->willReturn(false);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('detach');
 
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            null,
+            null,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(
             'La propiedad no tiene este servicio asignado'
         );
 
-        $this->propiedadServicioService
-            ->desasignarServicio(1, 999, 3, 1);
+        $service->desasignar(1, 2, 3, 1);
     }
 
-    public function test_it_propagates_forbidden_exception_when_desasignar_is_not_authorized(): void
+    public function test_desasignar_propaga_la_excepcion_si_no_tiene_permiso(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 99
         ]);
+        $propiedad->id = 1;
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1)
@@ -539,26 +780,33 @@ class PropiedadServicioServiceTest extends TestCase
                 )
             );
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('exists');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('detach');
 
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            null,
+            null,
+            $policy
+        );
+
         $this->expectException(ForbiddenException::class);
 
-        $this->propiedadServicioService
-            ->desasignarServicio(1, 2, 3, 1);
+        $service->desasignar(1, 2, 3, 1);
     }
 
-    public function test_it_can_asignar_multiple_servicios(): void
+    public function test_asigna_multiples_servicios(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
         $servicio1 = new Servicio();
         $servicio1->id = 1;
@@ -578,76 +826,136 @@ class PropiedadServicioServiceTest extends TestCase
         $resultadoEsperado = [
             'asignados' => [1, 2],
             'duplicados' => [3],
-            'errores' => []
+            'errores' => [],
         ];
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->once())
             ->method('findByIds')
             ->with([1, 2, 3])
             ->willReturn($servicios);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('attachMultiple')
             ->with(1, [1, 2, 3])
             ->willReturn($resultadoEsperado);
 
-        $this->logService
+        $logService
             ->expects($this->once())
             ->method('registrar')
             ->with(3, 'servicios_multiples_asignados');
 
-        $result = $this->propiedadServicioService
-            ->asignarMultiplesServicios(1, [1, 2, 3], 3, 1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            $logService,
+            $policy
+        );
 
-        $this->assertSame($resultadoEsperado, $result);
+        $resultado = $service->asignarMultiples(
+            1,
+            [1, 2, 3],
+            3,
+            1
+        );
+
+        $this->assertSame($resultadoEsperado, $resultado);
     }
 
-    public function test_it_throws_exception_when_property_not_found_for_multiple_assignment(): void
+    public function test_asignar_multiples_lanza_excepcion_si_la_propiedad_no_existe(): void
     {
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
-        $this->policy
+        $policy
             ->expects($this->never())
             ->method('gestionar');
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->never())
             ->method('findByIds');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('attachMultiple');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            null,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('La propiedad no existe');
 
-        $this->propiedadServicioService
-            ->asignarMultiplesServicios(999, [1, 2], 3, 1);
+        $service->asignarMultiples(
+            999,
+            [1, 2],
+            3,
+            1
+        );
     }
 
-    public function test_it_throws_exception_when_one_service_does_not_exist_for_multiple_assignment(): void
+    public function test_asignar_multiples_lanza_excepcion_si_un_servicio_no_existe(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
         $servicio1 = new Servicio();
         $servicio1->id = 1;
@@ -660,46 +968,153 @@ class PropiedadServicioServiceTest extends TestCase
             $servicio3,
         ]);
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->once())
             ->method('findByIds')
             ->with([1, 2, 3])
             ->willReturn($servicios);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('attachMultiple');
 
-        $this->logService
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $logService
             ->expects($this->never())
             ->method('registrar');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            $logService,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(
             'Los siguientes servicios no existen: 2'
         );
 
-        $this->propiedadServicioService
-            ->asignarMultiplesServicios(1, [1, 2, 3], 3, 1);
+        $service->asignarMultiples(
+            1,
+            [1, 2, 3],
+            3,
+            1
+        );
     }
 
-    public function test_it_can_sync_servicios(): void
+    public function test_asignar_multiples_lanza_excepcion_si_la_lista_esta_vacia(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('attachMultiple');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->asignarMultiples(
+            1,
+            [],
+            3,
+            1
+        );
+    }
+
+    public function test_asignar_multiples_lanza_excepcion_si_hay_ids_duplicados(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $servicioRepository
+            ->expects($this->never())
+            ->method('findByIds');
+
+        $repository
+            ->expects($this->never())
+            ->method('attachMultiple');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->asignarMultiples(
+            1,
+            [1, 1],
+            3,
+            1
+        );
+    }
+
+    public function test_sincroniza_servicios(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
         $servicio1 = new Servicio();
         $servicio1->id = 1;
@@ -719,94 +1134,158 @@ class PropiedadServicioServiceTest extends TestCase
         $resultadoEsperado = [
             'agregados' => [1, 2],
             'eliminados' => [3],
-            'mantenidos' => []
+            'mantenidos' => [],
         ];
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->once())
             ->method('findByIds')
             ->with([1, 2, 3])
             ->willReturn($servicios);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('sync')
             ->with(1, [1, 2, 3])
             ->willReturn($resultadoEsperado);
 
-        $this->logService
+        $logService
             ->expects($this->once())
             ->method('registrar')
             ->with(3, 'servicios_sincronizados');
 
-        $result = $this->propiedadServicioService
-            ->sincronizarServicios(1, [1, 2, 3], 3, 1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            $logService,
+            $policy
+        );
 
-        $this->assertSame($resultadoEsperado, $result);
+        $resultado = $service->sincronizar(
+            1,
+            [1, 2, 3],
+            3,
+            1
+        );
+
+        $this->assertSame($resultadoEsperado, $resultado);
     }
 
-    public function test_it_can_sync_servicios_with_empty_list(): void
+    public function test_sincroniza_servicios_con_lista_vacia(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
         $resultadoEsperado = [
             'agregados' => [],
             'eliminados' => [1, 2],
-            'mantenidos' => []
+            'mantenidos' => [],
         ];
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->never())
             ->method('findByIds');
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('sync')
             ->with(1, [])
             ->willReturn($resultadoEsperado);
 
-        $this->logService
+        $logService
             ->expects($this->once())
             ->method('registrar')
             ->with(3, 'servicios_sincronizados');
 
-        $result = $this->propiedadServicioService
-            ->sincronizarServicios(1, [], 3, 1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            $logService,
+            $policy
+        );
 
-        $this->assertSame($resultadoEsperado, $result);
+        $resultado = $service->sincronizar(
+            1,
+            [],
+            3,
+            1
+        );
+
+        $this->assertSame($resultadoEsperado, $resultado);
     }
 
-    public function test_it_throws_exception_when_one_service_does_not_exist_for_sync(): void
+    public function test_sincronizar_lanza_excepcion_si_un_servicio_no_existe(): void
     {
         $propiedad = new Propiedad([
-            'id' => 1,
             'usuario_id' => 3
         ]);
+        $propiedad->id = 1;
 
         $servicio1 = new Servicio();
         $servicio1->id = 1;
@@ -819,306 +1298,196 @@ class PropiedadServicioServiceTest extends TestCase
             $servicio3,
         ]);
 
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $logService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
             ->willReturn($propiedad);
 
-        $this->policy
+        $policy
             ->expects($this->once())
             ->method('gestionar')
             ->with($propiedad, 3, 1);
 
-        $this->servicioRepository
+        $servicioRepository
             ->expects($this->once())
             ->method('findByIds')
             ->with([1, 2, 3])
             ->willReturn($servicios);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('sync');
 
-        $this->logService
+        $logService
             ->expects($this->never())
             ->method('registrar');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            $servicioRepository,
+            $logService,
+            $policy
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(
             'Los siguientes servicios no existen: 2'
         );
 
-        $this->propiedadServicioService
-            ->sincronizarServicios(1, [1, 2, 3], 3, 1);
+        $service->sincronizar(
+            1,
+            [1, 2, 3],
+            3,
+            1
+        );
     }
 
-    public function test_it_throws_exception_when_property_not_found_for_sync(): void
+    public function test_obtiene_ids_de_servicios_de_una_propiedad(): void
     {
-        $this->propiedadRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(999)
-            ->willReturn(null);
+        $propiedad = new Propiedad();
+        $propiedad->id = 1;
 
-        $this->policy
-            ->expects($this->never())
-            ->method('gestionar');
+        $ids = [1, 2, 3];
 
-        $this->servicioRepository
-            ->expects($this->never())
-            ->method('findByIds');
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
 
-        $this->propiedadServicioRepository
-            ->expects($this->never())
-            ->method('sync');
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
 
-        $this->expectException(NotFoundException::class);
-        $this->expectExceptionMessage('La propiedad no existe');
-
-        $this->propiedadServicioService
-            ->sincronizarServicios(999, [1, 2], 3, 1);
-    }
-
-    public function test_it_can_get_service_ids_by_property(): void
-    {
-        $expected = [1, 2, 3];
-
-        $this->propiedadRepository
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(1)
-            ->willReturn(
-                new Propiedad([
-                    'id' => 1
-                ])
-            );
+            ->willReturn($propiedad);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->once())
             ->method('getServicioIdsByPropiedad')
             ->with(1)
-            ->willReturn($expected);
+            ->willReturn($ids);
 
-        $result = $this->propiedadServicioService
-            ->obtenerIdsServiciosPorPropiedad(1);
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
 
-        $this->assertSame($expected, $result);
+        $resultado = $service->obtenerIds(1);
+
+        $this->assertSame($ids, $resultado);
     }
 
-    public function test_it_throws_exception_when_property_not_found_for_get_service_ids(): void
+    public function test_obtener_ids_lanza_excepcion_si_la_propiedad_no_existe(): void
     {
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
             ->expects($this->once())
             ->method('findById')
             ->with(999)
             ->willReturn(null);
 
-        $this->propiedadServicioRepository
+        $repository
             ->expects($this->never())
             ->method('getServicioIdsByPropiedad');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('La propiedad no existe');
 
-        $this->propiedadServicioService
-            ->obtenerIdsServiciosPorPropiedad(999);
+        $service->obtenerIds(999);
     }
 
-    public function test_it_throws_validation_exception_for_invalid_service_ids_in_multiple_assignment(): void
+    public function test_obtener_ids_lanza_excepcion_si_el_id_es_invalido(): void
     {
-        $this->propiedadRepository
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
             ->expects($this->never())
             ->method('findById');
 
-        $this->policy
+        $repository
             ->expects($this->never())
-            ->method('gestionar');
+            ->method('getServicioIdsByPropiedad');
 
-        $this->servicioRepository
-            ->expects($this->never())
-            ->method('findByIds');
-
-        $this->propiedadServicioRepository
-            ->expects($this->never())
-            ->method('attachMultiple');
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
 
         $this->expectException(ValidationException::class);
 
-        $this->propiedadServicioService
-            ->asignarMultiplesServicios(1, [], 3, 1);
+        $service->obtenerIds(0);
     }
 
-    public function test_it_throws_validation_exception_for_duplicate_service_ids(): void
-    {
-        $this->propiedadRepository
-            ->expects($this->never())
-            ->method('findById');
-
-        $this->servicioRepository
-            ->expects($this->never())
-            ->method('findByIds');
-
-        $this->propiedadServicioRepository
-            ->expects($this->never())
-            ->method('attachMultiple');
-
-        $this->expectException(ValidationException::class);
-
-        $this->propiedadServicioService
-            ->asignarMultiplesServicios(1, [1, 1], 3, 1);
-    }
-
-    public function test_it_throws_validation_exception_for_invalid_property_id(): void
-    {
-        $this->propiedadRepository
-            ->expects($this->never())
-            ->method('findById');
-
-        $this->expectException(ValidationException::class);
-
-        $this->propiedadServicioService
-            ->asignarServicio(0, 2, 3, 1);
-    }
-
-    public function test_it_does_not_log_when_asignar_returns_false(): void
-    {
-        $propiedad = new Propiedad([
-            'id' => 1,
-            'usuario_id' => 3
-        ]);
-
-        $servicio = new Servicio([
-            'id' => 2
-        ]);
-
-        $this->propiedadRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(1)
-            ->willReturn($propiedad);
-
-        $this->policy
-            ->expects($this->once())
-            ->method('gestionar')
-            ->with($propiedad, 3, 1);
-
-        $this->servicioRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(2)
-            ->willReturn($servicio);
-
-        $this->propiedadServicioRepository
-            ->expects($this->once())
-            ->method('attach')
-            ->with(1, 2)
-            ->willReturn(false);
-
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
-
-        $result = $this->propiedadServicioService
-            ->asignarServicio(1, 2, 3, 1);
-
-        $this->assertFalse($result);
-    }
-
-    public function test_it_does_not_log_when_desasignar_returns_false(): void
-    {
-        $propiedad = new Propiedad([
-            'id' => 1,
-            'usuario_id' => 3
-        ]);
-
-        $this->propiedadRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(1)
-            ->willReturn($propiedad);
-
-        $this->policy
-            ->expects($this->once())
-            ->method('gestionar')
-            ->with($propiedad, 3, 1);
-
-        $this->propiedadServicioRepository
-            ->expects($this->once())
-            ->method('exists')
-            ->with(1, 2)
-            ->willReturn(true);
-
-        $this->propiedadServicioRepository
-            ->expects($this->once())
-            ->method('detach')
-            ->with(1, 2)
-            ->willReturn(false);
-
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
-
-        $result = $this->propiedadServicioService
-            ->desasignarServicio(1, 2, 3, 1);
-
-        $this->assertFalse($result);
-    }
-
-    public function test_it_does_not_log_when_multiple_assignment_has_no_new_assignments(): void
-    {
-        $propiedad = new Propiedad([
-            'id' => 1,
-            'usuario_id' => 3
-        ]);
-
-        $servicio1 = new Servicio();
-        $servicio1->id = 1;
-
-        $servicio2 = new Servicio();
-        $servicio2->id = 2;
-
-        $servicios = new Collection([
-            $servicio1,
-            $servicio2,
-        ]);
-
-        $resultado = [
-            'asignados' => [],
-            'duplicados' => [1, 2],
-            'errores' => []
-        ];
-
-        $this->propiedadRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(1)
-            ->willReturn($propiedad);
-
-        $this->policy
-            ->expects($this->once())
-            ->method('gestionar')
-            ->with($propiedad, 3, 1);
-
-        $this->servicioRepository
-            ->expects($this->once())
-            ->method('findByIds')
-            ->with([1, 2])
-            ->willReturn($servicios);
-
-        $this->propiedadServicioRepository
-            ->expects($this->once())
-            ->method('attachMultiple')
-            ->with(1, [1, 2])
-            ->willReturn($resultado);
-
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
-
-        $result = $this->propiedadServicioService
-            ->asignarMultiplesServicios(1, [1, 2], 3, 1);
-
-        $this->assertSame($resultado, $result);
+    private function crearServicio(
+        ?PropiedadServicioRepositoryInterface $repository = null,
+        ?PropiedadRepositoryInterface $propiedadRepository = null,
+        ?ServicioRepositoryInterface $servicioRepository = null,
+        ?LogActividadService $logService = null,
+        ?PropiedadPolicy $policy = null
+    ): PropiedadServicioService {
+        return new PropiedadServicioService(
+            $repository
+                ?? $this->createMock(
+                    PropiedadServicioRepositoryInterface::class
+                ),
+            $propiedadRepository
+                ?? $this->createMock(
+                    PropiedadRepositoryInterface::class
+                ),
+            $servicioRepository
+                ?? $this->createMock(
+                    ServicioRepositoryInterface::class
+                ),
+            $logService
+                ?? $this->createMock(
+                    LogActividadService::class
+                ),
+            $policy
+                ?? $this->createMock(
+                    PropiedadPolicy::class
+                )
+        );
     }
 }
