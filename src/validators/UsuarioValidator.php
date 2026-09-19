@@ -4,103 +4,164 @@ namespace App\Validators;
 
 class UsuarioValidator
 {
-    public static function validarUsuario($data, $requerirId = false, $requerirContrasena = true) {
-        $errores = [];
-
-        if ($requerirId) {
-            $resultado = self::validarIdRequeridoUsuario($data['id'] ?? null, 'usuario');
-            if (!$resultado['success']) {
-                $errores['id'] = $resultado['error'];
-            }
-        }
-
-        $resultado = self::validarNombreUsuario($data['nombre'] ?? null);
-        if (!$resultado['success']) $errores['nombre'] = $resultado['error'];
-
-        $resultado = self::validarApellidoUsuario($data['apellido'] ?? null);
-        if (!$resultado['success']) $errores['apellido'] = $resultado['error'];
-
-        $resultado = self::validarEmailUsuario($data['email'] ?? null);
-        if (!$resultado['success']) $errores['email'] = $resultado['error'];
-
-        if (!empty($data['telefono'])) {
-            $resultado = self::validarTelefonoUsuario($data['telefono']);
-            if (!$resultado['success']) $errores['telefono'] = $resultado['error'];
-        }
-
-        if (!empty($data['domicilio'])) {
-            $resultado = self::validarDomicilioUsuario($data['domicilio']);
-            if (!$resultado['success']) $errores['domicilio'] = $resultado['error'];
-        }
-
-        if ($requerirContrasena) {
-            $resultado = self::validarContrasenaUsuario($data['contrasena'] ?? null);
-            if (!$resultado['success']) $errores['contrasena'] = $resultado['error'];
-        }
-
-        if (!empty($errores)) {
+    /**
+     * Valida ID de usuario.
+     */
+    public static function validarIdUsuario($id): array
+    {
+        if ($id === null || $id === '') {
             return [
                 'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $errores
+                'error' => 'El ID de usuario es requerido'
+            ];
+        }
+
+        if (!is_numeric($id)) {
+            return [
+                'success' => false,
+                'error' => 'El ID de usuario debe ser numérico'
+            ];
+        }
+
+        if ((int) $id <= 0) {
+            return [
+                'success' => false,
+                'error' => 'El ID de usuario debe ser positivo'
             ];
         }
 
         return [
             'success' => true,
-            'message' => 'Validación exitosa',
-            'errors' => null
+            'error' => null
         ];
     }
 
-    public static function validarIdRequeridoUsuario($id, $campo = '') {
-        if ($id === null || $id === '') {
-            return ['success' => false, 'error' => "El ID de $campo es requerido"];
+    /**
+     * Valida nombre.
+     */
+    public static function validarNombre(?string $nombre): array
+    {
+        if ($nombre === null || $nombre === '') {
+            return [
+                'success' => false,
+                'error' => 'El nombre es requerido'
+            ];
         }
-        if (!is_numeric($id)) {
-            return ['success' => false, 'error' => "El ID de $campo debe ser numérico"];
-        }
-        if ($id <= 0) {
-            return ['success' => false, 'error' => "El ID de $campo debe ser positivo"];
-        }
-        return ['success' => true, 'error' => null];
-    }
-
-    public static function validarNombreUsuario($nombre) {
-        if (!$nombre) return ['success' => false, 'error' => 'El nombre es requerido'];
 
         $nombre = trim($nombre);
+        $len = mb_strlen($nombre);
 
-        if (strlen($nombre) < 2)
-            return ['success' => false, 'error' => 'El nombre debe tener al menos 2 caracteres'];
+        if ($len < 2) {
+            return [
+                'success' => false,
+                'error' => 'El nombre debe tener al menos 2 caracteres'
+            ];
+        }
 
-        if (strlen($nombre) > 50)
-            return ['success' => false, 'error' => 'El nombre no puede exceder los 50 caracteres'];
+        if ($len > 50) {
+            return [
+                'success' => false,
+                'error' => 'El nombre no puede exceder los 50 caracteres'
+            ];
+        }
 
-        if (!preg_match('/^[a-zA-ZáéíóúñÑÁÉÍÓÚ\s]+$/u', $nombre))
-            return ['success' => false, 'error' => 'El nombre solo puede contener letras y espacios'];
+        if (!preg_match(
+            '/^[\p{L}\s]+$/u',
+            $nombre
+        )) {
+            return [
+                'success' => false,
+                'error' => 'El nombre solo puede contener letras y espacios'
+            ];
+        }
 
-        return ['success' => true, 'error' => null];
+        return [
+            'success' => true,
+            'error' => null
+        ];
     }
 
-    public static function validarApellidoUsuario($apellido) {
-        return self::validarNombreUsuario($apellido);
+    /**
+     * Valida apellido.
+     */
+    public static function validarApellido(?string $apellido): array
+    {
+        if ($apellido === null || $apellido === '') {
+            return [
+                'success' => false,
+                'error' => 'El apellido es requerido'
+            ];
+        }
+
+        $apellido = trim($apellido);
+        $len = mb_strlen($apellido);
+
+        if ($len < 2) {
+            return [
+                'success' => false,
+                'error' => 'El apellido debe tener al menos 2 caracteres'
+            ];
+        }
+
+        if ($len > 50) {
+            return [
+                'success' => false,
+                'error' => 'El apellido no puede exceder los 50 caracteres'
+            ];
+        }
+
+        if (!preg_match(
+            '/^[\p{L}\s]+$/u',
+            $apellido
+        )) {
+            return [
+                'success' => false,
+                'error' => 'El apellido solo puede contener letras y espacios'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null
+        ];
     }
 
-    public static function validarEmailUsuario($email) {
-        if (!$email)
-            return ['success' => false, 'error' => 'El email es requerido'];
+    /**
+     * Valida email.
+     */
+    public static function validarEmail(?string $email): array
+    {
+        if ($email === null || $email === '') {
+            return [
+                'success' => false,
+                'error' => 'El email es requerido'
+            ];
+        }
 
-        if (strlen($email) > 100)
-            return ['success' => false, 'error' => 'El email no puede exceder los 100 caracteres'];
+        if (mb_strlen($email) > 100) {
+            return [
+                'success' => false,
+                'error' => 'El email no puede exceder los 100 caracteres'
+            ];
+        }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL))
-            return ['success' => false, 'error' => 'El email no es válido'];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [
+                'success' => false,
+                'error' => 'El email no es válido'
+            ];
+        }
 
-        return ['success' => true, 'error' => null];
+        return [
+            'success' => true,
+            'error' => null
+        ];
     }
 
-    public static function validarTelefonoUsuario($telefono): array
+    /**
+     * Valida teléfono.
+     */
+    public static function validarTelefono(?string $telefono): array
     {
         if ($telefono === null || $telefono === '') {
             return [
@@ -116,16 +177,22 @@ class UsuarioValidator
             ];
         }
 
-        $telefono = preg_replace('/[^0-9]/', '', $telefono);
+        $digitos = preg_replace(
+            '/[^0-9]/',
+            '',
+            $telefono
+        );
 
-        if (strlen($telefono) < 6) {
+        $cantidad = strlen($digitos);
+
+        if ($cantidad < 6) {
             return [
                 'success' => false,
                 'error' => 'El teléfono debe tener al menos 6 dígitos'
             ];
         }
 
-        if (strlen($telefono) > 15) {
+        if ($cantidad > 15) {
             return [
                 'success' => false,
                 'error' => 'El teléfono no puede exceder los 15 dígitos'
@@ -138,7 +205,10 @@ class UsuarioValidator
         ];
     }
 
-    public static function validarDomicilioUsuario($domicilio): array
+    /**
+     * Valida domicilio.
+     */
+    public static function validarDomicilio(?string $domicilio): array
     {
         if ($domicilio === null || $domicilio === '') {
             return [
@@ -155,15 +225,16 @@ class UsuarioValidator
         }
 
         $domicilio = trim($domicilio);
+        $len = mb_strlen($domicilio);
 
-        if (strlen($domicilio) < 5) {
+        if ($len < 5) {
             return [
                 'success' => false,
                 'error' => 'El domicilio debe tener al menos 5 caracteres'
             ];
         }
 
-        if (strlen($domicilio) > 100) {
+        if ($len > 100) {
             return [
                 'success' => false,
                 'error' => 'El domicilio no puede exceder los 100 caracteres'
@@ -176,35 +247,122 @@ class UsuarioValidator
         ];
     }
 
-    public static function validarContrasenaUsuario($contrasena) {
-        if (!$contrasena)
-            return ['success' => false, 'error' => 'La contraseña es requerida'];
+    /**
+     * Valida contraseña.
+     */
+    public static function validarContrasena(
+        ?string $contrasena
+    ): array {
+        if ($contrasena === null || $contrasena === '') {
+            return [
+                'success' => false,
+                'error' => 'La contraseña es requerida'
+            ];
+        }
 
-        if (strlen($contrasena) < 6)
-            return ['success' => false, 'error' => 'Debe tener al menos 6 caracteres'];
+        $len = mb_strlen($contrasena);
 
-        if (strlen($contrasena) > 255)
-            return ['success' => false, 'error' => 'No puede exceder los 255 caracteres'];
+        if ($len < 6) {
+            return [
+                'success' => false,
+                'error' => 'La contraseña debe tener al menos 6 caracteres'
+            ];
+        }
 
-        return ['success' => true, 'error' => null];
+        if ($len > 255) {
+            return [
+                'success' => false,
+                'error' => 'La contraseña no puede exceder los 255 caracteres'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null
+        ];
     }
 
-    public static function validarCrearUsuario($data) {
-        return self::validarRegistro($data);
+    /**
+     * Valida registro completo.
+     */
+    public static function validarRegistro(array $data): array
+    {
+        $errores = [];
+
+        $validaciones = [
+            'nombre' => 'validarNombre',
+            'apellido' => 'validarApellido',
+            'email' => 'validarEmail',
+            'telefono' => 'validarTelefono',
+            'domicilio' => 'validarDomicilio',
+            'contrasena' => 'validarContrasena',
+        ];
+
+        foreach ($validaciones as $campo => $metodo) {
+            $resultado = self::$metodo(
+                $data[$campo] ?? null
+            );
+
+            if (!$resultado['success']) {
+                $errores[$campo] = $resultado['error'];
+            }
+        }
+
+        return [
+            'success' => empty($errores),
+            'errors' => $errores
+        ];
     }
 
-    public static function validarActualizarUsuario($data, $requerirContrasena = false) {
-        return self::validarUsuario($data, false, $requerirContrasena);
+    /**
+     * Valida actualización parcial.
+     */
+    public static function validarActualizacionParcial(
+        array $data
+    ): array {
+        $errores = [];
+
+        $validaciones = [
+            'nombre' => 'validarNombre',
+            'apellido' => 'validarApellido',
+            'email' => 'validarEmail',
+            'telefono' => 'validarTelefono',
+            'domicilio' => 'validarDomicilio',
+            'contrasena' => 'validarContrasena',
+        ];
+
+        foreach ($validaciones as $campo => $metodo) {
+            if (!array_key_exists($campo, $data)) {
+                continue;
+            }
+
+            $resultado = self::$metodo($data[$campo]);
+
+            if (!$resultado['success']) {
+                $errores[$campo] = $resultado['error'];
+            }
+        }
+
+        return [
+            'success' => empty($errores),
+            'errors' => $errores
+        ];
     }
 
-    public static function validarSoloIdUsuario($id) {
-        $r = self::validarIdRequeridoUsuario($id, 'usuario');
+    /**
+     * Valida únicamente un ID.
+     */
+    public static function validarSoloIdUsuario($id): array
+    {
+        $resultado = self::validarIdUsuario($id);
 
-        if (!$r['success']) {
+        if (!$resultado['success']) {
             return [
                 'success' => false,
                 'message' => 'ID inválido',
-                'errors' => ['id' => $r['error']]
+                'errors' => [
+                    'id' => $resultado['error']
+                ]
             ];
         }
 
@@ -215,14 +373,21 @@ class UsuarioValidator
         ];
     }
 
-    public static function validarEmailLoginUsuario($email) {
-        $r = self::validarEmailUsuario($email);
+    /**
+     * Valida email utilizado durante el login.
+     */
+    public static function validarEmailLoginUsuario(
+        ?string $email
+    ): array {
+        $resultado = self::validarEmail($email);
 
-        if (!$r['success']) {
+        if (!$resultado['success']) {
             return [
                 'success' => false,
                 'message' => 'Email inválido',
-                'errors' => ['email' => $r['error']]
+                'errors' => [
+                    'email' => $resultado['error']
+                ]
             ];
         }
 
@@ -230,62 +395,6 @@ class UsuarioValidator
             'success' => true,
             'message' => 'Email válido',
             'errors' => null
-        ];
-    }
-
-    public static function validarActualizacionParcial(array $data): array
-    {
-        $errores = [];
-
-        $validaciones = [
-            'nombre' => 'validarNombreUsuario',
-            'apellido' => 'validarApellidoUsuario',
-            'email' => 'validarEmailUsuario',
-            'telefono' => 'validarTelefonoUsuario',
-            'domicilio' => 'validarDomicilioUsuario',
-            'contrasena' => 'validarContrasenaUsuario',
-        ];
-
-        foreach ($validaciones as $campo => $metodo) {
-            if (array_key_exists($campo, $data)) {
-                $resultado = self::$metodo($data[$campo]);
-
-                if (!$resultado['success']) {
-                    $errores[$campo] = $resultado['error'];
-                }
-            }
-        }
-
-        return [
-            'success' => empty($errores),
-            'errors' => $errores,
-        ];
-    }
-
-    public static function validarRegistro(array $data): array
-    {
-        $errores = [];
-
-        $validaciones = [
-            'nombre' => 'validarNombreUsuario',
-            'apellido' => 'validarApellidoUsuario',
-            'email' => 'validarEmailUsuario',
-            'telefono' => 'validarTelefonoUsuario',
-            'domicilio' => 'validarDomicilioUsuario',
-            'contrasena' => 'validarContrasenaUsuario',
-        ];
-
-        foreach ($validaciones as $campo => $metodo) {
-            $resultado = self::$metodo($data[$campo] ?? null);
-
-            if (!$resultado['success']) {
-                $errores[$campo] = $resultado['error'];
-            }
-        }
-
-        return [
-            'success' => empty($errores),
-            'errors' => $errores,
         ];
     }
 }
