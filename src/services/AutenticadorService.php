@@ -12,10 +12,10 @@ use App\Repositories\RefreshTokenRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
 use App\Models\Usuario;
+use App\Models\Rol; 
 
 class AutenticadorService
 {
-    private const ROL_USUARIO = 1;
 
     public function __construct(
         private readonly UsuarioRepositoryInterface $usuarioRepository,
@@ -83,9 +83,6 @@ class AutenticadorService
     {
         $data = UsuarioSanitizer::sanitizarUsuario($rawData);
 
-        // El rol no puede ser definido por el usuario durante el registro.
-        unset($data['rol_id'], $data['id'], $data['deleted_at']);
-
         $validacion = UsuarioValidator::validarRegistro($data);
 
         if (!$validacion['success']) {
@@ -105,10 +102,9 @@ class AutenticadorService
             PASSWORD_DEFAULT
         );
 
-        // Todo usuario registrado públicamente comienza como usuario común.
         $usuario = $this->usuarioRepository->createWithRole(
             $data,
-            self::ROL_USUARIO
+            Rol::USUARIO
         );
 
         $this->logActividadService->registrar(
