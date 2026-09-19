@@ -7,10 +7,10 @@ namespace App\Policies;
 use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
 use App\Models\Reserva;
+use App\Models\Rol;
 
 class ResenaPolicy
 {
-    private const ROL_ADMIN = 2;
 
     /**
      * Crear una reseña.
@@ -58,7 +58,7 @@ class ResenaPolicy
         int $rolId
     ): void {
         if (
-            $rolId === self::ROL_ADMIN ||
+            $rolId === Rol::ADMIN ||
             (int) $resena->calificador_id === $usuarioId
         ) {
             return;
@@ -76,7 +76,7 @@ class ResenaPolicy
      */
     public function restaurar(int $rolId): void
     {
-        if ($rolId === self::ROL_ADMIN) {
+        if ($rolId === Rol::ADMIN) {
             return;
         }
 

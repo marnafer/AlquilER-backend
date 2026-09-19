@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\Reserva;
+use App\Models\Rol;
 
 class ReservaPolicy
 {
-    private const ROL_ADMIN = 2;
 
     /**
      * Ver una reserva.
@@ -20,7 +20,7 @@ class ReservaPolicy
         int $rolId,
         Reserva $reserva
     ): bool {
-        if ($rolId === self::ROL_ADMIN) {
+        if ($rolId === Rol::ADMIN) {
             return true;
         }
 
@@ -53,7 +53,7 @@ class ReservaPolicy
         int $rolId,
         Reserva $reserva
     ): bool {
-        if ($rolId === self::ROL_ADMIN) {
+        if ($rolId === Rol::ADMIN) {
             return true;
         }
 
@@ -71,7 +71,7 @@ class ReservaPolicy
         int $rolId,
         Reserva $reserva
     ): bool {
-        if ($rolId === self::ROL_ADMIN) {
+        if ($rolId === Rol::ADMIN) {
             return true;
         }
 
@@ -89,7 +89,7 @@ class ReservaPolicy
         int $rolId,
         Reserva $reserva
     ): bool {
-        if ($rolId === self::ROL_ADMIN) {
+        if ($rolId === Rol::ADMIN) {
             return true;
         }
 
@@ -107,7 +107,7 @@ class ReservaPolicy
         int $rolId,
         Reserva $reserva
     ): bool {
-        if ($rolId === self::ROL_ADMIN) {
+        if ($rolId === Rol::ADMIN) {
             return true;
         }
 
@@ -127,7 +127,7 @@ class ReservaPolicy
     public function puedeModificar(
         int $rolId
     ): bool {
-        return $rolId === self::ROL_ADMIN;
+        return $rolId === Rol::ADMIN;
     }
 
     /**
@@ -138,7 +138,7 @@ class ReservaPolicy
     public function puedeEliminar(
         int $rolId
     ): bool {
-        return $rolId === self::ROL_ADMIN;
+        return $rolId === Rol::ADMIN;
     }
 
     /**
@@ -149,6 +149,6 @@ class ReservaPolicy
     public function puedeRestaurar(
         int $rolId
     ): bool {
-        return $rolId === self::ROL_ADMIN;
+        return $rolId === Rol::ADMIN;
     }
 }

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Favorito;
+use App\Models\Rol;
 
 class FavoritoPolicy
 {
-    private const ROL_ADMIN = 2;
 
     /**
      * Ver los favoritos de un usuario.
@@ -21,7 +21,7 @@ class FavoritoPolicy
         int $rolId,
         int $usuarioConsultadoId
     ): bool {
-        return $rolId === self::ROL_ADMIN
+        return $rolId === Rol::ADMIN
             || $usuarioLogueadoId === $usuarioConsultadoId;
     }
 
