@@ -102,10 +102,10 @@ class LocalidadValidator
             ];
         }
 
-        if (mb_strlen($nombre) > 150) {
+        if (mb_strlen($nombre) > 100) {
             return [
                 'success' => false,
-                'error' => 'El nombre no puede exceder los 150 caracteres',
+                'error' => 'El nombre no puede exceder los 100 caracteres',
             ];
         }
 
@@ -140,10 +140,10 @@ class LocalidadValidator
             ];
         }
 
-        if (mb_strlen($codigoPostal) > 20) {
+        if (mb_strlen($codigoPostal) > 15) {
             return [
                 'success' => false,
-                'error' => 'El código postal no puede exceder los 20 caracteres',
+                'error' => 'El código postal no puede exceder los 15 caracteres',
             ];
         }
 
@@ -180,16 +180,6 @@ class LocalidadValidator
             'success' => true,
             'error' => null,
         ];
-    }
-
-    public static function validarCrearLocalidad(array $data): array
-    {
-        return self::validarLocalidad($data, false);
-    }
-
-    public static function validarActualizarLocalidad(array $data): array
-    {
-        return self::validarLocalidad($data, true);
     }
 
     public static function validarSoloIdLocalidad($id): array
