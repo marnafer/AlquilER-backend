@@ -28,6 +28,8 @@ class Reserva extends Model
         'deleted_at' => 'datetime'
     ];
 
+    protected $hidden = ['deleted_at'];
+
     /*
     |--------------------------------------------------------------------------
     | RELACIONES

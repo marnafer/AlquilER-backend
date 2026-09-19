@@ -17,6 +17,8 @@ class Servicio extends Model
 
     public $timestamps = false;
 
+    protected $hidden = ['deleted_at'];
+
     public function propiedades()
     {
         return $this->belongsToMany(

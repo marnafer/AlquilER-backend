@@ -31,6 +31,8 @@ class Resena extends Model
         'deleted_at' => 'datetime',
     ];
 
+    protected $hidden = ['deleted_at'];
+
     /**
      * Reserva asociada a la reseña.
      */

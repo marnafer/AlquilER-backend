@@ -17,6 +17,8 @@ class Provincia extends Model
         'nombre'
     ];
 
+    protected $hidden = ['deleted_at'];
+
     public function localidades()
     {
         return $this->hasMany(Localidad::class, 'provincia_id');

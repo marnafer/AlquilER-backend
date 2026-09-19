@@ -15,6 +15,8 @@ class Localidad extends Model
 
     protected $fillable = ['nombre', 'codigo_postal', 'provincia_id'];
 
+    protected $hidden = ['deleted_at'];
+
     public function provincia()
     {
         return $this->belongsTo(Provincia::class, 'provincia_id');

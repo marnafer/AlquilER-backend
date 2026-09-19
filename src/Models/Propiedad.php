@@ -39,6 +39,8 @@ class Propiedad extends Model
     // Indicamos que use deleted_at para el Soft Delete
     protected $dates = ['deleted_at'];
 
+    protected $hidden = ['deleted_at'];
+
     // Campo calculado con la URL de la imagen destacada (o null si no tiene)
     protected $appends = ['imagen_url'];
 

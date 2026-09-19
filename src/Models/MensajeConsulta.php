@@ -20,6 +20,8 @@ class MensajeConsulta extends Model
         'fecha_mensaje'
     ];
 
+    protected $hidden = ['deleted_at'];
+
     /**
      * Relación: El mensaje pertenece a una consulta específica.
      */
