@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Rol extends Model
 {
+
+    public const USUARIO = 1;
+    public const ADMIN = 2;
+    
     use SoftDeletes;
 
     protected $table = 'roles';
