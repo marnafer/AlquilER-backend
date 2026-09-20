@@ -4,19 +4,12 @@ namespace App\Validators;
 
 class PropiedadImagenValidator
 {
+    /**
+     * Valida un ID de imagen.
+     */
     public static function validarSoloIdPropiedadImagen($id): array
     {
         if ($id === null) {
-            return [
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => [
-                    'id' => 'Ingrese un ID de imagen valido'
-                ]
-            ];
-        }
-
-        if (!is_numeric($id) || (int) $id <= 0) {
             return [
                 'success' => false,
                 'message' => 'Error de validación',
@@ -33,17 +26,17 @@ class PropiedadImagenValidator
         ];
     }
 
+    /**
+     * Valida los datos necesarios para crear una imagen.
+     */
     public static function validarCrearPropiedadImagen(array $data): array
     {
         $errores = [];
 
-        if ($data['propiedad_id'] === null) {
+        $propiedadId = $data['propiedad_id'] ?? null;
+
+        if ($propiedadId === null) {
             $errores['propiedad_id'] = 'El ID de propiedad es requerido';
-        } elseif (
-            !is_numeric($data['propiedad_id'])
-            || (int) $data['propiedad_id'] <= 0
-        ) {
-            $errores['propiedad_id'] = 'El ID de propiedad debe ser un entero positivo';
         }
 
         if (!empty($errores)) {
@@ -60,5 +53,4 @@ class PropiedadImagenValidator
             'errors' => null,
         ];
     }
-
 }

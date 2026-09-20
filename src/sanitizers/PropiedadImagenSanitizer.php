@@ -4,13 +4,23 @@ namespace App\Sanitizers;
 
 class PropiedadImagenSanitizer
 {
-    public static function sanitizarIdPropiedadImagen($id): ?int
+    
+    /**
+     * Sanitiza un ID
+     */
+    public static function sanitizarId($id): ?int
     {
-        if ($id === null || $id === '') {
+        if (
+            !is_string($id)
+            && !is_int($id)
+        ) {
             return null;
         }
 
-        if (!is_numeric($id)) {
+        if (
+            is_string($id)
+            && !ctype_digit($id)
+        ) {
             return null;
         }
 
@@ -19,16 +29,54 @@ class PropiedadImagenSanitizer
         return $id > 0 ? $id : null;
     }
 
+
+    /**
+     * Sanitiza un ID de imagen.
+     */
+    public static function sanitizarIdPropiedadImagen($id): ?int
+    {
+        return self::sanitizarId($id);
+    }
+
+    /**
+     * Sanitiza el ID de una propiedad.
+     */
+    public static function sanitizarIdPropiedad($id): ?int
+    {
+        return self::sanitizarId($id);
+    }
+
+    /**
+     * Sanitiza la descripción de una imagen.
+     */
+    public static function sanitizarDescripcion($descripcion): ?string
+    {
+        if (!is_string($descripcion)) {
+            return null;
+        }
+
+        $descripcion = trim($descripcion);
+
+        if ($descripcion === '') {
+            return null;
+        }
+
+        return mb_substr($descripcion, 0, 300);
+    }
+
+    /**
+     * Sanitiza todo el payload de una imagen.
+     */
     public static function sanitizarPropiedadImagen(array $data): array
     {
         return [
-            'propiedad_id' => isset($data['propiedad_id'])
-                ? filter_var($data['propiedad_id'], FILTER_VALIDATE_INT)
-                : null,
+            'propiedad_id' => self::sanitizarIdPropiedad(
+                $data['propiedad_id'] ?? null
+            ),
 
-            'descripcion' => isset($data['descripcion']) && trim($data['descripcion']) !== ''
-                ? htmlspecialchars(trim($data['descripcion']), ENT_QUOTES, 'UTF-8')
-                : null,
+            'descripcion' => self::sanitizarDescripcion(
+                $data['descripcion'] ?? null
+            ),
         ];
     }
 }
