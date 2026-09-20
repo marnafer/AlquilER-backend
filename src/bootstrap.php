@@ -145,6 +145,7 @@ $propiedadService = new PropiedadService(
     $logActividadService,
     $categoriaRepository,
     $localidadRepository,
+    $reservaRepository,
     $propiedadPolicy
 );
 
