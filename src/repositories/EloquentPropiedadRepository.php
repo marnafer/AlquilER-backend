@@ -34,10 +34,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
     public function findDeletedById(int $id): ?Propiedad
     {
-        return Propiedad::query()
-            ->withTrashed()
-            ->whereKey($id)
-            ->first();
+        return Propiedad::onlyTrashed()->find($id);
     }
 
     public function create(array $data): Propiedad
