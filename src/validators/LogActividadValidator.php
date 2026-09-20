@@ -4,53 +4,38 @@ namespace App\Validators;
 
 class LogActividadValidator
 {
-    /**
-     * Validar payload completo
-     */
-    public static function validar(array $data, bool $requerirId = false): array
+    public static function validar(array $data): array
     {
         $errores = [];
 
-        // ID (solo si se requiere)
-        if ($requerirId) {
-            $error = self::validarId($data['id'] ?? null);
-            if ($error) {
-                $errores['id'] = $error;
-            }
-        }
-
-        // usuario_id (obligatorio)
         $error = self::validarUsuarioId($data['usuario_id'] ?? null);
         if ($error) {
             $errores['usuario_id'] = $error;
         }
 
-        // acción
         $error = self::validarAccion($data['accion'] ?? null);
         if ($error) {
             $errores['accion'] = $error;
         }
 
-        // IP (opcional)
-        if (isset($data['ip_address']) && $data['ip_address'] !== null && $data['ip_address'] !== '') {
+        if (
+            isset($data['ip_address']) &&
+            $data['ip_address'] !== null &&
+            $data['ip_address'] !== ''
+        ) {
             $error = self::validarIp($data['ip_address']);
+
             if ($error) {
                 $errores['ip_address'] = $error;
             }
         }
 
-        if (!empty($errores)) {
-            return [
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $errores
-            ];
-        }
-
         return [
-            'success' => true,
-            'message' => 'Validación exitosa',
-            'errors' => null
+            'success' => empty($errores),
+            'message' => empty($errores)
+                ? 'Validación exitosa'
+                : 'Error de validación',
+            'errors' => empty($errores) ? null : $errores
         ];
     }
 
@@ -158,21 +143,5 @@ class LogActividadValidator
             'message' => 'ID válido',
             'errors' => null
         ];
-    }
-
-    /**
-     * Validar creación
-     */
-    public static function validarCrear(array $data): array
-    {
-        return self::validar($data, false);
-    }
-
-    /**
-     * Validar actualización
-     */
-    public static function validarActualizar(array $data): array
-    {
-        return self::validar($data, true);
     }
 }

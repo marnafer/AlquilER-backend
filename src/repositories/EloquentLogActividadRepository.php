@@ -31,7 +31,6 @@ class EloquentLogActividadRepository implements LogActividadRepositoryInterface
         return LogActividad::create($data);
     }
 
-
     private function transform(LogActividad $log): array
     {
         return [

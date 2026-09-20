@@ -4,19 +4,6 @@ namespace App\Sanitizers;
 
 class LogActividadSanitizer
 {
-    /**
-     * Sanitizar payload completo de log
-     */
-    public static function sanitizar(array $data): array
-    {
-        return [
-            'id' => self::sanitizarId($data['id'] ?? null),
-            'usuario_id' => self::sanitizarUsuarioId($data['usuario_id'] ?? null),
-            'accion' => self::sanitizarAccion($data['accion'] ?? null),
-            'ip_address' => self::sanitizarIp($data['ip_address'] ?? null),
-            'fecha' => self::sanitizarFecha($data['fecha'] ?? null),
-        ];
-    }
 
     /**
      * Sanitizar ID
@@ -90,44 +77,6 @@ class LogActividadSanitizer
     }
 
     /**
-     * Sanitizar fecha
-     */
-    public static function sanitizarFecha($fecha): ?string
-    {
-        if ($fecha === null || $fecha === '') {
-            return null;
-        }
-
-        $timestamp = strtotime($fecha);
-
-        if (!$timestamp) {
-            return null;
-        }
-
-        return date('Y-m-d H:i:s', $timestamp);
-    }
-
-    /**
-     * Obtener IP real del cliente
-     */
-    public static function getClientIp(): ?string
-    {
-        $ip = null;
-
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            // puede venir lista de IPs
-            $ipList = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            $ip = trim($ipList[0]);
-        } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
-
-        return self::sanitizarIp($ip);
-    }
-
-    /**
      * Sanitizar solo campos de creación (sin id)
      */
     public static function sanitizarCrear(array $data): array
@@ -135,8 +84,7 @@ class LogActividadSanitizer
         return [
             'usuario_id' => self::sanitizarUsuarioId($data['usuario_id'] ?? null),
             'accion' => self::sanitizarAccion($data['accion'] ?? null),
-            'ip_address' => self::sanitizarIp($data['ip_address'] ?? null),
-            'fecha' => self::sanitizarFecha($data['fecha'] ?? null),
+            'ip_address' => self::sanitizarIp($data['ip_address'] ?? null)
         ];
     }
 }

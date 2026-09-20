@@ -38,17 +38,4 @@ class LogActividadController
             $this->service->obtener($id)
         );
     }
-
-    /**
-     * Métodos alias en español para compatibilidad con tests
-     */
-    public function listar($request)
-    {
-        return $this->index();
-    }
-
-    public function obtener($request, $id)
-    {
-        return $this->show($id);
-    }
 }
