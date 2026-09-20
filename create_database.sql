@@ -309,6 +309,21 @@ INSERT INTO `reservas` (`id`, `propiedad_id`, `usuario_id`, `fecha_inicio_alquil
 
 -- --------------------------------------------------------
 
+DROP EVENT IF EXISTS `finalizar_reservas_vencidas`;
+
+CREATE EVENT `finalizar_reservas_vencidas`
+ON SCHEDULE EVERY 1 DAY
+STARTS '2026-09-21 00:05:00'
+DO
+    UPDATE `reservas`
+    SET `estado` = 'finalizada'
+    WHERE `estado` IN ('pendiente', 'confirmada')
+      AND `fecha_fin_alquiler` IS NOT NULL
+      AND `fecha_fin_alquiler` < CURDATE()
+      AND `deleted_at` IS NULL;
+
+-- --------------------------------------------------------
+
 --
 -- Estructura de tabla para la tabla `roles`
 --
