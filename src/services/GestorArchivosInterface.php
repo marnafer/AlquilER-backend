@@ -7,4 +7,6 @@ namespace App\Services;
 interface GestorArchivosInterface
 {
     public function upload(array $file, string $directory): string;
+
+    public function delete(string $path): void;
 }
