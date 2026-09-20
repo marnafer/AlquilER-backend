@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Exceptions\NotFoundException;
-use App\Exceptions\ValidationException;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
 use App\Models\Provincia;
 use App\Repositories\ProvinciaRepositoryInterface;
 use App\Sanitizers\ProvinciaSanitizer;
 use App\Validators\ProvinciaValidator;
 
-Class ProvinciaService 
+class ProvinciaService
 {
     public function __construct(
         private readonly ProvinciaRepositoryInterface $repository
@@ -32,20 +32,22 @@ Class ProvinciaService
 
     public function obtener($rawId): Provincia
     {
-        $id = ProvinciaSanitizer::sanitizarIdProvincia($rawId);
+        $id = ProvinciaSanitizer::sanitizarId($rawId);
 
-        $validacion = ProvinciaValidator::validarIdProvincia($id);
+        $validacion = ProvinciaValidator::validarSoloId($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']]
-            ]);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $provincia = $this->repository->findById($id);
 
         if (!$provincia) {
-            throw new NotFoundException('Provincia no encontrada');
+            throw new NotFoundException(
+                'Provincia no encontrada'
+            );
         }
 
         return $provincia;
@@ -53,17 +55,19 @@ Class ProvinciaService
 
     public function crear(array $rawData): Provincia
     {
-        $data = ProvinciaSanitizer::sanitizarProvincia($rawData);
+        $data = ProvinciaSanitizer::sanitizarCrear($rawData);
 
-        $validacion = ProvinciaValidator::validarProvincia($data);
+        $validacion = ProvinciaValidator::validar($data);
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         if ($this->repository->existsByName($data['nombre'])) {
             throw new ConflictException(
-                    'Provincia existente, no se puede crear otra con el mismo nombre'
+                'Provincia existente, no se puede crear otra con el mismo nombre'
             );
         }
 
@@ -83,8 +87,10 @@ Class ProvinciaService
         $this->repository->delete($provincia);
     }
 
-    public function actualizar($rawId, array $rawData): void
-    {
+    public function actualizar(
+        $rawId,
+        array $rawData
+    ): void {
         $provincia = $this->obtener($rawId);
 
         if ($rawData === []) {
@@ -113,42 +119,54 @@ Class ProvinciaService
             );
         }
 
-        $data = ProvinciaSanitizer::sanitizarActualizacionProvincia($datosRecibidos);
+        $data = ProvinciaSanitizer::sanitizarActualizar(
+            $datosRecibidos
+        );
 
-        $validacion = ProvinciaValidator::validarProvincia($data);
+        $validacion = ProvinciaValidator::validar($data);
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         if (
             array_key_exists('nombre', $data)
-            && $this->repository->existsByName($data['nombre'], $provincia->id)
+            && $this->repository->existsByName(
+                $data['nombre'],
+                $provincia->id
+            )
         ) {
             throw new ConflictException(
-                    'El nombre ya está registrado'
-        );
-            }
-
-            $this->repository->update($provincia, $data);
+                'El nombre ya está registrado'
+            );
         }
+
+        $this->repository->update(
+            $provincia,
+            $data
+        );
+    }
 
     public function restaurar($rawId): void
     {
-        $id = ProvinciaSanitizer::sanitizarIdProvincia($rawId);
+        $id = ProvinciaSanitizer::sanitizarId($rawId);
 
-        $validacion = ProvinciaValidator::validarIdProvincia($id);
+        $validacion = ProvinciaValidator::validarSoloId($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']]
-            ]);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $provincia = $this->repository->findDeletedById($id);
 
         if (!$provincia) {
-            throw new NotFoundException('Provincia eliminada no encontrada');
+            throw new NotFoundException(
+                'Provincia eliminada no encontrada'
+            );
         }
 
         if (
@@ -164,6 +182,4 @@ Class ProvinciaService
 
         $this->repository->restore($provincia);
     }
-
-
 }

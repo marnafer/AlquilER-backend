@@ -445,6 +445,10 @@ final class ProvinciaServiceTest extends TestCase
             ->method('findDeletedById')
             ->with(1)
             ->willReturn(null);
+            
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
 
         $repository
             ->expects($this->never())

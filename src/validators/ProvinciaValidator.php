@@ -4,128 +4,95 @@ namespace App\Validators;
 
 class ProvinciaValidator
 {
-    public static function validarProvincia(array $data, bool $requerirId = false): array
-    {
-        $errores = [];
-
-        if ($requerirId) {
-            $resultado = self::validarIdProvincia($data['id'] ?? null);
-
-            if (!$resultado['success']) {
-                $errores['id'] = $resultado['error'];
-            }
-        }
-
-        $resultado = self::validarNombreProvincia($data['nombre'] ?? null);
-
-        if (!$resultado['success']) {
-            $errores['nombre'] = $resultado['error'];
-        }
-
-        if (!empty($errores)) {
-            return [
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $errores
-            ];
-        }
-
-        return [
-            'success' => true,
-            'message' => 'Validación exitosa',
-            'errors' => null
-        ];
-    }
-
-    public static function validarIdProvincia($id): array
+    /**
+     * Validar ID.
+     */
+    public static function validarId($id): ?string
     {
         if ($id === null || $id === '') {
-            return [
-                'success' => false,
-                'error' => 'El ID de provincia es requerido. Debe ser un numero entero positivo.'
-            ];
+            return 'El ID de provincia es requerido';
         }
 
         if (!is_numeric($id)) {
-            return [
-                'success' => false,
-                'error' => 'El ID de provincia debe ser numérico'
-            ];
+            return 'El ID de provincia debe ser numérico';
         }
 
-        if ((int)$id <= 0) {
-            return [
-                'success' => false,
-                'error' => 'El ID de provincia debe ser positivo'
-            ];
+        if ((int) $id <= 0) {
+            return 'El ID de provincia debe ser positivo';
         }
 
-        return [
-            'success' => true,
-            'error' => null
-        ];
+        if (filter_var($id, FILTER_VALIDATE_INT) === false) {
+            return 'El ID de provincia debe ser un número entero';
+        }
+
+        return null;
     }
 
-    public static function validarNombreProvincia($nombre): array
+    /**
+     * Validar nombre.
+     */
+    public static function validarNombre(?string $nombre): ?string
     {
         if ($nombre === null || $nombre === '') {
-            return [
-                'success' => false,
-                'error' => 'El nombre es requerido'
-            ];
+            return 'El nombre es requerido';
         }
 
         $nombre = trim($nombre);
 
         if (mb_strlen($nombre) < 3) {
-            return [
-                'success' => false,
-                'error' => 'El nombre debe tener al menos 3 caracteres'
-            ];
+            return 'El nombre debe tener al menos 3 caracteres';
         }
 
         if (mb_strlen($nombre) > 100) {
-            return [
-                'success' => false,
-                'error' => 'El nombre no puede exceder los 100 caracteres'
-            ];
+            return 'El nombre no puede exceder los 100 caracteres';
         }
 
-        if (is_numeric($nombre)) {
-            return [
-                'success' => false,
-                'error' => 'El nombre no puede ser solo números'
-            ];
+        if (!preg_match('/^[\p{L}\s]+$/u', $nombre)) {
+            return 'El nombre solo puede contener letras y espacios';
         }
 
-        if (!preg_match('/^[a-zA-ZáéíóúñÑÁÉÍÓÚ\s]+$/u', $nombre)) {
-            return [
-                'success' => false,
-                'error' => 'Solo letras y espacios'
-            ];
+        return null;
+    }
+
+    /**
+     * Validar datos de provincia.
+     */
+    public static function validar(array $data): array
+    {
+        $errores = [];
+
+        $error = self::validarNombre(
+            $data['nombre'] ?? null
+        );
+
+        if ($error) {
+            $errores['nombre'] = $error;
         }
 
         return [
-            'success' => true,
-            'error' => null
+            'success' => empty($errores),
+            'message' => empty($errores)
+                ? 'Validación exitosa'
+                : 'Error de validación',
+            'errors' => empty($errores)
+                ? null
+                : $errores
         ];
     }
 
-    public static function validarCrearProvincia(array $data): array
+    /**
+     * Validar solo ID.
+     */
+    public static function validarSoloId($id): array
     {
-        return self::validarProvincia($data, false);
-    }
+        $error = self::validarId($id);
 
-    public static function validarSoloIdProvincia($id): array
-    {
-        $resultado = self::validarIdProvincia($id);
-
-        if (!$resultado['success']) {
+        if ($error) {
             return [
                 'success' => false,
                 'message' => 'ID inválido',
                 'errors' => [
-                    'id' => $resultado['error']
+                    'id' => $error
                 ]
             ];
         }

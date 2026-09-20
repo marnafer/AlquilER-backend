@@ -13,12 +13,13 @@ class Provincia extends Model
 
     public $timestamps = false;
 
-    protected $fillable = [
-        'nombre'
-    ];
+    protected $fillable = ['nombre'];
 
     protected $hidden = ['deleted_at'];
 
+    /**
+     * Relación: Una provincia tiene muchas localidades.
+     */
     public function localidades()
     {
         return $this->hasMany(Localidad::class, 'provincia_id');

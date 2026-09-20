@@ -20,8 +20,13 @@ class ProvinciaControllerTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = $this->createMock(ProvinciaService::class);
-        $this->controller = new ProvinciaController($this->service);
+        $this->service = $this->createMock(
+            ProvinciaService::class
+        );
+
+        $this->controller = new ProvinciaController(
+            $this->service
+        );
     }
 
     // =========================================================
@@ -150,17 +155,11 @@ class ProvinciaControllerTest extends TestCase
             ])
             ->willReturn($provincia);
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Entre Ríos'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->store()
-                );
-            }
+            fn() => $this->controller->store()
         );
 
         $this->assertTrue($response['success']);
@@ -200,17 +199,11 @@ class ProvinciaControllerTest extends TestCase
             ->expects($this->never())
             ->method('crear');
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Entre Ríos'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->store()
-                );
-            }
+            fn() => $this->controller->store()
         );
 
         $this->assertFalse($response['success']);
@@ -236,15 +229,9 @@ class ProvinciaControllerTest extends TestCase
                 ])
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->store()
-                );
-            }
+            fn() => $this->controller->store()
         );
 
         $this->assertFalse($response['success']);
@@ -276,17 +263,11 @@ class ProvinciaControllerTest extends TestCase
                 )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Entre Ríos'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->store()
-                );
-            }
+            fn() => $this->controller->store()
         );
 
         $this->assertFalse($response['success']);
@@ -312,17 +293,11 @@ class ProvinciaControllerTest extends TestCase
                 ['nombre' => 'Córdoba']
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Córdoba'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->update(1)
-                );
-            }
+            fn() => $this->controller->update(1)
         );
 
         $this->assertTrue($response['success']);
@@ -357,17 +332,11 @@ class ProvinciaControllerTest extends TestCase
             ->expects($this->never())
             ->method('actualizar');
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Córdoba'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->update(1)
-                );
-            }
+            fn() => $this->controller->update(1)
         );
 
         $this->assertFalse($response['success']);
@@ -394,17 +363,11 @@ class ProvinciaControllerTest extends TestCase
                 )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Córdoba'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->update(999)
-                );
-            }
+            fn() => $this->controller->update(999)
         );
 
         $this->assertFalse($response['success']);
@@ -431,17 +394,11 @@ class ProvinciaControllerTest extends TestCase
                 )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([
                 'nombre' => 'Córdoba'
             ]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->update(1)
-                );
-            }
+            fn() => $this->controller->update(1)
         );
 
         $this->assertFalse($response['success']);
@@ -465,15 +422,9 @@ class ProvinciaControllerTest extends TestCase
                 )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode([]),
-            function () use (&$response) {
-                $response = $this->captureJson(
-                    fn() => $this->controller->update(1)
-                );
-            }
+            fn() => $this->controller->update(1)
         );
 
         $this->assertFalse($response['success']);

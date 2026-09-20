@@ -9,12 +9,16 @@ class EloquentProvinciaRepository implements ProvinciaRepositoryInterface
 {
     public function all(): Collection
     {
-        return Provincia::all();
+        return Provincia::query()
+            ->orderBy('nombre')
+            ->get();
     }
 
     public function findById(int $id): ?Provincia
     {
-        return Provincia::find($id);
+        return Provincia::query()
+            ->whereKey($id)
+            ->first();
     }
 
     public function findDeletedById(int $id): ?Provincia
@@ -22,12 +26,15 @@ class EloquentProvinciaRepository implements ProvinciaRepositoryInterface
         return Provincia::onlyTrashed()->find($id);
     }
 
-    public function existsByName(string $nombre, ?int $exceptId = null): bool
-    {
-        $query = Provincia::where('nombre', $nombre);
+    public function existsByName(
+        string $nombre,
+        ?int $exceptId = null
+    ): bool {
+        $query = Provincia::query()
+            ->where('nombre', $nombre);
 
         if ($exceptId !== null) {
-            $query = $query->where('id', '!=', $exceptId);
+            $query->where('id', '!=', $exceptId);
         }
 
         return $query->exists();
@@ -50,11 +57,11 @@ class EloquentProvinciaRepository implements ProvinciaRepositoryInterface
 
     public function delete(Provincia $provincia): bool
     {
-        return $provincia->delete();
+        return (bool) $provincia->delete();
     }
 
     public function restore(Provincia $provincia): bool
     {
-        return $provincia->restore();
+        return (bool) $provincia->restore();
     }
 }
