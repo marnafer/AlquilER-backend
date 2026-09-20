@@ -9,18 +9,18 @@ use App\Controllers\Api\PropiedadController;
 use App\Services\PropiedadService;
 use App\Models\Propiedad;
 use App\Exceptions\BadRequestException;
+use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Exceptions\UnauthorizedException;
 use App\Exceptions\ValidationException;
 use PHPUnit\Framework\MockObject\MockObject;
 
 class PropiedadControllerTest extends TestCase
 {
-    private $controller;
+    private PropiedadController $controller;
 
     /** @var PropiedadService&MockObject */
-    private $service;
+    private PropiedadService $service;
 
     protected function setUp(): void
     {
@@ -31,8 +31,13 @@ class PropiedadControllerTest extends TestCase
             $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
         );
 
-        $this->service = $this->createMock(PropiedadService::class);
-        $this->controller = new PropiedadController($this->service);
+        $this->service = $this->createMock(
+            PropiedadService::class
+        );
+
+        $this->controller = new PropiedadController(
+            $this->service
+        );
     }
 
     protected function tearDown(): void
@@ -45,7 +50,7 @@ class PropiedadControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_can_listar(): void
+    public function test_it_can_list_properties(): void
     {
         $data = [
             'items' => [
@@ -61,14 +66,14 @@ class PropiedadControllerTest extends TestCase
             ->willReturn($data);
 
         $response = $this->captureJson(
-            fn() => $this->controller->listar()
+            fn() => $this->controller->index()
         );
 
         $this->assertTrue($response['success']);
         $this->assertSame($data, $response['data']);
     }
 
-    public function test_it_can_mis_propiedades(): void
+    public function test_it_can_list_my_properties(): void
     {
         $this->actingAs(5, 1);
 
@@ -93,7 +98,7 @@ class PropiedadControllerTest extends TestCase
         $this->assertSame($data, $response['data']);
     }
 
-    public function test_it_returns_unauthorized_when_mis_propiedades_without_token(): void
+    public function test_it_returns_unauthorized_when_listing_my_properties_without_token(): void
     {
         $this->service
             ->expects($this->never())
@@ -104,10 +109,13 @@ class PropiedadControllerTest extends TestCase
         );
 
         $this->assertFalse($response['success']);
-        $this->assertSame('Token requerido', $response['error']);
+        $this->assertSame(
+            'Token requerido',
+            $response['error']
+        );
     }
 
-    public function test_it_can_obtener(): void
+    public function test_it_can_show_a_property(): void
     {
         $propiedad = new Propiedad();
 
@@ -125,43 +133,34 @@ class PropiedadControllerTest extends TestCase
             ->willReturn($propiedad);
 
         $response = $this->captureJson(
-            fn() => $this->controller->obtener(1)
+            fn() => $this->controller->show(1)
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(1, $response['data']['id']);
-        $this->assertSame('Casa', $response['data']['titulo']);
-    }
-
-    public function test_it_returns_bad_request_when_obtener_id_is_invalid(): void
-    {
-        $this->service
-            ->expects($this->never())
-            ->method('obtener');
-
-        $response = $this->captureJson(
-            fn() => $this->controller->obtener('abc')
-        );
-
-        $this->assertFalse($response['success']);
         $this->assertSame(
-            'ID de propiedad inválido',
-            $response['error']
+            1,
+            $response['data']['id']
+        );
+        $this->assertSame(
+            'Casa',
+            $response['data']['titulo']
         );
     }
 
-    public function test_it_returns_not_found_when_obtener_fails(): void
+    public function test_it_returns_not_found_when_show_fails(): void
     {
         $this->service
             ->expects($this->once())
             ->method('obtener')
             ->with(999)
             ->willThrowException(
-                new NotFoundException('Propiedad no encontrada')
+                new NotFoundException(
+                    'Propiedad no encontrada'
+                )
             );
 
         $response = $this->captureJson(
-            fn() => $this->controller->obtener(999)
+            fn() => $this->controller->show(999)
         );
 
         $this->assertFalse($response['success']);
@@ -171,7 +170,37 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_can_crear(): void
+    public function test_it_returns_validation_error_when_show_id_is_invalid(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('obtener')
+            ->with('abc')
+            ->willThrowException(
+                new ValidationException([
+                    'id' => [
+                        'El ID de propiedad debe ser numérico'
+                    ],
+                ])
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller->show('abc')
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Error de validación',
+            $response['error']
+        );
+
+        $this->assertArrayHasKey(
+            'validation_errors',
+            $response
+        );
+    }
+
+    public function test_it_can_create_a_property(): void
     {
         $this->actingAs(5, 1);
 
@@ -202,47 +231,56 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('crear')
+            ->with($data, 5)
             ->willReturn($propiedad);
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->crear()
-                );
-            }
+            fn() => $this->controller->store()
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(10, $response['data']['id']);
-        $this->assertSame('Casa nueva', $response['data']['titulo']);
+        $this->assertSame(
+            10,
+            $response['data']['id']
+        );
+        $this->assertSame(
+            'Casa nueva',
+            $response['data']['titulo']
+        );
         $this->assertSame(
             'Propiedad creada exitosamente',
             $response['message']
         );
     }
 
-    public function test_it_returns_unauthorized_when_crear_without_token(): void
+    public function test_it_returns_unauthorized_when_creating_without_token(): void
     {
         $this->service
             ->expects($this->never())
             ->method('crear');
 
-        $response = $this->captureJson(
-            fn() => $this->controller->crear()
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'titulo' => 'Casa nueva',
+            ]),
+            fn() => $this->controller->store()
         );
 
         $this->assertFalse($response['success']);
-        $this->assertSame('Token requerido', $response['error']);
+        $this->assertSame(
+            'Token requerido',
+            $response['error']
+        );
     }
 
-    public function test_it_returns_validation_error_when_crear_fails_validation(): void
+    public function test_it_returns_validation_error_when_creating_fails_validation(): void
     {
         $this->actingAs(5, 1);
 
-        $data = [];
+        $data = [
+            'titulo' => '',
+        ];
 
         $this->service
             ->expects($this->once())
@@ -250,19 +288,15 @@ class PropiedadControllerTest extends TestCase
             ->with($data, 5)
             ->willThrowException(
                 new ValidationException([
-                    'titulo' => ['El título es obligatorio'],
+                    'titulo' => [
+                        'El título es obligatorio'
+                    ],
                 ])
             );
-            
-        $response = [];
 
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->crear()
-                );
-            }
+            fn() => $this->controller->store()
         );
 
         $this->assertFalse($response['success']);
@@ -270,17 +304,38 @@ class PropiedadControllerTest extends TestCase
             'Error de validación',
             $response['error']
         );
+
         $this->assertArrayHasKey(
             'validation_errors',
             $response
         );
+
         $this->assertSame(
             ['El título es obligatorio'],
             $response['validation_errors']['titulo']
         );
     }
 
-    public function test_it_can_actualizar(): void
+    public function test_it_returns_bad_request_when_creating_without_body(): void
+    {
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('crear');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->store()
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'El cuerpo de la solicitud es obligatorio',
+            $response['error']
+        );
+    }
+
+    public function test_it_can_update_a_property(): void
     {
         $this->actingAs(5, 1);
 
@@ -292,66 +347,50 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(5, 1, 10, $data);
+            ->with(
+                5,
+                1,
+                10,
+                $data
+            );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->actualizar(10)
-                );
-            }
+            fn() => $this->controller->update(10)
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame([], $response['data']);
+        $this->assertSame(
+            [],
+            $response['data']
+        );
         $this->assertSame(
             'Propiedad actualizada exitosamente',
             $response['message']
         );
     }
 
-    public function test_it_returns_bad_request_when_actualizar_id_is_invalid(): void
+    public function test_it_returns_unauthorized_when_updating_without_token(): void
     {
         $this->service
             ->expects($this->never())
             ->method('actualizar');
 
-        $response = $this->captureJson(
-            fn() => $this->controller->actualizar('abc')
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'titulo' => 'Actualizada',
+            ]),
+            fn() => $this->controller->update(10)
         );
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'ID de propiedad inválido',
+            'Token requerido',
             $response['error']
         );
     }
 
-    public function test_it_returns_unauthorized_when_actualizar_without_token(): void
-    {
-        $this->service
-            ->expects($this->never())
-            ->method('actualizar');
-
-        $response = [];
-
-        $this->withJsonBody(
-            json_encode(['titulo' => 'Actualizada']),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->actualizar(10)
-                );
-            }
-        );
-
-        $this->assertFalse($response['success']);
-        $this->assertSame('Token requerido', $response['error']);
-    }
-
-    public function test_it_returns_not_found_when_actualizar_fails(): void
+    public function test_it_returns_not_found_when_update_fails(): void
     {
         $this->actingAs(5, 1);
 
@@ -362,20 +401,21 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(5, 1, 10, $data)
+            ->with(
+                5,
+                1,
+                10,
+                $data
+            )
             ->willThrowException(
-                new NotFoundException('Propiedad no encontrada')
+                new NotFoundException(
+                    'Propiedad no encontrada'
+                )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->actualizar(10)
-                );
-            }
+            fn() => $this->controller->update(10)
         );
 
         $this->assertFalse($response['success']);
@@ -385,7 +425,7 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_returns_forbidden_when_actualizar_is_not_allowed(): void
+    public function test_it_returns_forbidden_when_update_is_not_allowed(): void
     {
         $this->actingAs(5, 1);
 
@@ -396,22 +436,21 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(5, 1, 10, $data)
+            ->with(
+                5,
+                1,
+                10,
+                $data
+            )
             ->willThrowException(
                 new ForbiddenException(
                     'No tienes permiso para gestionar esta propiedad'
                 )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->actualizar(10)
-                );
-            }
+            fn() => $this->controller->update(10)
         );
 
         $this->assertFalse($response['success']);
@@ -421,7 +460,7 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_returns_validation_error_when_actualizar_fails_validation(): void
+    public function test_it_returns_validation_error_when_update_fails_validation(): void
     {
         $this->actingAs(5, 1);
 
@@ -432,22 +471,23 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(5, 1, 10, $data)
+            ->with(
+                5,
+                1,
+                10,
+                $data
+            )
             ->willThrowException(
                 new ValidationException([
-                    'titulo' => ['El título es obligatorio'],
+                    'titulo' => [
+                        'El título es obligatorio'
+                    ],
                 ])
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->actualizar(10)
-                );
-            }
+            fn() => $this->controller->update(10)
         );
 
         $this->assertFalse($response['success']);
@@ -455,13 +495,14 @@ class PropiedadControllerTest extends TestCase
             'Error de validación',
             $response['error']
         );
+
         $this->assertArrayHasKey(
             'validation_errors',
             $response
         );
     }
 
-    public function test_it_returns_bad_request_when_actualizar_fails_bad_request(): void
+    public function test_it_returns_bad_request_when_update_fails_bad_request(): void
     {
         $this->actingAs(5, 1);
 
@@ -472,22 +513,21 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(5, 1, 10, $data)
+            ->with(
+                5,
+                1,
+                10,
+                $data
+            )
             ->willThrowException(
                 new BadRequestException(
                     'No se enviaron campos actualizables'
                 )
             );
 
-        $response = [];
-
-        $this->withJsonBody(
+        $response = $this->captureJsonWithBody(
             json_encode($data),
-            function () use (&$response): void {
-                $response = $this->captureJson(
-                    fn() => $this->controller->actualizar(10)
-                );
-            }
+            fn() => $this->controller->update(10)
         );
 
         $this->assertFalse($response['success']);
@@ -497,72 +537,90 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_can_eliminar(): void
+    public function test_it_returns_bad_request_when_update_body_is_empty(): void
+    {
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('actualizar');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->update(10)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'El cuerpo de la solicitud es obligatorio',
+            $response['error']
+        );
+    }
+
+    public function test_it_can_delete_a_property(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('eliminar')
-            ->with(5, 1, 10);
+            ->with(
+                5,
+                1,
+                10
+            );
 
         $response = $this->captureJson(
-            fn() => $this->controller->eliminar(10)
+            fn() => $this->controller->delete(10)
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame([], $response['data']);
+        $this->assertSame(
+            [],
+            $response['data']
+        );
         $this->assertSame(
             'Propiedad eliminada exitosamente',
             $response['message']
         );
     }
 
-    public function test_it_returns_bad_request_when_eliminar_id_is_invalid(): void
+    public function test_it_returns_unauthorized_when_deleting_without_token(): void
     {
         $this->service
             ->expects($this->never())
             ->method('eliminar');
 
         $response = $this->captureJson(
-            fn() => $this->controller->eliminar('abc')
+            fn() => $this->controller->delete(10)
         );
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'ID de propiedad inválido',
+            'Token requerido',
             $response['error']
         );
     }
 
-    public function test_it_returns_unauthorized_when_eliminar_without_token(): void
-    {
-        $this->service
-            ->expects($this->never())
-            ->method('eliminar');
-
-        $response = $this->captureJson(
-            fn() => $this->controller->eliminar(10)
-        );
-
-        $this->assertFalse($response['success']);
-        $this->assertSame('Token requerido', $response['error']);
-    }
-
-    public function test_it_returns_not_found_when_eliminar_fails(): void
+    public function test_it_returns_not_found_when_delete_fails(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('eliminar')
-            ->with(5, 1, 10)
+            ->with(
+                5,
+                1,
+                10
+            )
             ->willThrowException(
-                new NotFoundException('Propiedad no encontrada')
+                new NotFoundException(
+                    'Propiedad no encontrada'
+                )
             );
 
         $response = $this->captureJson(
-            fn() => $this->controller->eliminar(10)
+            fn() => $this->controller->delete(10)
         );
 
         $this->assertFalse($response['success']);
@@ -572,14 +630,18 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_returns_forbidden_when_eliminar_is_not_allowed(): void
+    public function test_it_returns_forbidden_when_delete_is_not_allowed(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('eliminar')
-            ->with(5, 1, 10)
+            ->with(
+                5,
+                1,
+                10
+            )
             ->willThrowException(
                 new ForbiddenException(
                     'No tienes permiso para gestionar esta propiedad'
@@ -587,7 +649,7 @@ class PropiedadControllerTest extends TestCase
             );
 
         $response = $this->captureJson(
-            fn() => $this->controller->eliminar(10)
+            fn() => $this->controller->delete(10)
         );
 
         $this->assertFalse($response['success']);
@@ -597,72 +659,100 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_can_restaurar(): void
+    public function test_it_returns_conflict_when_delete_has_active_reservation(): void
+    {
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('eliminar')
+            ->with(
+                5,
+                1,
+                10
+            )
+            ->willThrowException(
+                new ConflictException(
+                    'No se puede eliminar la propiedad porque tiene una reserva activa'
+                )
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(10)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'No se puede eliminar la propiedad porque tiene una reserva activa',
+            $response['error']
+        );
+    }
+
+    public function test_it_can_restore_a_property(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('restaurar')
-            ->with(5, 1, 10);
+            ->with(
+                5,
+                1,
+                10
+            );
 
         $response = $this->captureJson(
-            fn() => $this->controller->restaurar(10)
+            fn() => $this->controller->restore(10)
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame([], $response['data']);
+        $this->assertSame(
+            [],
+            $response['data']
+        );
         $this->assertSame(
             'Propiedad restaurada exitosamente',
             $response['message']
         );
     }
 
-    public function test_it_returns_bad_request_when_restaurar_id_is_invalid(): void
+    public function test_it_returns_unauthorized_when_restoring_without_token(): void
     {
         $this->service
             ->expects($this->never())
             ->method('restaurar');
 
         $response = $this->captureJson(
-            fn() => $this->controller->restaurar('abc')
+            fn() => $this->controller->restore(10)
         );
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'ID de propiedad inválido',
+            'Token requerido',
             $response['error']
         );
     }
 
-    public function test_it_returns_unauthorized_when_restaurar_without_token(): void
-    {
-        $this->service
-            ->expects($this->never())
-            ->method('restaurar');
-
-        $response = $this->captureJson(
-            fn() => $this->controller->restaurar(10)
-        );
-
-        $this->assertFalse($response['success']);
-        $this->assertSame('Token requerido', $response['error']);
-    }
-
-    public function test_it_returns_not_found_when_restaurar_fails(): void
+    public function test_it_returns_not_found_when_restore_fails(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('restaurar')
-            ->with(5, 1, 10)
+            ->with(
+                5,
+                1,
+                10
+            )
             ->willThrowException(
-                new NotFoundException('Propiedad no encontrada')
+                new NotFoundException(
+                    'Propiedad no encontrada'
+                )
             );
 
         $response = $this->captureJson(
-            fn() => $this->controller->restaurar(10)
+            fn() => $this->controller->restore(10)
         );
 
         $this->assertFalse($response['success']);
@@ -672,14 +762,18 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_returns_forbidden_when_restaurar_is_not_allowed(): void
+    public function test_it_returns_forbidden_when_restore_is_not_allowed(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('restaurar')
-            ->with(5, 1, 10)
+            ->with(
+                5,
+                1,
+                10
+            )
             ->willThrowException(
                 new ForbiddenException(
                     'No tienes permiso para gestionar esta propiedad'
@@ -687,7 +781,7 @@ class PropiedadControllerTest extends TestCase
             );
 
         $response = $this->captureJson(
-            fn() => $this->controller->restaurar(10)
+            fn() => $this->controller->restore(10)
         );
 
         $this->assertFalse($response['success']);
@@ -697,28 +791,39 @@ class PropiedadControllerTest extends TestCase
         );
     }
 
-    public function test_it_returns_bad_request_when_restaurar_fails(): void
+    public function test_it_returns_validation_error_when_restore_id_is_invalid(): void
     {
         $this->actingAs(5, 1);
 
         $this->service
             ->expects($this->once())
             ->method('restaurar')
-            ->with(5, 1, 10)
+            ->with(
+                5,
+                1,
+                'abc'
+            )
             ->willThrowException(
-                new BadRequestException(
-                    'La propiedad no está eliminada'
-                )
+                new ValidationException([
+                    'id' => [
+                        'El ID de propiedad debe ser numérico'
+                    ],
+                ])
             );
 
         $response = $this->captureJson(
-            fn() => $this->controller->restaurar(10)
+            fn() => $this->controller->restore('abc')
         );
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'La propiedad no está eliminada',
+            'Error de validación',
             $response['error']
+        );
+
+        $this->assertArrayHasKey(
+            'validation_errors',
+            $response
         );
     }
 }
