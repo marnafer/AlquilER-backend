@@ -22,4 +22,5 @@ interface ReservaRepositoryInterface
 
     public function getByPropiedad(int $propiedadId): array;
 
+    public function tieneReservaActiva(int $propiedadId): bool;
 }

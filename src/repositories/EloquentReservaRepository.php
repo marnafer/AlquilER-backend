@@ -132,4 +132,24 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    public function tieneReservaActiva(int $propiedadId): bool
+    {
+        return Reserva::query()
+            ->where('propiedad_id', $propiedadId)
+            ->whereIn('estado', [
+                'pendiente',
+                'confirmada'
+            ])
+            ->where(function ($query) {
+                $query
+                    ->whereNull('fecha_fin_alquiler')
+                    ->orWhereDate(
+                        'fecha_fin_alquiler',
+                        '>=',
+                        date('Y-m-d')
+                    );
+            })
+            ->exists();
+    }
 }
