@@ -6,6 +6,7 @@ namespace App\Policies;
 
 use App\Exceptions\ForbiddenException;
 use App\Models\Propiedad;
+use App\Models\Rol;
 
 class PropiedadPolicy
 {
@@ -21,7 +22,7 @@ class PropiedadPolicy
         int $rolId
     ): void {
         if (
-            $rolId === 2 ||
+            $rolId === Rol::ADMIN ||
             (int) $propiedad->usuario_id === $usuarioId
         ) {
             return;
