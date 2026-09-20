@@ -2,42 +2,65 @@
 
 namespace App\Repositories;
 
-use App\Models\MensajeConsulta;
+use App\Models\PropiedadImagen;
 use Illuminate\Database\Eloquent\Collection;
 
-class EloquentMensajeConsultaRepository implements MensajeConsultaRepositoryInterface
+class EloquentPropiedadImagenRepository implements PropiedadImagenRepositoryInterface
 {
-    public function create(array $data): MensajeConsulta
+    public function all(): Collection
     {
-        return MensajeConsulta::create($data);
-    }
-
-    public function findByConsultaId(int $consultaId): Collection
-    {
-        return MensajeConsulta::with('usuario')
-            ->where('consulta_id', $consultaId)
-            ->orderBy('fecha_mensaje', 'asc')
+        return PropiedadImagen::query()
+            ->with('propiedad')
+            ->orderByDesc('id')
             ->get();
     }
 
-    public function findById(int $id): ?MensajeConsulta
+    public function findById(int $id): ?PropiedadImagen
     {
-        return MensajeConsulta::find($id);
+        return PropiedadImagen::query()
+            ->with('propiedad')
+            ->whereKey($id)
+            ->first();
     }
 
-    public function update(int $id, array $data): bool
+    public function findByPropiedadId(int $propiedadId): Collection
     {
-        $mensaje = MensajeConsulta::find($id);
-
-        if (!$mensaje) {
-            return false;
-        }
-
-        return $mensaje->update($data);
+        return PropiedadImagen::query()
+            ->where('propiedad_id', $propiedadId)
+            ->orderByDesc('id')
+            ->get();
     }
 
-    public function delete(int $id): void
+    public function countByPropiedadId(int $propiedadId): int
     {
-        MensajeConsulta::destroy($id);
+        return PropiedadImagen::query()
+            ->where('propiedad_id', $propiedadId)
+            ->count();
+    }
+
+    public function create(array $data): PropiedadImagen
+    {
+        return PropiedadImagen::create($data);
+    }
+
+    public function clearPrincipalByPropiedadId(int $propiedadId): void
+    {
+        PropiedadImagen::query()
+            ->where('propiedad_id', $propiedadId)
+            ->update([
+                'es_principal' => 0
+            ]);
+    }
+
+    public function setPrincipal(PropiedadImagen $imagen): void
+    {
+        $imagen->update([
+            'es_principal' => 1
+        ]);
+    }
+
+    public function delete(PropiedadImagen $imagen): void
+    {
+        $imagen->delete();
     }
 }
