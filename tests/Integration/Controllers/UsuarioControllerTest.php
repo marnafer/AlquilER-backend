@@ -1,187 +1,576 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Integration\Controllers;
 
-use Tests\TestCase;
 use App\Controllers\Api\UsuarioController;
+use App\Exceptions\ConflictException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
+use App\Models\Usuario;
 use App\Services\UsuarioService;
+use Tests\TestCase;
 
-class UsuarioControllerTest extends TestCase
-{
-    private $controller;
-    private $service;
+final class UsuarioControllerTest extends TestCase
+    {
+        private $service;
+        private UsuarioController $controller;
 
-    protected function setUp(): void
+        protected function setUp(): void
     {
         parent::setUp();
-        $this->service = $this->createMock(UsuarioService::class);
-        $this->controller = new UsuarioController($this->service);
+
+        unset(
+            $_SERVER['HTTP_AUTHORIZATION'],
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        );
+
+        $this->service = $this->createMock(
+            UsuarioService::class
+        );
+
+        $this->controller = new UsuarioController(
+            $this->service
+        );
     }
 
-    
-    public function it_can_listar()
+    protected function tearDown(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        unset(
+            $_SERVER['HTTP_AUTHORIZATION'],
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        );
+
+        parent::tearDown();
+    }
+
+    public function test_index_devuelve_los_usuarios(): void
+    {
+        $resultado = [
+            'items' => [],
+            'total' => 0,
+        ];
+
+        $this->actingAs(1, 2);
 
         $this->service
             ->expects($this->once())
             ->method('listar')
-            ->willReturn([]);
+            ->willReturn($resultado);
 
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            $resultado,
+            $response['data']
+        );
     }
 
-    
-    public function it_returns_unauthorized_when_listar_without_user()
+    public function test_index_requiere_ser_admin(): void
     {
-        $request = $this->createRequest([]);
+        $this->actingAs(1, 1);
 
-        ob_start();
-        $this->controller->listar($request);
-        $output = ob_get_clean();
+        $this->service
+            ->expects($this->never())
+            ->method('listar');
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Solo administradores',
+            $response['error']
+        );
     }
 
-    
-    public function it_can_obtener()
+    public function test_index_requiere_autenticacion(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->service
+            ->expects($this->never())
+            ->method('listar');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Token requerido',
+            $response['error']
+        );
+    }
+
+    public function test_show_devuelve_un_usuario(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+            'email' => 'ana@example.com',
+        ]);
+
+        $usuario->id = 1;
+
+        $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->once())
             ->method('obtener')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn($usuario);
 
-        ob_start();
-        $this->controller->obtener($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->show(1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Ana',
+            $response['data']['nombre']
+        );
+        $this->assertSame(
+            1,
+            $response['data']['id']
+        );
     }
 
-    
-    public function it_returns_not_found_when_usuario_not_exists()
+    public function test_show_devuelve_not_found_si_no_existe(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->actingAs(1, 2);
 
         $this->service
             ->expects($this->once())
             ->method('obtener')
             ->with(999)
-            ->willThrowException(new \Exception("Usuario no encontrado", 404));
+            ->willThrowException(
+                new NotFoundException(
+                    'Usuario no encontrado'
+                )
+            );
 
-        ob_start();
-        $this->controller->obtener($request, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->show(999)
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Usuario no encontrado',
+            $response['error']
+        );
     }
 
-    
-    public function it_can_profile()
+    public function test_show_permite_a_un_admin_ver_cualquier_usuario(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+        ]);
+
+        $usuario->id = 5;
+
+        $this->actingAs(1, 2);
 
         $this->service
             ->expects($this->once())
             ->method('obtener')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->show(5)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            5,
+            $response['data']['id']
+        );
+    }
+
+    public function test_show_no_permite_ver_otro_usuario(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('obtener');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->show(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'No autorizado',
+            $response['error']
+        );
+    }
+
+    public function test_profile_devuelve_el_usuario_autenticado_con_rol(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+        ]);
+
+        $usuario->id = 1;
+
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerConRol')
             ->with(1)
-            ->willReturn((object) ['id' => 1]);
+            ->willReturn($usuario);
 
-        ob_start();
-        $this->controller->profile($request);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->profile()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Ana',
+            $response['data']['nombre']
+        );
     }
 
-    
-    public function it_returns_unauthorized_when_profile_without_user()
+    public function test_profile_requiere_autenticacion(): void
     {
-        $request = $this->createRequest([]);
+        $this->service
+            ->expects($this->never())
+            ->method('obtenerConRol');
 
-        ob_start();
-        $this->controller->profile($request);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->profile()
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Token requerido',
+            $response['error']
+        );
     }
 
-    
-    public function it_can_actualizar()
+    public function test_update_actualiza_un_usuario(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['nombre' => 'Nombre Actualizado']);
-        file_put_contents('php://input', $input);
+        $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(1, ['nombre' => 'Nombre Actualizado'])
-            ->willReturn(true);
+            ->with(
+                1,
+                [
+                    'nombre' => 'Nombre Actualizado',
+                ]
+            );
 
-        ob_start();
-        $this->controller->actualizar($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'nombre' => 'Nombre Actualizado',
+            ]),
+            fn() => $this->controller->update(1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Usuario actualizado correctamente',
+            $response['message']
+        );
     }
 
-    
-    public function it_can_eliminar()
+    public function test_update_no_permite_actualizar_otro_usuario(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('actualizar');
+
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'nombre' => 'Cambio',
+            ]),
+            fn() => $this->controller->update(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'No autorizado',
+            $response['error']
+        );
+    }
+
+    public function test_update_permite_al_admin_actualizar_cualquier_usuario(): void
+    {
+        $this->actingAs(1, 2);
+
+        $this->service
+            ->expects($this->once())
+            ->method('actualizar')
+            ->with(
+                5,
+                [
+                    'nombre' => 'Cambio',
+                ]
+            );
+
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'nombre' => 'Cambio',
+            ]),
+            fn() => $this->controller->update(5)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Usuario actualizado correctamente',
+            $response['message']
+        );
+    }
+
+    public function test_update_devuelve_error_de_validacion(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('actualizar')
+            ->with(
+                1,
+                [
+                    'nombre' => 'A',
+                ]
+            )
+            ->willThrowException(
+                new ValidationException([
+                    'nombre' => [
+                        'El nombre debe tener entre 2 y 50 caracteres'
+                    ]
+                ])
+            );
+
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'nombre' => 'A',
+            ]),
+            fn() => $this->controller->update(1)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'El nombre debe tener entre 2 y 50 caracteres',
+            $response['validation_errors']['nombre'][0]
+        );
+    }
+
+    public function test_update_devuelve_error_de_conflicto(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('actualizar')
+            ->with(
+                1,
+                [
+                    'email' => 'otro@example.com',
+                ]
+            )
+            ->willThrowException(
+                new ConflictException(
+                    'El email ya está registrado'
+                )
+            );
+
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'email' => 'otro@example.com',
+            ]),
+            fn() => $this->controller->update(1)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'El email ya está registrado',
+            $response['error']
+        );
+    }
+
+    public function test_delete_elimina_un_usuario(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('eliminar')
+            ->with(1);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(1)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Usuario eliminado',
+            $response['message']
+        );
+    }
+
+    public function test_delete_no_permite_eliminar_otro_usuario(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('eliminar');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'No autorizado',
+            $response['error']
+        );
+    }
+
+    public function test_delete_permite_al_admin_eliminar_cualquier_usuario(): void
+    {
+        $this->actingAs(1, 2);
+
+        $this->service
+            ->expects($this->once())
+            ->method('eliminar')
+            ->with(5);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(5)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Usuario eliminado',
+            $response['message']
+        );
+    }
+
+    public function test_delete_devuelve_not_found_si_no_existe(): void
+    {
+        $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->once())
             ->method('eliminar')
             ->with(1)
-            ->willReturn(true);
+            ->willThrowException(
+                new NotFoundException(
+                    'Usuario no encontrado'
+                )
+            );
 
-        ob_start();
-        $this->controller->eliminar($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Usuario no encontrado',
+            $response['error']
+        );
     }
 
-    
-    public function it_can_restaurar()
+    public function test_restore_restaura_un_usuario(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->actingAs(1, 2);
+
+        $this->service
+            ->expects($this->once())
+            ->method('restaurar')
+            ->with(1);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(1)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Usuario restaurado correctamente',
+            $response['message']
+        );
+    }
+
+    public function test_restore_requiere_ser_admin(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('restaurar');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(1)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Solo administradores',
+            $response['error']
+        );
+    }
+
+    public function test_restore_devuelve_not_found_si_no_existe(): void
+    {
+        $this->actingAs(1, 2);
+
+        $this->service
+            ->expects($this->once())
+            ->method('restaurar')
+            ->with(999)
+            ->willThrowException(
+                new NotFoundException(
+                    'Usuario eliminado no encontrado'
+                )
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(999)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Usuario eliminado no encontrado',
+            $response['error']
+        );
+    }
+
+    public function test_restore_devuelve_error_de_conflicto(): void
+    {
+        $this->actingAs(1, 2);
 
         $this->service
             ->expects($this->once())
             ->method('restaurar')
             ->with(1)
-            ->willReturn(true);
+            ->willThrowException(
+                new ConflictException(
+                    'Ya existe un usuario activo con ese email'
+                )
+            );
 
-        ob_start();
-        $this->controller->restaurar($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    
-    public function it_returns_unauthorized_when_eliminar_without_user()
-    {
-        $request = $this->createRequest([]);
-
-        ob_start();
-        $this->controller->eliminar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Ya existe un usuario activo con ese email',
+            $response['error']
+        );
     }
 }

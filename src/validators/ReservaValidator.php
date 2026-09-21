@@ -5,29 +5,146 @@ namespace App\Validators;
 class ReservaValidator
 {
     /**
-     * Validar reserva completa
+     * Valida ID de reserva
      */
-    public static function validarReserva(
-        array $data,
-        bool $requerirId = false
-    ): array {
-
-        $errores = [];
-
-        // ID
-        if ($requerirId) {
-
-            $resultado = self::validarIdRequerido(
-                $data['id'] ?? null,
-                'reserva'
-            );
-
-            if (!$resultado['success']) {
-                $errores['id'] = $resultado['error'];
-            }
+    public static function validarId($id): array
+    {
+        if ($id === null || $id === '') {
+            return [
+                'success' => false,
+                'error' => 'El ID de reserva es requerido'
+            ];
         }
 
-        // Propiedad
+        if (!is_numeric($id)) {
+            return [
+                'success' => false,
+                'error' => 'El ID de reserva debe ser numérico'
+            ];
+        }
+
+        if ((int) $id <= 0) {
+            return [
+                'success' => false,
+                'error' => 'El ID de reserva debe ser positivo'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null
+        ];
+    }
+
+    /**
+     * Valida ID de propiedad
+     */
+    public static function validarPropiedadId($id): array
+    {
+        if ($id === null || $id === '') {
+            return [
+                'success' => false,
+                'error' => 'El ID de propiedad es requerido'
+            ];
+        }
+
+        if (!is_numeric($id)) {
+            return [
+                'success' => false,
+                'error' => 'El ID de propiedad debe ser numérico'
+            ];
+        }
+
+        if ((int) $id <= 0) {
+            return [
+                'success' => false,
+                'error' => 'El ID de propiedad debe ser positivo'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null
+        ];
+    }
+
+    /**
+     * Valida ID de usuario
+     */
+    public static function validarUsuarioId($id): array
+    {
+        if ($id === null || $id === '') {
+            return [
+                'success' => false,
+                'error' => 'El ID de usuario es requerido'
+            ];
+        }
+
+        if (!is_numeric($id)) {
+            return [
+                'success' => false,
+                'error' => 'El ID de usuario debe ser numérico'
+            ];
+        }
+
+        if ((int) $id <= 0) {
+            return [
+                'success' => false,
+                'error' => 'El ID de usuario debe ser positivo'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null
+        ];
+    }
+
+    /**
+     * Valida estado de reserva
+     */
+    public static function validarEstado($estado): array
+    {
+        if ($estado === null || $estado === '') {
+            return [
+                'success' => false,
+                'error' => 'El estado es requerido'
+            ];
+        }
+
+        if (!is_string($estado)) {
+            return [
+                'success' => false,
+                'error' => 'El estado debe ser texto'
+            ];
+        }
+
+        if (!in_array(
+            $estado,
+            ['pendiente', 'confirmada', 'rechazada'],
+            true
+        )) {
+            return [
+                'success' => false,
+                'error' => 'El estado debe ser pendiente, confirmada o rechazada'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null
+        ];
+    }
+
+    /**
+     * Valida datos para crear reserva
+     *
+     * Espera datos ya sanitizados.
+     */
+    public static function validarCrear(array $data): array
+    {
+        $errores = [];
+
         $resultado = self::validarPropiedadId(
             $data['propiedad_id'] ?? null
         );
@@ -36,73 +153,25 @@ class ReservaValidator
             $errores['propiedad_id'] = $resultado['error'];
         }
 
-        // Usuario
-        $resultado = self::validarUsuarioId(
-            $data['usuario_id'] ?? null
-        );
+        $fechaInicio = $data['fecha_inicio_alquiler'] ?? null;
 
-        if (!$resultado['success']) {
-            $errores['usuario_id'] = $resultado['error'];
+        if ($fechaInicio === null || $fechaInicio === '') {
+            $errores['fecha_inicio_alquiler'] = 'La fecha de inicio del alquiler es requerida';
+        } elseif (!self::esFechaValida((string) $fechaInicio)) {
+            $errores['fecha_inicio_alquiler'] = 'La fecha de inicio del alquiler no es válida';
         }
 
-        // Fecha inicio
-        $resultado = self::validarFechaInicio(
-            $data['fecha_inicio_alquiler'] ?? null
-        );
-
-        if (!$resultado['success']) {
-            $errores['fecha_inicio_alquiler'] = $resultado['error'];
-        }
-
-        // Fecha fin (opcional)
         if (
             isset($data['fecha_fin_alquiler']) &&
-            $data['fecha_fin_alquiler'] !== null
+            $data['fecha_fin_alquiler'] !== null &&
+            $data['fecha_fin_alquiler'] !== ''
         ) {
-
-            $resultado = self::validarFechaFin(
-                $data['fecha_fin_alquiler']
-            );
-
-            if (!$resultado['success']) {
-                $errores['fecha_fin_alquiler'] = $resultado['error'];
-            }
-        }
-
-        // Relación entre fechas
-        if (
-            !isset($errores['fecha_inicio_alquiler']) &&
-            !isset($errores['fecha_fin_alquiler']) &&
-            !empty($data['fecha_fin_alquiler'])
-        ) {
-
-            $resultado = self::validarRelacionFechas(
-                $data['fecha_inicio_alquiler'],
-                $data['fecha_fin_alquiler']
-            );
-
-            if (!$resultado['success']) {
-                $errores['fecha_fin_alquiler'] = $resultado['error'];
-            }
-        }
-
-        // Estado
-        if (
-            isset($data['estado']) &&
-            $data['estado'] !== null
-        ) {
-
-            $resultado = self::validarEstado(
-                $data['estado']
-            );
-
-            if (!$resultado['success']) {
-                $errores['estado'] = $resultado['error'];
+            if (!self::esFechaValida((string) $data['fecha_fin_alquiler'])) {
+                $errores['fecha_fin_alquiler'] = 'La fecha de fin del alquiler no es válida';
             }
         }
 
         if (!empty($errores)) {
-
             return [
                 'success' => false,
                 'message' => 'Error de validación',
@@ -118,234 +187,60 @@ class ReservaValidator
     }
 
     /**
-     * ID requerido
+     * Indica si una fecha en formato Y-m-d es válida
      */
-    public static function validarIdRequerido(
-        $id,
-        string $campo = ''
-    ): array {
-
-        if ($id === null || $id === '') {
-
-            return [
-                'success' => false,
-                'error' => "El ID de $campo es requerido. Debe ser un entero positivo."
-            ];
+    private static function esFechaValida(string $fecha): bool
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) !== 1) {
+            return false;
         }
 
-        if (!is_numeric($id) || $id <= 0) {
+        [$anio, $mes, $dia] = array_map('intval', explode('-', $fecha));
 
-            return [
-                'success' => false,
-                'error' => "El ID de $campo debe ser un numero entero positivo"
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
+        return checkdate($mes, $dia, $anio);
     }
 
     /**
-     * Propiedad
+     * Valida datos para actualizar estado
+     *
+     * Espera datos ya sanitizados.
      */
-    public static function validarPropiedadId(
-        $id
-    ): array {
-
-        if ($id === null || $id === '') {
-
-            return [
-                'success' => false,
-                'error' => 'El ID de propiedad es requerido. Debe ser un entero positivo.'
-            ];
-        }
-
-        if (!is_numeric($id) || $id <= 0) {
-
-            return [
-                'success' => false,
-                'error' => 'El ID de propiedad debe ser positivo'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
-     * Usuario
-     */
-    public static function validarUsuarioId(
-        $id
-    ): array {
-
-        if ($id === null || $id === '') {
-
-            return [
-                'success' => false,
-                'error' => 'El ID de usuario es requerido. Debe ser un entero positivo.'
-            ];
-        }
-
-        if (!is_numeric($id) || $id <= 0) {
-
-            return [
-                'success' => false,
-                'error' => 'El ID de usuario debe ser positivo'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
-     * Fecha inicio
-     */
-    public static function validarFechaInicio(
-        $fecha
-    ): array {
-
-        if ($fecha === null || $fecha === '') {
-
-            return [
-                'success' => false,
-                'error' => 'La fecha de inicio es requerida'
-            ];
-        }
-
-        if (!strtotime($fecha)) {
-
-            return [
-                'success' => false,
-                'error' => 'Fecha de inicio inválida'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
-     * Fecha fin
-     */
-    public static function validarFechaFin(
-        $fecha
-    ): array {
-
-        if (!strtotime($fecha)) {
-
-            return [
-                'success' => false,
-                'error' => 'Fecha de fin inválida'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
-     * Fecha fin > fecha inicio
-     */
-    public static function validarRelacionFechas(
-        string $inicio,
-        string $fin
-    ): array {
-
-        if (strtotime($fin) <= strtotime($inicio)) {
-
-            return [
-                'success' => false,
-                'error' => 'La fecha de fin debe ser posterior a la fecha de inicio'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
-     * Estado
-     */
-    public static function validarEstado(
-        $estado
-    ): array {
-
-        $validos = [
-            'pendiente',
-            'confirmada',
-            'rechazada',
-            'cancelada',
-            'finalizada'
-        ];
-
-        if (!in_array($estado, $validos, true)) {
-
-            return [
-                'success' => false,
-                'error' => 'Estado inválido'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
-     * Crear
-     */
-    public static function validarCrear(
+    public static function validarActualizarEstado(
         array $data
     ): array {
+        $errores = [];
 
-        return self::validarReserva(
-            $data,
-            false
-        );
-    }
-
-    /**
-     * Actualizar
-     */
-    public static function validarActualizar(
-        array $data
-    ): array {
-
-        return self::validarReserva(
-            $data,
-            true
-        );
-    }
-
-    /**
-     * Solo ID
-     */
-    public static function validarSoloId(
-        $id
-    ): array {
-
-        $resultado = self::validarIdRequerido(
-            $id,
-            'reserva'
+        $resultado = self::validarEstado(
+            $data['estado'] ?? null
         );
 
         if (!$resultado['success']) {
+            $errores['estado'] = $resultado['error'];
+        }
 
+        if (!empty($errores)) {
+            return [
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $errores
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Validación exitosa',
+            'errors' => null
+        ];
+    }
+
+    /**
+     * Valida solamente el ID de reserva
+     */
+    public static function validarSoloId($id): array
+    {
+        $resultado = self::validarId($id);
+
+        if (!$resultado['success']) {
             return [
                 'success' => false,
                 'message' => 'ID inválido',
@@ -358,35 +253,6 @@ class ReservaValidator
         return [
             'success' => true,
             'message' => 'ID válido',
-            'errors' => null
-        ];
-    }
-
-    /**
-     * Solo estado
-     */
-    public static function validarSoloEstado(
-        $estado
-    ): array {
-
-        $resultado = self::validarEstado(
-            $estado
-        );
-
-        if (!$resultado['success']) {
-
-            return [
-                'success' => false,
-                'message' => 'Estado inválido',
-                'errors' => [
-                    'estado' => $resultado['error']
-                ]
-            ];
-        }
-
-        return [
-            'success' => true,
-            'message' => 'Estado válido',
             'errors' => null
         ];
     }

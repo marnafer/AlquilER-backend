@@ -17,9 +17,11 @@ interface PropiedadImagenRepositoryInterface
 
     public function create(array $data): PropiedadImagen;
 
-    public function clearPrincipalByPropiedadId(int $propiedadId): bool;
+    public function clearPrincipalByPropiedadId(int $propiedadId): void;
 
-    public function setPrincipal(PropiedadImagen $imagen): bool;
+    public function setPrincipal(PropiedadImagen $imagen): void;
 
-    public function delete(PropiedadImagen $imagen): bool;
+    public function delete(PropiedadImagen $imagen): void;
+
+    public function recorrerRutas(callable $callback): void;
 }

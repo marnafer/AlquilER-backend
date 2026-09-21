@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Exceptions\BadRequestException;
+use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Exceptions\BadRequestException;
 use App\Models\Usuario;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
@@ -37,57 +38,50 @@ class UsuarioService
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $usuario = $this->repository->findById($id);
 
         if (!$usuario) {
-            throw new NotFoundException('Usuario no encontrado');
+            throw new NotFoundException(
+                'Usuario no encontrado'
+            );
         }
 
         return $usuario;
     }
 
-    public function eliminar($rawId): void
+    public function obtenerConRol($rawId): Usuario
     {
         $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
 
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
-        $usuario = $this->repository->findById($id);
+        $usuario = $this->repository->findByIdWithRole($id);
 
         if (!$usuario) {
-            throw new NotFoundException('Usuario no encontrado');
+            throw new NotFoundException(
+                'Usuario no encontrado'
+            );
         }
 
-        $this->logActividadService->registrar(
-            $usuario->id,
-            'Eliminación de usuario'
-        );
-
-        $this->repository->delete($usuario);
+        return $usuario;
     }
 
-    public function actualizar($rawId, array $rawData): void
-    {
-        $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
-
-        $validacion = UsuarioValidator::validarSoloIdUsuario($id);
-
-        if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
-        }
-
-        $usuario = $this->repository->findById($id);
-
-        if (!$usuario) {
-            throw new NotFoundException('Usuario no encontrado');
-        }
+    public function actualizar(
+        $rawId,
+        array $rawData
+    ): void {
+        $usuario = $this->obtener($rawId);
 
         if ($rawData === []) {
             throw new BadRequestException(
@@ -95,7 +89,6 @@ class UsuarioService
             );
         }
 
-        // El contrato no permite modificar estos campos.
         unset(
             $rawData['id'],
             $rawData['deleted_at'],
@@ -126,21 +119,26 @@ class UsuarioService
             $datosRecibidos
         );
 
-        $validacion = UsuarioValidator::validarActualizacionParcial($data);
+        $validacion = UsuarioValidator::validarActualizacionParcial(
+            $data
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         if (
             array_key_exists('email', $data)
-            && $this->repository->existsByEmail($data['email'], $id)
+            && $this->repository->existsByEmail(
+                $data['email'],
+                $usuario->id
+            )
         ) {
-            throw new ValidationException([
-                'email' => [
-                    'El email ya está registrado'
-                ]
-            ]);
+            throw new ConflictException(
+                'El email ya está registrado'
+            );
         }
 
         if (array_key_exists('contrasena', $data)) {
@@ -150,12 +148,27 @@ class UsuarioService
             );
         }
 
+        $this->repository->update(
+            $usuario,
+            $data
+        );
+
         $this->logActividadService->registrar(
             $usuario->id,
             'Actualización de usuario'
         );
+    }
 
-        $this->repository->update($usuario, $data);
+    public function eliminar($rawId): void
+    {
+        $usuario = $this->obtener($rawId);
+
+        $this->repository->delete($usuario);
+
+        $this->logActividadService->registrar(
+            $usuario->id,
+            'Eliminación de usuario'
+        );
     }
 
     public function restaurar($rawId): void
@@ -165,7 +178,9 @@ class UsuarioService
         $validacion = UsuarioValidator::validarSoloIdUsuario($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $usuario = $this->repository->findDeletedById($id);
@@ -176,14 +191,17 @@ class UsuarioService
             );
         }
 
-        $usuario = $this->repository->existsByEmail($usuario->email) ? null : $usuario;
-
-        if (!$usuario) {
-            throw new BadRequestException(
-                'No se puede restaurar el usuario porque el email ya está registrado'
+        if ($this->repository->existsByEmail($usuario->email)) {
+            throw new ConflictException(
+                'Ya existe un usuario activo con ese email'
             );
         }
 
         $this->repository->restore($usuario);
+
+        $this->logActividadService->registrar(
+            $usuario->id,
+            'Restauración de usuario'
+        );
     }
 }

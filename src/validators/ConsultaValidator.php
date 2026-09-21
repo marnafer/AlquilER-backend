@@ -50,14 +50,19 @@ class ConsultaValidator
                 $errores['usuario_id'] = $resultado['error'];
             }
         }
-
+        
         // Mensaje
-        $resultado = self::validarMensajeConsulta(
-            $data['mensaje'] ?? null
-        );
+        if (
+            isset($data['mensaje'])
+            && $data['mensaje'] !== null
+        ) {
+            $resultado = self::validarMensajeConsulta(
+                $data['mensaje']
+            );
 
-        if (!$resultado['success']) {
-            $errores['mensaje'] = $resultado['error'];
+            if (!$resultado['success']) {
+                $errores['mensaje'] = $resultado['error'];
+            }
         }
 
         // Fecha opcional

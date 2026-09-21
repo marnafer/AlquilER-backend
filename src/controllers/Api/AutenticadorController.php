@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Exceptions\UnauthorizedException;
-use App\Exceptions\ValidationException;
 use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Services\AutenticadorService;
@@ -57,19 +55,13 @@ class AutenticadorController
     {
         $data = Request::json();
 
-        try {
-            $result = $this->service->refresh($data);
+        $result = $this->service->refresh($data);
 
-            Response::success($result, 200, 'Token refrescado correctamente');
-        } catch (UnauthorizedException $e) {
-            Response::unauthorized($e->getMessage());
-        } catch (ValidationException $e) {
-            Response::json([
-                'success' => false,
-                'error' => $e->getMessage(),
-                'validation_errors' => $e->errors(),
-            ], 422);
-        }
+        Response::success(
+            $result,
+            200,
+            'Token refrescado correctamente'
+        );
     }
 
     public function logout(): void

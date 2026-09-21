@@ -2,10 +2,10 @@
 
 namespace App\Middlewares;
 
-use App\Helpers\JwtProvider;
 use App\Helpers\TokenProviderInterface;
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\ForbiddenException;
+use App\Models\Rol;
 
 class AutenticadorMiddleware
 {
@@ -66,7 +66,7 @@ class AutenticadorMiddleware
     {
         $user = self::verificar();
 
-        if ((int) $user->rol_id !== 2) {
+        if ((int) $user->rol_id !== Rol::ADMIN) {
             throw new ForbiddenException('Solo administradores');
         }
 
@@ -78,7 +78,7 @@ class AutenticadorMiddleware
         $user = self::verificar();
 
         if (
-            (int) $user->rol_id !== 2
+            (int) $user->rol_id !== Rol::ADMIN
             && (string) $user->sub !== (string) $propietarioId
         ) {
             throw new ForbiddenException('No autorizado');

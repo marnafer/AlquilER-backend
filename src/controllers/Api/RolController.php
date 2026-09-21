@@ -2,10 +2,10 @@
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
 use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Helpers\Request;
 use App\Services\RolService;
+use App\Middlewares\AutenticadorMiddleware;
 
 class RolController
 {
@@ -85,38 +85,5 @@ class RolController
             200,
             'Rol restaurado exitosamente'
         );
-    }
-
-    /**
-     * Métodos alias en español para compatibilidad con tests
-     */
-    public function listar()
-    {
-        return $this->index();
-    }
-
-    public function crear()
-    {
-        return $this->store();
-    }
-
-    public function obtener($id)
-    {
-        return $this->show($id);
-    }
-
-    public function actualizar($id)
-    {
-        return $this->update($id);
-    }
-
-    public function eliminar($id)
-    {
-        return $this->delete($id);
-    }
-
-    public function restaurar($id)
-    {
-        return $this->restore($id);
     }
 }

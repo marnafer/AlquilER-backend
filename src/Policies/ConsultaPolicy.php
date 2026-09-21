@@ -6,10 +6,10 @@ namespace App\Policies;
 
 use App\Models\Consulta;
 use App\Models\Propiedad;
+use App\Models\Rol;
 
 class ConsultaPolicy
 {
-    private const ROL_ADMIN = 2;
 
     /**
      * Chat: Solo interesado o dueño de la propiedad.
@@ -32,7 +32,7 @@ class ConsultaPolicy
      */
     public function puedeActualizar(int $usuarioId, int $rolId, Consulta $consulta): bool
     {
-        return $rolId === self::ROL_ADMIN || $consulta->usuario_id === $usuarioId;
+        return $rolId === Rol::ADMIN || $consulta->usuario_id === $usuarioId;
     }
 
     /**
@@ -40,7 +40,7 @@ class ConsultaPolicy
      */
     public function puedeAdministrar(int $rolId): bool
     {
-        return $rolId === self::ROL_ADMIN;
+        return $rolId === Rol::ADMIN;
     }
 
     /**
@@ -48,7 +48,7 @@ class ConsultaPolicy
      */
     public function puedeVerDeUsuario(int $usuarioLogueadoId, int $rolId, int $usuarioConsultadoId): bool
     {
-        return $rolId === self::ROL_ADMIN || $usuarioLogueadoId === $usuarioConsultadoId;
+        return $rolId === Rol::ADMIN || $usuarioLogueadoId === $usuarioConsultadoId;
     }
 
     /**
@@ -56,6 +56,6 @@ class ConsultaPolicy
      */
     public function puedeVerDePropiedad(int $usuarioId, int $rolId, Propiedad $propiedad): bool
     {
-        return $rolId === self::ROL_ADMIN || $propiedad->usuario_id === $usuarioId;
+        return $rolId === Rol::ADMIN || $propiedad->usuario_id === $usuarioId;
     }
 }

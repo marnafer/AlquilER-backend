@@ -3,32 +3,43 @@
 namespace App\Repositories;
 
 use App\Models\Servicio;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 
 class EloquentServicioRepository implements ServicioRepositoryInterface
 {
     public function all(): Collection
     {
         return Servicio::query()
-            ->orderByDesc('id')
+            ->orderBy('id', 'asc')
             ->get();
     }
 
     public function findById(int $id): ?Servicio
     {
         return Servicio::query()
-            ->find($id);
+            ->whereKey($id)
+            ->first();
     }
 
     public function findDeletedById(int $id): ?Servicio
     {
         return Servicio::query()
             ->onlyTrashed()
-            ->find($id);
+            ->whereKey($id)
+            ->first();
     }
 
-    public function existsByName(string $nombre, ?int $exceptId = null): bool
+    public function findByIds(array $ids): Collection
     {
+        return Servicio::query()
+            ->whereIn('id', $ids)
+            ->get();
+    }
+
+    public function existsByName(
+        string $nombre,
+        ?int $exceptId = null
+    ): bool {
         $query = Servicio::query()
             ->where('nombre', $nombre);
 
@@ -49,18 +60,20 @@ class EloquentServicioRepository implements ServicioRepositoryInterface
         return Servicio::create($data);
     }
 
-    public function update(Servicio $servicio, array $data): bool
-    {
+    public function update(
+        Servicio $servicio,
+        array $data
+    ): bool {
         return $servicio->update($data);
     }
 
     public function delete(Servicio $servicio): bool
     {
-        return $servicio->delete();
+        return (bool) $servicio->delete();
     }
 
     public function restore(Servicio $servicio): bool
     {
-        return $servicio->restore();
+        return (bool) $servicio->restore();
     }
 }

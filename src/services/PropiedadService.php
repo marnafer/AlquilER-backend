@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\BadRequestException;
-use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\ConflictException;
 use App\Models\Propiedad;
-use App\Repositories\PropiedadRepositoryInterface;
+use App\Policies\PropiedadPolicy;
 use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
+use App\Repositories\PropiedadRepositoryInterface;
+use App\Repositories\ReservaRepositoryInterface;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
 
@@ -21,7 +23,9 @@ class PropiedadService
         private readonly PropiedadRepositoryInterface $repository,
         private readonly LogActividadService $logActividadService,
         private readonly CategoriaRepositoryInterface $categoriaRepository,
-        private readonly LocalidadRepositoryInterface $localidadRepository
+        private readonly LocalidadRepositoryInterface $localidadRepository,
+        private readonly ReservaRepositoryInterface $reservaRepository,
+        private readonly PropiedadPolicy $policy
     ) {
     }
 
@@ -47,32 +51,58 @@ class PropiedadService
 
     public function obtener($rawId): Propiedad
     {
-        $id = PropiedadSanitizer::sanitizarIdPropiedad($rawId);
+        $id = PropiedadSanitizer::sanitizarId($rawId);
 
-        $validacion = PropiedadValidator::validarSoloIdPropiedad($id);
+        $validacion = PropiedadValidator::validarSoloId($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $propiedad = $this->repository->findById($id);
 
         if (!$propiedad) {
-            throw new NotFoundException('Propiedad no encontrada');
+            throw new NotFoundException(
+                'Propiedad no encontrada'
+            );
         }
 
         return $propiedad;
     }
 
-    public function crear(array $rawData, int $usuarioId): Propiedad
+    public function obtenerParaActualizar(int $id): Propiedad
     {
-        $data = PropiedadSanitizer::sanitizarPropiedad($rawData);
+        $propiedad = $this->repository->findByIdForUpdate($id);
+
+        if (!$propiedad) {
+            throw new NotFoundException(
+                'Propiedad no encontrada'
+            );
+        }
+
+        return $propiedad;
+    }
+
+    public function crear(
+        array $rawData,
+        int $usuarioId
+    ): Propiedad {
+        $data = PropiedadSanitizer::sanitizarCrear(
+            $rawData
+        );
+
         $data['usuario_id'] = $usuarioId;
 
-        $validacion = PropiedadValidator::validarCrearPropiedad($data);
+        $validacion = PropiedadValidator::validar(
+            $data
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         if (
@@ -82,7 +112,7 @@ class PropiedadService
         ) {
             throw new ValidationException([
                 'categoria_id' => [
-                    'La categoría seleccionada no existe',
+                    'La categoría seleccionada no existe'
                 ],
             ]);
         }
@@ -94,34 +124,44 @@ class PropiedadService
         ) {
             throw new ValidationException([
                 'localidad_id' => [
-                    'La localidad seleccionada no existe',
+                    'La localidad seleccionada no existe'
                 ],
             ]);
         }
+
+        $propiedad = $this->repository->create(
+            $data
+        );
 
         $this->logActividadService->registrar(
             $usuarioId,
             'Creación de propiedad'
         );
 
-        return $this->repository->create($data);
+        return $propiedad;
     }
 
-    public function actualizar(int $usuarioId, int $rolId, $propiedadId, array $rawData): void
-    {
-        $propiedad = $this->obtener($propiedadId);
-
-        if ($rolId !== 2 && (int) $propiedad->usuario_id !== $usuarioId) {
-            throw new ForbiddenException(
-                'No tienes permiso para modificar esta propiedad'
-            );
-        }
-
+    public function actualizar(
+        int $usuarioId,
+        int $rolId,
+        $propiedadId,
+        array $rawData
+    ): void {
         if ($rawData === []) {
             throw new BadRequestException(
                 'Debe enviar al menos un campo para actualizar'
             );
         }
+
+        $propiedad = $this->obtener(
+            $propiedadId
+        );
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
 
         unset(
             $rawData['id'],
@@ -155,110 +195,157 @@ class PropiedadService
             );
         }
 
-        $data = PropiedadSanitizer::sanitizarPropiedad($datosRecibidos + [
-            'id' => $propiedadId,
-            'usuario_id' => $propiedad->usuario_id,
-            'categoria_id' => $datosRecibidos['categoria_id'] ?? $propiedad->categoria_id,
-            'localidad_id' => $datosRecibidos['localidad_id'] ?? $propiedad->localidad_id,
-            'titulo' => $datosRecibidos['titulo'] ?? $propiedad->titulo,
-            'descripcion' => $datosRecibidos['descripcion'] ?? $propiedad->descripcion,
-            'precio' => $datosRecibidos['precio'] ?? $propiedad->precio,
-            'expensas' => $datosRecibidos['expensas'] ?? $propiedad->expensas,
-            'direccion' => $datosRecibidos['direccion'] ?? $propiedad->direccion,
-            'cantidad_ambientes' => $datosRecibidos['cantidad_ambientes'] ?? $propiedad->cantidad_ambientes,
-            'cantidad_dormitorios' => $datosRecibidos['cantidad_dormitorios'] ?? $propiedad->cantidad_dormitorios,
-            'cantidad_banos' => $datosRecibidos['cantidad_banos'] ?? $propiedad->cantidad_banos,
-            'capacidad' => $datosRecibidos['capacidad'] ?? $propiedad->capacidad,
-            'disponible' => $datosRecibidos['disponible'] ?? $propiedad->disponible,
-        ]);
+        $data = PropiedadSanitizer::sanitizarActualizar(
+            $datosRecibidos
+        );
 
-        $validacion = PropiedadValidator::validarActualizarPropiedad($data);
+        $estadoFinal = [
+            'titulo' => $propiedad->titulo,
+            'descripcion' => $propiedad->descripcion,
+            'precio' => $propiedad->precio,
+            'expensas' => $propiedad->expensas,
+            'direccion' => $propiedad->direccion,
+            'cantidad_ambientes' =>
+                $propiedad->cantidad_ambientes,
+            'cantidad_dormitorios' =>
+                $propiedad->cantidad_dormitorios,
+            'cantidad_banos' =>
+                $propiedad->cantidad_banos,
+            'capacidad' => $propiedad->capacidad,
+            'disponible' => (int) $propiedad->disponible,
+            'categoria_id' => $propiedad->categoria_id,
+            'localidad_id' => $propiedad->localidad_id,
+        ];
+
+        $estadoFinal = array_merge(
+            $estadoFinal,
+            $data
+        );
+
+        $validacion = PropiedadValidator::validar(
+            $estadoFinal
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         if (
-            !$this->categoriaRepository->findById(
-                (int) $data['categoria_id']
+            array_key_exists('categoria_id', $data)
+            && !$this->categoriaRepository->findById(
+                (int) $estadoFinal['categoria_id']
             )
         ) {
             throw new ValidationException([
                 'categoria_id' => [
-                    'La categoría seleccionada no existe',
+                    'La categoría seleccionada no existe'
                 ],
             ]);
         }
 
         if (
-            !$this->localidadRepository->findById(
-                (int) $data['localidad_id']
+            array_key_exists('localidad_id', $data)
+            && !$this->localidadRepository->findById(
+                (int) $estadoFinal['localidad_id']
             )
         ) {
             throw new ValidationException([
                 'localidad_id' => [
-                    'La localidad seleccionada no existe',
+                    'La localidad seleccionada no existe'
                 ],
             ]);
         }
+
+        $this->repository->update(
+            $propiedad,
+            $data
+        );
 
         $this->logActividadService->registrar(
             $usuarioId,
             'Actualización de propiedad'
         );
-
-        $this->repository->update($propiedad, $data);
     }
 
-    public function eliminar(int $usuarioId, int $rolId, $propiedadId): void
-    {
-        $propiedad = $this->obtener($propiedadId);
+    public function eliminar(
+        int $usuarioId,
+        int $rolId,
+        $propiedadId
+    ): void {
+        $propiedad = $this->obtener(
+            $propiedadId
+        );
 
-        if ($rolId !== 2 && (int) $propiedad->usuario_id !== $usuarioId) {
-            throw new ForbiddenException(
-                'No tienes permiso para eliminar esta propiedad'
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        if (
+            $this->reservaRepository->tieneReservaActiva(
+                $propiedad->id
+            )
+        ) {
+            throw new ConflictException(
+                'No se puede eliminar la propiedad porque tiene una reserva activa'
             );
         }
+
+        $this->repository->delete(
+            $propiedad
+        );
 
         $this->logActividadService->registrar(
             $usuarioId,
             'Eliminación de propiedad'
         );
-
-        $this->repository->delete($propiedad);
     }
 
-    public function restaurar(int $usuarioId, int $rolId, $propiedadId): void
-    {
-        $id = PropiedadSanitizer::sanitizarIdPropiedad($propiedadId);
+    public function restaurar(
+        int $usuarioId,
+        int $rolId,
+        $propiedadId
+    ): void {
+        $id = PropiedadSanitizer::sanitizarId(
+            $propiedadId
+        );
 
-        $validacion = PropiedadValidator::validarSoloIdPropiedad($id);
+        $validacion = PropiedadValidator::validarSoloId(
+            $id
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
-        }
-
-        $propiedad = $this->repository->findDeletedById($id);
-
-        if (!$propiedad) {
-            throw new NotFoundException('Propiedad no encontrada');
-        }
-
-        if ($rolId !== 2 && (int) $propiedad->usuario_id !== $usuarioId) {
-            throw new ForbiddenException(
-                'No tienes permiso para restaurar esta propiedad'
+            throw new ValidationException(
+                $validacion['errors']
             );
         }
 
-        if ($propiedad->deleted_at === null) {
-            throw new BadRequestException('La propiedad no está eliminada');
+        $propiedad = $this->repository->findDeletedById(
+            $id
+        );
+
+        if (!$propiedad) {
+            throw new NotFoundException(
+                'Propiedad no encontrada'
+            );
         }
+
+        $this->policy->gestionar(
+            $propiedad,
+            $usuarioId,
+            $rolId
+        );
+
+        $this->repository->restore(
+            $propiedad
+        );
 
         $this->logActividadService->registrar(
             $usuarioId,
             'Restauración de propiedad'
         );
-
-        $this->repository->restore($propiedad);
     }
 }

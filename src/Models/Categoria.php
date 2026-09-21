@@ -14,6 +14,8 @@ class Categoria extends Model
 
     protected $fillable = ['nombre'];
 
+    protected $hidden = ['deleted_at'];
+
     /**
      * Relación: Una categoría tiene muchas propiedades.
      */

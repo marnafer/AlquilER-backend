@@ -13,8 +13,7 @@ class LogActividad extends Model
     protected $fillable = [
         'usuario_id',
         'accion',
-        'ip_address',
-        'fecha'
+        'ip_address'
     ];
 
     protected $casts = [

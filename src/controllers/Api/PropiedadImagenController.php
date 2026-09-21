@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
 use App\Helpers\Response;
@@ -15,41 +17,39 @@ class PropiedadImagenController
         $this->service = $service;
     }
 
-    public function index()
+    /**
+     * GET /api/propiedad-imagenes
+     */
+    public function index(): void
     {
-        $queryString = $_SERVER['QUERY_STRING'] ?? '';
-
-        if ($queryString !== '') {
-            $aceptado = preg_match('/^id=\d+$/', $queryString) === 1
-                || preg_match('/^$/', $queryString) === 1;
-
-            if (!$aceptado) {
-                throw new \App\Exceptions\ValidationException([
-                    'id' => 'Parámetro de consulta inválido. Use ?id=123'
-                ]);
-            }
-        }
-
         Response::success(
-            $this->service->listar($_GET['id'] ?? null)
+            $this->service->listar()
         );
     }
 
-    public function show($id)
+    /**
+     * GET /api/propiedad-imagenes/{id}
+     */
+    public function show($id): void
     {
         Response::success(
             $this->service->obtener($id)
         );
     }
 
-    public function store()
+    /**
+     * POST /api/propiedad-imagenes
+     */
+    public function store(): void
     {
         $user = AutenticadorMiddleware::verificar();
 
-        $raw = $_POST;
-        $file = $_FILES['imagen'] ?? null;
-
-        $imagen = $this->service->crear($raw, $file, $user);
+        $imagen = $this->service->crear(
+            $_POST,
+            $_FILES['imagen'] ?? null,
+            (int) $user->sub,
+            (int) $user->rol_id
+        );
 
         Response::created(
             $imagen,
@@ -57,13 +57,17 @@ class PropiedadImagenController
         );
     }
 
-    public function setPrincipal($id)
+    /**
+     * PUT /api/propiedad-imagenes/{id}/principal
+     */
+    public function setPrincipal($id): void
     {
         $user = AutenticadorMiddleware::verificar();
 
         $imagen = $this->service->establecerPrincipal(
-            (int) $id,
-            $user
+            $id,
+            (int) $user->sub,
+            (int) $user->rol_id
         );
 
         Response::success(
@@ -73,13 +77,17 @@ class PropiedadImagenController
         );
     }
 
-    public function delete($id)
+    /**
+     * DELETE /api/propiedad-imagenes/{id}
+     */
+    public function delete($id): void
     {
         $user = AutenticadorMiddleware::verificar();
 
         $this->service->eliminar(
-            (int) $id,
-            $user
+            $id,
+            (int) $user->sub,
+            (int) $user->rol_id
         );
 
         Response::success(
@@ -87,28 +95,5 @@ class PropiedadImagenController
             200,
             'Imagen eliminada correctamente'
         );
-    }
-
-    /**
-     * Métodos alias en español para compatibilidad con tests
-     */
-    public function listar()
-    {
-        return $this->index();
-    }
-
-    public function crear()
-    {
-        return $this->store();
-    }
-
-    public function obtener($id)
-    {
-        return $this->show($id);
-    }
-
-    public function eliminar($request, $id)
-    {
-        return $this->delete($id);
     }
 }

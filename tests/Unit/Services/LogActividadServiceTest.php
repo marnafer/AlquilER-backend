@@ -13,6 +13,18 @@ use PHPUnit\Framework\TestCase;
 
 final class LogActividadServiceTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        unset(
+            $_SERVER['REMOTE_ADDR'],
+            $_SERVER['HTTP_X_FORWARDED_FOR']
+        );
+
+        unset($_ENV['TRUSTED_PROXIES']);
+
+        parent::tearDown();
+    }
+
     public function test_lista_los_logs(): void
     {
         $logs = new Collection([
@@ -99,6 +111,9 @@ final class LogActividadServiceTest extends TestCase
 
     public function test_registra_un_log(): void
     {
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+        $_ENV['TRUSTED_PROXIES'] = '';
+
         $repository = $this->createMock(
             LogActividadRepositoryInterface::class
         );
@@ -107,23 +122,18 @@ final class LogActividadServiceTest extends TestCase
             ->expects($this->once())
             ->method('create')
             ->with($this->callback(function (array $data): bool {
-                return $data['usuario_id'] === 2
-                    && $data['accion'] === 'Inicio de sesión'
-                    && $data['ip_address'] === '127.0.0.1'
-                    && preg_match(
-                        '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',
-                        $data['fecha']
-                    ) === 1;
+                return $data === [
+                    'usuario_id' => 2,
+                    'accion' => 'Inicio de sesión',
+                    'ip_address' => '127.0.0.1',
+                ];
             }));
 
         $service = new LogActividadService($repository);
 
         $service->registrar(
             2,
-            ' Inicio de sesión ',
-            '127.0.0.1'
+            ' Inicio de sesión '
         );
-
-        $this->addToAssertionCount(1);
     }
 }

@@ -1,24 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Integration\Controllers;
 
-use Tests\TestCase;
 use App\Controllers\Api\LogActividadController;
-use App\Services\LogActividadService;
-use App\Helpers\Request;
-use App\Helpers\TokenProviderInterface;
-use App\Middlewares\AutenticadorMiddleware;
 use App\Exceptions\NotFoundException;
+use App\Services\LogActividadService;
+use Tests\TestCase;
 
-class LogActividadControllerTest extends TestCase
+final class LogActividadControllerTest extends TestCase
 {
-    private $controller;
     private $service;
-    private $tokenProviderMock;
+    private LogActividadController $controller;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        unset(
+            $_SERVER['HTTP_AUTHORIZATION'],
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        );
 
         $this->service = $this->createMock(
             LogActividadService::class
@@ -27,34 +30,13 @@ class LogActividadControllerTest extends TestCase
         $this->controller = new LogActividadController(
             $this->service
         );
-
-        $this->tokenProviderMock = $this->createMock(
-            TokenProviderInterface::class
-        );
-
-        $this->tokenProviderMock
-            ->method('validate')
-            ->willReturn(
-                (object) [
-                    'sub' => 1,
-                    'rol_id' => 2
-                ]
-            );
-
-        AutenticadorMiddleware::configure(
-            $this->tokenProviderMock
-        );
-
-        $_SERVER['HTTP_AUTHORIZATION'] =
-            'Bearer token_jwt_valido';
     }
 
     protected function tearDown(): void
     {
-        Request::setTestBody(null);
-
         unset(
-            $_SERVER['HTTP_AUTHORIZATION']
+            $_SERVER['HTTP_AUTHORIZATION'],
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
         );
 
         parent::tearDown();
@@ -64,60 +46,66 @@ class LogActividadControllerTest extends TestCase
     {
         $logs = collect([]);
 
+        $this->actingAs(1, 2);
+
         $this->service
             ->expects($this->once())
             ->method('listar')
             ->willReturn($logs);
 
-        ob_start();
-
-        try {
-            $this->controller->index();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
         );
 
-        $this->assertTrue(
-            $response['success']
+        $this->assertTrue($response['success']);
+
+        $this->assertSame(
+            $logs->toArray(),
+            $response['data']
         );
 
         $this->assertSame(
             'Lista de logs obtenida correctamente',
             $response['message']
         );
+    }
+
+    public function test_index_requiere_autenticacion(): void
+    {
+        $this->service
+            ->expects($this->never())
+            ->method('listar');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
+
+        $this->assertFalse($response['success']);
 
         $this->assertSame(
-            200,
-            http_response_code()
+            'Token requerido',
+            $response['error']
         );
     }
 
-    public function test_index_requiere_token(): void
+    public function test_index_requiere_ser_admin(): void
     {
-        unset($_SERVER['HTTP_AUTHORIZATION']);
+        $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->never())
             ->method('listar');
 
-        $this->expectException(
-            \App\Exceptions\UnauthorizedException::class
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
         );
 
-        $this->expectExceptionMessage(
-            'Token requerido'
-        );
+        $this->assertFalse($response['success']);
 
-        $this->controller->index();
+        $this->assertSame(
+            'Solo administradores',
+            $response['error']
+        );
     }
 
     public function test_show_obtiene_un_log_correctamente(): void
@@ -132,65 +120,68 @@ class LogActividadControllerTest extends TestCase
             'usuario_email' => 'mariano@example.com',
         ];
 
+        $this->actingAs(1, 2);
+
         $this->service
             ->expects($this->once())
             ->method('obtener')
             ->with(1)
             ->willReturn($log);
 
-        ob_start();
-
-        try {
-            $this->controller->show(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->show(1)
         );
 
-        $this->assertTrue(
-            $response['success']
-        );
+        $this->assertTrue($response['success']);
 
         $this->assertSame(
             $log,
             $response['data']
         );
+    }
+
+    public function test_show_requiere_autenticacion(): void
+    {
+        $this->service
+            ->expects($this->never())
+            ->method('obtener');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->show(1)
+        );
+
+        $this->assertFalse($response['success']);
 
         $this->assertSame(
-            200,
-            http_response_code()
+            'Token requerido',
+            $response['error']
         );
     }
 
-    public function test_show_requiere_token(): void
+    public function test_show_requiere_ser_admin(): void
     {
-        unset($_SERVER['HTTP_AUTHORIZATION']);
+        $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->never())
             ->method('obtener');
 
-        $this->expectException(
-            \App\Exceptions\UnauthorizedException::class
+        $response = $this->captureJson(
+            fn() => $this->controller->show(1)
         );
 
-        $this->expectExceptionMessage(
-            'Token requerido'
-        );
+        $this->assertFalse($response['success']);
 
-        $this->controller->show(1);
+        $this->assertSame(
+            'Solo administradores',
+            $response['error']
+        );
     }
 
     public function test_show_devuelve_not_found_si_el_log_no_existe(): void
     {
+        $this->actingAs(1, 2);
+
         $this->service
             ->expects($this->once())
             ->method('obtener')
@@ -199,22 +190,15 @@ class LogActividadControllerTest extends TestCase
                 new NotFoundException('Log no encontrado')
             );
 
-        $this->expectException(
-            NotFoundException::class
+        $response = $this->captureJson(
+            fn() => $this->controller->show(999)
         );
 
-        $this->expectExceptionMessage(
-            'Log no encontrado'
+        $this->assertFalse($response['success']);
+
+        $this->assertSame(
+            'Log no encontrado',
+            $response['error']
         );
-
-        ob_start();
-
-        try {
-            $this->controller->show(999);
-        } finally {
-            if (ob_get_level() > 0) {
-                ob_end_clean();
-            }
-        }
     }
 }

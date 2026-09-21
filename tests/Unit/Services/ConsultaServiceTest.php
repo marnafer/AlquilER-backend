@@ -1,19 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\ConsultaService;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
+use App\Models\Consulta;
+use App\Models\MensajeConsulta;
+use App\Models\Propiedad;
+use App\Models\Usuario;
+use App\Policies\ConsultaPolicy;
 use App\Repositories\ConsultaRepositoryInterface;
+use App\Repositories\MensajeConsultaRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
-use App\Repositories\MensajeConsultaRepositoryInterface;
+use App\Services\ConsultaService;
 use App\Services\LogActividadService;
-use App\Models\Propiedad;
-use App\Models\Consulta;
-use App\Models\Usuario;
-use App\Exceptions\ValidationException;
-use App\Exceptions\UnauthorizedException;
+use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Eloquent\Collection;
 
 class ConsultaServiceTest extends TestCase
 {
@@ -22,33 +29,12 @@ class ConsultaServiceTest extends TestCase
     private $usuarioRepository;
     private $mensajeConsultaRepository;
     private $logService;
-    private $consultaService;
     private $policyMock;
+    private $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Inicializamos SQLite en memoria para las transacciones.
-        $capsule = new \Illuminate\Database\Capsule\Manager;
-
-        $capsule->addConnection([
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
-
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        // Tabla mínima necesaria para que DB::transaction() funcione.
-        \Illuminate\Database\Capsule\Manager::schema()->create(
-            'propiedades',
-            function ($table) {
-                $table->increments('id');
-                $table->timestamps();
-            }
-        );
 
         $this->consultaRepository = $this->createMock(
             ConsultaRepositoryInterface::class
@@ -71,10 +57,10 @@ class ConsultaServiceTest extends TestCase
         );
 
         $this->policyMock = $this->createMock(
-            \App\Policies\ConsultaPolicy::class
+            ConsultaPolicy::class
         );
 
-        $this->consultaService = new ConsultaService(
+        $this->service = new ConsultaService(
             $this->consultaRepository,
             $this->propiedadRepository,
             $this->usuarioRepository,
@@ -82,19 +68,70 @@ class ConsultaServiceTest extends TestCase
             $this->logService,
             $this->policyMock
         );
+
+        $capsule = new Capsule;
+
+        $capsule->addConnection([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+        ]);
+
+        $capsule->setAsGlobal();
+        $capsule->bootEloquent();
     }
 
-    // =========================================================
-    // listarConsultas()
-    // =========================================================
-
-    
-    public function test_el_administrador_puede_listar_todas_las_consultas(): void
+    public function test_listar_devuelve_las_consultas_para_un_administrador(): void
     {
-        $filtros = ['usuario_id' => 1];
+        $consultas = [
+            [
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 5
+            ]
+        ];
 
-        $expected = [
-            ['id' => 1, 'propiedad_id' => 1]
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(2)
+            ->willReturn(true);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('getAll')
+            ->with([])
+            ->willReturn($consultas);
+
+        $resultado = $this->service->listar(2);
+
+        $this->assertSame($consultas, $resultado);
+    }
+
+    public function test_listar_rechaza_a_un_usuario_no_administrador(): void
+    {
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(1)
+            ->willReturn(false);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('getAll');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No autorizado para ver el listado global de consultas'
+        );
+
+        $this->service->listar(1);
+    }
+
+    public function test_listar_envia_los_filtros_limpios_al_repository(): void
+    {
+        $filtros = [
+            'usuario_id' => 5,
+            'propiedad_id' => 20
         ];
 
         $this->policyMock
@@ -107,72 +144,33 @@ class ConsultaServiceTest extends TestCase
             ->expects($this->once())
             ->method('getAll')
             ->with($filtros)
-            ->willReturn($expected);
+            ->willReturn([]);
 
-        $result = $this->consultaService->listarConsultas(
+        $resultado = $this->service->listar(
             2,
             $filtros
         );
 
-        $this->assertEquals($expected, $result);
+        $this->assertSame([], $resultado);
     }
 
-    
-    public function test_un_usuario_no_administrador_no_puede_listar_todas_las_consultas(): void
+    public function test_obtener_devuelve_la_consulta(): void
     {
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeAdministrar')
-            ->with(1)
-            ->willReturn(false);
-
-        $this->consultaRepository
-            ->expects($this->never())
-            ->method('getAll');
-
-        $this->expectException(UnauthorizedException::class);
-
-        $this->consultaService->listarConsultas(1, []);
-    }
-
-    // =========================================================
-    // obtenerConsulta()
-    // =========================================================
-
-    
-    public function test_se_puede_obtener_una_consulta_por_id(): void
-    {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
-        $result = $this->consultaService->obtenerConsulta(1);
+        $resultado = $this->service->obtener(10);
 
-        $this->assertSame($consulta, $result);
+        $this->assertSame($consulta, $resultado);
     }
 
-    
-    public function test_lanza_excepcion_si_la_consulta_no_existe(): void
-    {
-        $this->consultaRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(999)
-            ->willReturn(null);
-
-        $this->expectException(ValidationException::class);
-
-        $this->consultaService->obtenerConsulta(999);
-    }
-
-    
-    public function test_lanza_excepcion_si_el_id_de_consulta_es_invalido(): void
+    public function test_obtener_rechaza_id_invalido(): void
     {
         $this->consultaRepository
             ->expects($this->never())
@@ -180,24 +178,34 @@ class ConsultaServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
 
-        $this->consultaService->obtenerConsulta(0);
+        $this->service->obtener(0);
     }
 
-    // =========================================================
-    // obtenerConsultaAutorizada()
-    // =========================================================
-
-    
-    public function test_un_usuario_autorizado_puede_obtener_una_consulta(): void
+    public function test_obtener_rechaza_consulta_inexistente(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'Consulta no encontrada'
+        );
+
+        $this->service->obtener(10);
+    }
+
+    public function test_obtenerAutorizada_devuelve_la_consulta_si_el_usuario_participa(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
         $this->policyMock
@@ -206,25 +214,23 @@ class ConsultaServiceTest extends TestCase
             ->with(5, $consulta)
             ->willReturn(true);
 
-        $result = $this->consultaService->obtenerConsultaAutorizada(
-            1,
+        $resultado = $this->service->obtenerAutorizada(
+            10,
             5
         );
 
-        $this->assertSame($consulta, $result);
+        $this->assertSame($consulta, $resultado);
     }
 
-    
-    public function test_un_usuario_no_autorizado_no_puede_obtener_una_consulta(): void
+    public function test_obtenerAutorizada_rechaza_usuario_no_autorizado(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
         $this->policyMock
@@ -233,86 +239,131 @@ class ConsultaServiceTest extends TestCase
             ->with(5, $consulta)
             ->willReturn(false);
 
-        $this->expectException(UnauthorizedException::class);
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para acceder a esta consulta'
+        );
 
-        $this->consultaService->obtenerConsultaAutorizada(
-            1,
+        $this->service->obtenerAutorizada(
+            10,
             5
         );
     }
 
-    // =========================================================
-    // crearConsulta()
-    // =========================================================
-
-    
-    public function test_no_se_puede_crear_una_consulta_sin_mensaje_inicial(): void
+    public function test_crear_crea_la_consulta_sin_mensaje(): void
     {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+
         $this->propiedadRepository
-            ->expects($this->never())
-            ->method('findById');
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
 
         $this->consultaRepository
-            ->expects($this->never())
-            ->method('create');
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(
+                function (array $data): bool {
+                    return $data['propiedad_id'] === 20
+                        && $data['usuario_id'] === 5
+                        && isset($data['fecha_consulta']);
+                }
+            ))
+            ->willReturn(10);
 
         $this->mensajeConsultaRepository
             ->expects($this->never())
             ->method('create');
 
         $this->logService
-            ->expects($this->never())
-            ->method('registrar');
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'consulta_creada');
 
-        $this->expectException(ValidationException::class);
-
-        $this->consultaService->crearConsulta([
-            'propiedad_id' => 1,
-            'usuario_id' => 2
+        $resultado = $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5
         ]);
+
+        $this->assertSame(10, $resultado);
     }
 
-    
-    public function test_lanza_excepcion_cuando_la_propiedad_no_existe_al_crear(): void
+    public function test_crear_crea_la_consulta_y_el_mensaje(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->willReturn(10);
+
+        $this->mensajeConsultaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(
+                function (array $data): bool {
+                    return $data['consulta_id'] === 10
+                        && $data['usuario_id'] === 5
+                        && $data['mensaje'] === 'Estoy interesado'
+                        && isset($data['fecha_mensaje']);
+                }
+            ));
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'consulta_creada');
+
+        $resultado = $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+            'mensaje' => 'Estoy interesado'
+        ]);
+
+        $this->assertSame(10, $resultado);
+    }
+
+    public function test_crear_rechaza_propiedad_inexistente(): void
     {
         $this->propiedadRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(999)
+            ->with(20)
             ->willReturn(null);
 
-        $this->consultaRepository
-            ->expects($this->never())
-            ->method('create');
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'La propiedad no existe'
+        );
 
-        $this->expectException(ValidationException::class);
-
-        $this->consultaService->crearConsulta([
-            'propiedad_id' => 999,
-            'usuario_id' => 1,
-            'mensaje' => 'Hola, este mensaje es válido'
+        $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5
         ]);
     }
 
-    // =========================================================
-    // actualizarConsulta()
-    // =========================================================
-
-    
-    public function test_se_puede_actualizar_una_consulta(): void
+    public function test_actualizar_actualiza_la_consulta(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $usuario = new Usuario();
         $usuario->id = 5;
-        $usuario->rol_id = 2;
+        $usuario->rol_id = 1;
 
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
         $this->usuarioRepository
@@ -324,18 +375,28 @@ class ConsultaServiceTest extends TestCase
         $this->policyMock
             ->expects($this->once())
             ->method('puedeActualizar')
-            ->with(5, 2, $consulta)
+            ->with(5, 1, $consulta)
             ->willReturn(true);
 
-        $this->consultaRepository
+        $mensaje = new MensajeConsulta();
+        $mensaje->id = 1;
+
+        $this->mensajeConsultaRepository
+            ->expects($this->once())
+            ->method('findByConsultaId')
+            ->with(10)
+            ->willReturn(new Collection([$mensaje]));
+
+        $this->mensajeConsultaRepository
             ->expects($this->once())
             ->method('update')
             ->with(
                 1,
-                $this->callback(function (array $data) {
-                    return $data['id'] === 1
-                        && $data['mensaje'] === 'Mensaje actualizado';
-                })
+                $this->callback(
+                    function (array $data): bool {
+                        return ($data['mensaje'] ?? null) === 'Nuevo mensaje';
+                    }
+                )
             )
             ->willReturn(true);
 
@@ -344,21 +405,19 @@ class ConsultaServiceTest extends TestCase
             ->method('registrar')
             ->with(5, 'consulta_actualizada');
 
-        $result = $this->consultaService->actualizarConsulta(
-            1,
-            ['mensaje' => 'Mensaje actualizado'],
+        $resultado = $this->service->actualizar(
+            10,
+            ['mensaje' => 'Nuevo mensaje'],
             5
         );
 
-        $this->assertTrue($result);
+        $this->assertTrue($resultado);
     }
 
-    
-    public function test_no_se_puede_actualizar_una_consulta_sin_autorizacion(): void
+    public function test_actualizar_rechaza_usuario_no_autorizado(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $usuario = new Usuario();
         $usuario->id = 5;
@@ -367,7 +426,7 @@ class ConsultaServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
         $this->usuarioRepository
@@ -386,25 +445,22 @@ class ConsultaServiceTest extends TestCase
             ->expects($this->never())
             ->method('update');
 
-        $this->expectException(UnauthorizedException::class);
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para actualizar esta consulta'
+        );
 
-        $this->consultaService->actualizarConsulta(
-            1,
-            ['mensaje' => 'Mensaje actualizado'],
+        $this->service->actualizar(
+            10,
+            ['mensaje' => 'Nuevo mensaje'],
             5
         );
     }
 
-    // =========================================================
-    // eliminarConsulta()
-    // =========================================================
-
-    
-    public function test_un_administrador_puede_eliminar_una_consulta(): void
+    public function test_eliminar_elimina_la_consulta_y_registra_actividad(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $usuario = new Usuario();
         $usuario->id = 5;
@@ -413,7 +469,7 @@ class ConsultaServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
         $this->usuarioRepository
@@ -431,7 +487,7 @@ class ConsultaServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('delete')
-            ->with(1)
+            ->with(10)
             ->willReturn(true);
 
         $this->logService
@@ -439,20 +495,18 @@ class ConsultaServiceTest extends TestCase
             ->method('registrar')
             ->with(5, 'consulta_eliminada');
 
-        $result = $this->consultaService->eliminarConsulta(
-            1,
+        $resultado = $this->service->eliminar(
+            10,
             5
         );
 
-        $this->assertTrue($result);
+        $this->assertTrue($resultado);
     }
 
-    
-    public function test_un_usuario_no_administrador_no_puede_eliminar_una_consulta(): void
+    public function test_eliminar_rechaza_usuario_no_administrador(): void
     {
-        $consulta = new Consulta([
-            'id' => 1
-        ]);
+        $consulta = new Consulta();
+        $consulta->id = 10;
 
         $usuario = new Usuario();
         $usuario->id = 5;
@@ -461,7 +515,7 @@ class ConsultaServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(10)
             ->willReturn($consulta);
 
         $this->usuarioRepository
@@ -480,228 +534,137 @@ class ConsultaServiceTest extends TestCase
             ->expects($this->never())
             ->method('delete');
 
-        $this->expectException(UnauthorizedException::class);
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No autorizado para eliminar consultas'
+        );
 
-        $this->consultaService->eliminarConsulta(
-            1,
+        $this->service->eliminar(
+            10,
             5
         );
     }
 
-    // =========================================================
-    // restaurarConsulta()
-    // =========================================================
-
-    
-    public function test_un_administrador_puede_restaurar_una_consulta(): void
+    public function test_listarPorUsuario_devuelve_las_consultas_autorizadas(): void
     {
-        $usuario = new Usuario();
-        $usuario->id = 5;
-        $usuario->rol_id = 2;
-
-        $this->usuarioRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(5)
-            ->willReturn($usuario);
-
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeAdministrar')
-            ->with(2)
-            ->willReturn(true);
-
-        $this->consultaRepository
-            ->expects($this->once())
-            ->method('restore')
-            ->with(1)
-            ->willReturn(true);
-
-        $this->logService
-            ->expects($this->once())
-            ->method('registrar')
-            ->with(5, 'consulta_restaurada');
-
-        $result = $this->consultaService->restaurarConsulta(
-            1,
-            5
-        );
-
-        $this->assertTrue($result);
-    }
-
-    
-    public function test_un_usuario_no_administrador_no_puede_restaurar_una_consulta(): void
-    {
-       $usuario = new Usuario();
-        $usuario->id = 5;
-        $usuario->rol_id = 1;
-
-        $this->usuarioRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(5)
-            ->willReturn($usuario);
-
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeAdministrar')
-            ->with(1)
-            ->willReturn(false);
-
-        $this->consultaRepository
-            ->expects($this->never())
-            ->method('restore');
-
-        $this->expectException(UnauthorizedException::class);
-
-        $this->consultaService->restaurarConsulta(
-            1,
-            5
-        );
-    }
-
-    
-    public function test_lanza_excepcion_si_no_se_puede_restaurar_la_consulta(): void
-    {
-        $usuario = new Usuario();
-        $usuario->id = 5;
-        $usuario->rol_id = 2;
-
-        $this->usuarioRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(5)
-            ->willReturn($usuario);
-
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeAdministrar')
-            ->with(2)
-            ->willReturn(true);
-
-        $this->consultaRepository
-            ->expects($this->once())
-            ->method('restore')
-            ->with(1)
-            ->willReturn(false);
-
-        $this->logService
-            ->expects($this->never())
-            ->method('registrar');
-
-        $this->expectException(ValidationException::class);
-
-        $this->consultaService->restaurarConsulta(
-            1,
-            5
-        );
-    }
-
-    // =========================================================
-    // obtenerConsultasPorUsuario()
-    // =========================================================
-
-    
-    public function test_se_pueden_obtener_las_consultas_por_usuario(): void
-    {
-        $expected = [
-            ['id' => 1]
+        $consultas = [
+            [
+                'id' => 10,
+                'usuario_id' => 5
+            ]
         ];
 
         $this->policyMock
             ->expects($this->once())
             ->method('puedeVerDeUsuario')
-            ->with(1, 1, 1)
+            ->with(5, 1, 5)
             ->willReturn(true);
 
         $this->consultaRepository
             ->expects($this->once())
             ->method('getByUsuario')
-            ->with(1)
-            ->willReturn($expected);
+            ->with(5)
+            ->willReturn($consultas);
 
-        $result = $this->consultaService->obtenerConsultasPorUsuario(
-            1,
-            1,
+        $resultado = $this->service->listarPorUsuario(
+            5,
+            5,
             1
         );
 
-        $this->assertEquals($expected, $result);
+        $this->assertSame($consultas, $resultado);
     }
 
-    
-    public function test_lanza_excepcion_si_no_esta_autorizado_para_ver_consultas_de_usuario(): void
+    public function test_listarPorUsuario_rechaza_usuario_no_autorizado(): void
     {
         $this->policyMock
             ->expects($this->once())
             ->method('puedeVerDeUsuario')
-            ->with(1, 1, 2)
+            ->with(5, 1, 8)
             ->willReturn(false);
 
         $this->consultaRepository
             ->expects($this->never())
             ->method('getByUsuario');
 
-        $this->expectException(UnauthorizedException::class);
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para ver las consultas de este usuario'
+        );
 
-        $this->consultaService->obtenerConsultasPorUsuario(
-            2,
-            1,
+        $this->service->listarPorUsuario(
+            8,
+            5,
             1
         );
     }
 
-    // =========================================================
-    // obtenerConsultasPorPropiedad()
-    // =========================================================
-
-    
-    public function test_se_pueden_obtener_las_consultas_por_propiedad(): void
+    public function test_listarPorUsuario_rechaza_id_invalido(): void
     {
-        $expected = [
-            ['id' => 1]
-        ];
+        $this->policyMock
+            ->expects($this->never())
+            ->method('puedeVerDeUsuario');
 
-        $propiedad = new Propiedad([
-            'id' => 1,
-            'usuario_id' => 1
-        ]);
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('getByUsuario');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->listarPorUsuario(
+            0,
+            5,
+            1
+        );
+    }
+
+    public function test_listarPorPropiedad_devuelve_las_consultas_autorizadas(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 5;
+
+        $consultas = [
+            [
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 8
+            ]
+        ];
 
         $this->propiedadRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with(20)
             ->willReturn($propiedad);
 
         $this->policyMock
             ->expects($this->once())
             ->method('puedeVerDePropiedad')
-            ->with(1, 1, $propiedad)
+            ->with(5, 1, $propiedad)
             ->willReturn(true);
 
         $this->consultaRepository
             ->expects($this->once())
             ->method('getByPropiedad')
-            ->with(1)
-            ->willReturn($expected);
+            ->with(20)
+            ->willReturn($consultas);
 
-        $result = $this->consultaService->obtenerConsultasPorPropiedad(
-            1,
-            1,
+        $resultado = $this->service->listarPorPropiedad(
+            20,
+            5,
             1
         );
 
-        $this->assertEquals($expected, $result);
+        $this->assertSame($consultas, $resultado);
     }
 
-    
-    public function test_lanza_excepcion_si_la_propiedad_no_existe(): void
+    public function test_listarPorPropiedad_rechaza_propiedad_inexistente(): void
     {
         $this->propiedadRepository
             ->expects($this->once())
             ->method('findById')
-            ->with(999)
+            ->with(20)
             ->willReturn(null);
 
         $this->policyMock
@@ -712,11 +675,48 @@ class ConsultaServiceTest extends TestCase
             ->expects($this->never())
             ->method('getByPropiedad');
 
-        $this->expectException(ValidationException::class);
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'Propiedad no encontrada'
+        );
 
-        $this->consultaService->obtenerConsultasPorPropiedad(
-            999,
-            1,
+        $this->service->listarPorPropiedad(
+            20,
+            5,
+            1
+        );
+    }
+
+    public function test_listarPorPropiedad_rechaza_usuario_no_autorizado(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 8;
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeVerDePropiedad')
+            ->with(5, 1, $propiedad)
+            ->willReturn(false);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('getByPropiedad');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para ver las consultas de esta propiedad'
+        );
+
+        $this->service->listarPorPropiedad(
+            20,
+            5,
             1
         );
     }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Exceptions\BadRequestException;
-use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\BadRequestException;
+use App\Exceptions\ConflictException;
 use App\Models\Rol;
 use App\Repositories\RolRepositoryInterface;
 use App\Sanitizers\RolSanitizer;
@@ -34,11 +34,11 @@ class RolService
     {
         $id = RolSanitizer::sanitizarIdRol($rawId);
 
-        $validacion = RolValidator::validarSoloIdRol($id);
+        $validacion = RolValidator::validarIdRol($id);
 
         if (!$validacion['success']) {
             throw new ValidationException([
-                'id' => [$validacion['errors']['id'] ?? $validacion['message']],
+                'id' => [$validacion['error']]
             ]);
         }
 
@@ -55,7 +55,7 @@ class RolService
     {
         $data = RolSanitizer::sanitizarRol($rawData);
 
-        $validacion = RolValidator::validarCrearRol($data);
+        $validacion = RolValidator::validarRol($data);
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
@@ -63,11 +63,24 @@ class RolService
 
         if ($this->repository->existsByName($data['nombre'])) {
             throw new ConflictException(
-                'Ya existe un rol con ese nombre'
+                'Rol existente, no se puede crear otro con el mismo nombre'
             );
         }
 
         return $this->repository->create($data);
+    }
+
+    public function eliminar($rawId): void
+    {
+        $rol = $this->obtener($rawId);
+
+        if ($this->repository->hasUsers($rol)) {
+            throw new ConflictException(
+                'No se puede eliminar porque tiene usuarios asociados'
+            );
+        }
+
+        $this->repository->delete($rol);
     }
 
     public function actualizar($rawId, array $rawData): void
@@ -86,7 +99,7 @@ class RolService
         );
 
         $camposPermitidos = [
-            'nombre',
+            'nombre'
         ];
 
         $datosRecibidos = array_intersect_key(
@@ -100,7 +113,9 @@ class RolService
             );
         }
 
-        $data = RolSanitizer::sanitizarActualizacionRol($datosRecibidos);
+        $data = RolSanitizer::sanitizarActualizacionRol(
+            $datosRecibidos
+        );
 
         $validacion = RolValidator::validarRol($data);
 
@@ -110,50 +125,45 @@ class RolService
 
         if (
             array_key_exists('nombre', $data)
-            && $this->repository->existsByName($data['nombre'], $rol->id)
+            && $this->repository->existsByName(
+                $data['nombre'],
+                $rol->id
+            )
         ) {
             throw new ConflictException(
-                'Ya existe otro rol con ese nombre'
+                'El nombre ya está registrado'
             );
         }
 
-        $this->repository->update($rol, [
-            'nombre' => $data['nombre'],
-        ]);
-    }
-
-    public function eliminar($rawId): void
-    {
-        $rol = $this->obtener($rawId);
-
-        if ($this->repository->hasUsers($rol)) {
-            throw new ConflictException(
-                'No se puede eliminar el rol porque tiene usuarios asociados'
-            );
-        }
-
-        $this->repository->delete($rol);
+        $this->repository->update($rol, $data);
     }
 
     public function restaurar($rawId): void
     {
         $id = RolSanitizer::sanitizarIdRol($rawId);
 
-        $validacion = RolValidator::validarSoloIdRol($id);
+        $validacion = RolValidator::validarIdRol($id);
 
         if (!$validacion['success']) {
             throw new ValidationException([
-                'id' => [$validacion['errors']['id'] ?? $validacion['message']],
+                'id' => [$validacion['error']]
             ]);
         }
 
         $rol = $this->repository->findDeletedById($id);
 
         if (!$rol) {
-            throw new NotFoundException('Rol eliminado no encontrado');
+            throw new NotFoundException(
+                'Rol eliminado no encontrado'
+            );
         }
 
-        if ($this->repository->existsByName($rol->nombre, $rol->id)) {
+        if (
+            $this->repository->existsByName(
+                $rol->nombre,
+                $rol->id
+            )
+        ) {
             throw new ConflictException(
                 'Ya existe un rol activo con ese nombre'
             );

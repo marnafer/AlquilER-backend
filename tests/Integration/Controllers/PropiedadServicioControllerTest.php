@@ -5,328 +5,473 @@ namespace Tests\Integration\Controllers;
 use Tests\TestCase;
 use App\Controllers\Api\PropiedadServicioController;
 use App\Services\PropiedadServicioService;
+use App\Helpers\Request;
+use App\Helpers\TokenProviderInterface;
+use App\Middlewares\AutenticadorMiddleware;
 
 class PropiedadServicioControllerTest extends TestCase
 {
     private $controller;
     private $service;
+    private $tokenProviderMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = $this->createMock(PropiedadServicioService::class);
-        $this->controller = new PropiedadServicioController($this->service);
+
+        $this->service = $this->createMock(
+            PropiedadServicioService::class
+        );
+
+        $this->controller = new PropiedadServicioController(
+            $this->service
+        );
+
+        $this->tokenProviderMock = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $this->tokenProviderMock
+            ->method('validate')
+            ->willReturn(
+                (object) [
+                    'sub' => 1,
+                    'rol_id' => 1
+                ]
+            );
+
+        AutenticadorMiddleware::configure(
+            $this->tokenProviderMock
+        );
+
+        $_SERVER['HTTP_AUTHORIZATION'] =
+            'Bearer token_usuario';
     }
 
-    
-    public function it_can_listar()
+    protected function tearDown(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        Request::setTestBody(null);
+
+        unset(
+            $_SERVER['HTTP_AUTHORIZATION']
+        );
+
+        parent::tearDown();
+    }
+
+    public function test_el_controlador_puede_listar_servicios_de_una_propiedad(): void
+    {
+        $servicios = [
+            [
+                'propiedad_id' => 1,
+                'servicio_id' => 2
+            ],
+            [
+                'propiedad_id' => 1,
+                'servicio_id' => 3
+            ]
+        ];
 
         $this->service
             ->expects($this->once())
             ->method('listar')
             ->with(1)
-            ->willReturn([]);
+            ->willReturn($servicios);
 
-        ob_start();
-        $this->controller->listar($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->index(null, 1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            $servicios,
+            $response['data']['items']
+        );
+
+        $this->assertSame(
+            2,
+            $response['data']['total']
+        );
     }
 
-    
-    public function it_returns_unauthorized_when_listar_without_user()
+    public function test_el_controlador_puede_listar_propiedades_por_servicio(): void
     {
-        $request = $this->createRequest([]);
-
-        ob_start();
-        $this->controller->listar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    
-    public function it_returns_not_found_when_property_not_exists_in_listar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $propiedades = [
+            [
+                'propiedad_id' => 1,
+                'servicio_id' => 2
+            ],
+            [
+                'propiedad_id' => 3,
+                'servicio_id' => 2
+            ]
+        ];
 
         $this->service
             ->expects($this->once())
-            ->method('listar')
-            ->with(999)
-            ->willThrowException(new \Exception("La propiedad no existe", 404));
+            ->method('listarPorServicio')
+            ->with(2)
+            ->willReturn($propiedades);
 
-        ob_start();
-        $this->controller->listar($request, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller
+                ->getPropiedadesByServicio(null, 2)
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            $propiedades,
+            $response['data']['items']
+        );
+
+        $this->assertSame(
+            2,
+            $response['data']['total']
+        );
     }
 
-    
-    public function it_can_listar_propiedades_por_servicio()
+    public function test_el_controlador_puede_asignar_un_servicio(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->actingAs(1, 1);
+
+        Request::setTestBody(
+            json_encode([
+                'servicio_id' => 2
+            ])
+        );
 
         $this->service
             ->expects($this->once())
-            ->method('listarPropiedadesPorServicio')
-            ->with(1)
-            ->willReturn([]);
+            ->method('asignar')
+            ->with(
+                1,
+                2,
+                1,
+                1
+            )
+            ->willReturn([
+                'propiedad_id' => 1,
+                'servicio_id' => 2
+            ]);
 
-        ob_start();
-        $this->controller->listarPropiedadesPorServicio($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->store(null, 1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'Servicio asignado correctamente',
+            $response['message']
+        );
+
+        $this->assertSame(
+            201,
+            http_response_code()
+        );
     }
 
-    
-    public function it_returns_not_found_when_servicio_not_exists()
+    public function test_el_controlador_verifica_autenticacion_al_asignar(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->tokenProviderMock
+            ->expects($this->once())
+            ->method('validate')
+            ->with('token_usuario')
+            ->willReturn(
+                (object) [
+                    'sub' => 1,
+                    'rol_id' => 1
+                ]
+            );
+
+        Request::setTestBody(
+            json_encode([
+                'servicio_id' => 2
+            ])
+        );
 
         $this->service
             ->expects($this->once())
-            ->method('listarPropiedadesPorServicio')
-            ->with(999)
-            ->willThrowException(new \Exception("El servicio no existe", 404));
+            ->method('asignar')
+            ->with(
+                1,
+                2,
+                1,
+                1
+            )
+            ->willReturn([
+                'propiedad_id' => 1,
+                'servicio_id' => 2
+            ]);
 
-        ob_start();
-        $this->controller->listarPropiedadesPorServicio($request, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->store(null, 1)
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertTrue(
+            $response['success']
+        );
     }
 
-    
-    public function it_can_crear()
+    public function test_el_controlador_puede_asignar_multiples_servicios(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['servicio_id' => 2]);
-        file_put_contents('php://input', $input);
+        $this->actingAs(1, 1);
+
+        Request::setTestBody(
+            json_encode([
+                'servicio_ids' => [1, 2, 3]
+            ])
+        );
+
+        $resultados = [
+            'asignados' => [1, 2],
+            'duplicados' => [3],
+            'errores' => []
+        ];
 
         $this->service
             ->expects($this->once())
-            ->method('crear')
-            ->with(1, 2, 1)
-            ->willReturn(true);
+            ->method('asignarMultiples')
+            ->with(
+                1,
+                [1, 2, 3],
+                1,
+                1
+            )
+            ->willReturn($resultados);
 
-        ob_start();
-        $this->controller->crear($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->storeMultiple(null, 1)
+        );
 
-        $this->assertStringContainsString('201', $output);
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            $resultados,
+            $response['data']
+        );
+
+        $this->assertSame(
+            'Servicios asignados correctamente',
+            $response['message']
+        );
     }
 
-    
-    public function it_returns_bad_request_when_crear_missing_servicio_id()
+    public function test_el_controlador_puede_sincronizar_servicios(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([]);
-        file_put_contents('php://input', $input);
+        $this->actingAs(1, 1);
 
-        ob_start();
-        $this->controller->crear($request, 1);
-        $output = ob_get_clean();
+        Request::setTestBody(
+            json_encode([
+                'servicio_ids' => [1, 3]
+            ])
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_returns_unauthorized_when_crear_without_user()
-    {
-        $request = $this->createRequest([]);
-        $input = json_encode(['servicio_id' => 2]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crear($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    
-    public function it_returns_conflict_when_servicio_already_assigned()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['servicio_id' => 2]);
-        file_put_contents('php://input', $input);
-
-        $this->service
-            ->expects($this->once())
-            ->method('crear')
-            ->with(1, 2, 1)
-            ->willReturn(false);
-
-        ob_start();
-        $this->controller->crear($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('409', $output);
-    }
-
-    
-    public function it_can_crear_multiples()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['servicio_ids' => [1, 2, 3]]);
-        file_put_contents('php://input', $input);
-
-        $this->service
-            ->expects($this->once())
-            ->method('crearMultiples')
-            ->with(1, [1, 2, 3], 1)
-            ->willReturn(['asignados' => [1, 2], 'duplicados' => [3], 'errores' => []]);
-
-        ob_start();
-        $this->controller->crearMultiples($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":true', $output);
-    }
-
-    
-    public function it_returns_bad_request_when_crear_multiples_missing_servicio_ids()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crearMultiples($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_returns_bad_request_when_crear_multiples_servicio_ids_not_array()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['servicio_ids' => 'not_an_array']);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->crearMultiples($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_can_sincronizar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode(['servicio_ids' => [1, 3]]);
-        file_put_contents('php://input', $input);
+        $resultados = [
+            'agregados' => [3],
+            'eliminados' => [2],
+            'mantenidos' => [1]
+        ];
 
         $this->service
             ->expects($this->once())
             ->method('sincronizar')
-            ->with(1, [1, 3], 1)
-            ->willReturn([
-                'agregados' => [3],
-                'eliminados' => [2],
-                'mantenidos' => [1]
-            ]);
+            ->with(
+                1,
+                [1, 3],
+                1,
+                1
+            )
+            ->willReturn($resultados);
 
-        ob_start();
-        $this->controller->sincronizar($request, 1);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->update(null, 1)
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            $resultados,
+            $response['data']
+        );
+
+        $this->assertSame(
+            'Servicios sincronizados correctamente',
+            $response['message']
+        );
     }
 
-    
-    public function it_returns_bad_request_when_sincronizar_missing_servicio_ids()
+    public function test_el_controlador_puede_desasignar_un_servicio(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
-        $input = json_encode([]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->sincronizar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('400', $output);
-    }
-
-    
-    public function it_returns_unauthorized_when_sincronizar_without_user()
-    {
-        $request = $this->createRequest([]);
-        $input = json_encode(['servicio_ids' => [1, 3]]);
-        file_put_contents('php://input', $input);
-
-        ob_start();
-        $this->controller->sincronizar($request, 1);
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
-    }
-
-    
-    public function it_can_eliminar()
-    {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->once())
-            ->method('eliminar')
-            ->with(1, 2, 1)
+            ->method('desasignar')
+            ->with(
+                1,
+                2,
+                1,
+                1
+            )
             ->willReturn(true);
 
-        ob_start();
-        $this->controller->eliminar($request, 1, 2);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(
+                null,
+                1,
+                2
+            )
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
+        $this->assertTrue(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'Servicio desasignado correctamente',
+            $response['message']
+        );
     }
 
-    
-    public function it_returns_not_found_when_eliminar_servicio_not_assigned()
+    public function test_el_controlador_maneja_error_al_listar_propiedad_inexistente(): void
     {
-        $request = $this->createRequest(['usuario_id' => 1]);
+        $this->service
+            ->expects($this->once())
+            ->method('listar')
+            ->with(999)
+            ->willThrowException(
+                new \App\Exceptions\NotFoundException(
+                    'La propiedad no existe'
+                )
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller->index(null, 999)
+        );
+
+        $this->assertFalse(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'La propiedad no existe',
+            $response['error']
+        );
+    }
+
+    public function test_el_controlador_maneja_error_al_listar_servicio_inexistente(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('listarPorServicio')
+            ->with(999)
+            ->willThrowException(
+                new \App\Exceptions\NotFoundException(
+                    'El servicio no existe'
+                )
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller
+                ->getPropiedadesByServicio(null, 999)
+        );
+
+        $this->assertFalse(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'El servicio no existe',
+            $response['error']
+        );
+    }
+
+    public function test_el_controlador_maneja_error_al_asignar_servicio(): void
+    {
+        $this->actingAs(1, 1);
+
+        Request::setTestBody(
+            json_encode([
+                'servicio_id' => 2
+            ])
+        );
 
         $this->service
             ->expects($this->once())
-            ->method('eliminar')
-            ->with(1, 999, 1)
-            ->willThrowException(new \Exception("La propiedad no tiene este servicio asignado", 404));
+            ->method('asignar')
+            ->with(
+                1,
+                2,
+                1,
+                1
+            )
+            ->willThrowException(
+                new \App\Exceptions\ConflictException(
+                    'La propiedad ya tiene este servicio asignado'
+                )
+            );
 
-        ob_start();
-        $this->controller->eliminar($request, 1, 999);
-        $output = ob_get_clean();
+        $response = $this->captureJson(
+            fn() => $this->controller->store(null, 1)
+        );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('404', $output);
+        $this->assertFalse(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'La propiedad ya tiene este servicio asignado',
+            $response['error']
+        );
     }
 
-    
-    public function it_returns_unauthorized_when_eliminar_without_user()
+    public function test_el_controlador_maneja_error_al_desasignar_servicio(): void
     {
-        $request = $this->createRequest([]);
+        $this->actingAs(1, 1);
 
-        ob_start();
-        $this->controller->eliminar($request, 1, 2);
-        $output = ob_get_clean();
+        $this->service
+            ->expects($this->once())
+            ->method('desasignar')
+            ->with(
+                1,
+                999,
+                1,
+                1
+            )
+            ->willThrowException(
+                new \App\Exceptions\NotFoundException(
+                    'La propiedad no tiene este servicio asignado'
+                )
+            );
 
-        $this->assertStringContainsString('"success":false', $output);
-        $this->assertStringContainsString('401', $output);
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(
+                null,
+                1,
+                999
+            )
+        );
+
+        $this->assertFalse(
+            $response['success']
+        );
+
+        $this->assertSame(
+            'La propiedad no tiene este servicio asignado',
+            $response['error']
+        );
     }
 }

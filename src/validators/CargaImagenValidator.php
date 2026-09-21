@@ -9,17 +9,24 @@ final class CargaImagenValidator implements CargaImagenValidatorInterface
     public function validate(array $file): ?string
     {
         if (
-            empty($file) ||
-            !isset($file['tmp_name']) ||
-            !is_string($file['tmp_name']) ||
-            !is_uploaded_file($file['tmp_name'])
+            empty($file)
+            || !isset($file['tmp_name'])
+            || !is_string($file['tmp_name'])
+            || !is_uploaded_file($file['tmp_name'])
         ) {
             return 'Debe enviar una imagen';
         }
 
         if (
-            !isset($file['size']) ||
-            !is_numeric($file['size'])
+            !isset($file['error'])
+            || $file['error'] !== UPLOAD_ERR_OK
+        ) {
+            return 'No se pudo cargar la imagen';
+        }
+
+        if (
+            !isset($file['size'])
+            || !is_numeric($file['size'])
         ) {
             return 'No se pudo determinar el tamaño de la imagen';
         }
@@ -45,10 +52,8 @@ final class CargaImagenValidator implements CargaImagenValidatorInterface
         if (!in_array($mime, [
             'image/jpeg',
             'image/png',
-            'image/gif',
-            'image/webp',
         ], true)) {
-            return 'Formato no permitido';
+            return 'Formato no permitido. Solo se permiten imágenes JPEG y PNG';
         }
 
         return null;

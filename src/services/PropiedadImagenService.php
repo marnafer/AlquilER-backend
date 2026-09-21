@@ -4,165 +4,228 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\PropiedadImagen;
-use App\Models\Propiedad;
+use App\Policies\PropiedadImagenPolicy;
 use App\Repositories\PropiedadImagenRepositoryInterface;
-use App\Services\GestorArchivosInterface;
 use App\Sanitizers\PropiedadImagenSanitizer;
-use App\Validators\PropiedadImagenValidator;
 use App\Validators\CargaImagenValidatorInterface;
-use App\Services\PropiedadService;
+use App\Validators\PropiedadImagenValidator;
+use Illuminate\Database\Capsule\Manager as DB;
 
 class PropiedadImagenService
 {
-
     public function __construct(
         private readonly PropiedadImagenRepositoryInterface $repository,
         private readonly PropiedadService $propiedadService,
-        private readonly LogActividadService $logActividadService,
+        private readonly LogActividadService $logService,
         private readonly GestorArchivosInterface $gestorArchivos,
-        private readonly CargaImagenValidatorInterface $cargaImagenValidator
+        private readonly CargaImagenValidatorInterface $cargaImagenValidator,
+        private readonly PropiedadImagenPolicy $policy
     ) {
     }
 
-    private function verificarPermiso(Propiedad $propiedad, object $user): void {
-        if (
-            (int) $user->rol_id !== 2 &&
-            (int) $propiedad->usuario_id !== (int) $user->sub
-        ) {
-            throw new ForbiddenException(
-                'No tiene permisos sobre esta propiedad'
-            );
-        }
-    }
-
-    public function listar($rawId = null): array
+    public function listar(): array
     {
-        if ($rawId === null || $rawId === '') {
-            $imagenes = $this->repository->all();
-
-            return [
-                'items' => $imagenes,
-                'total' => $imagenes->count(),
-            ];
-        }
-
-        $id = PropiedadImagenSanitizer::sanitizarIdPropiedadImagen($rawId);
-
-        $validacion = PropiedadImagenValidator::validarSoloIdPropiedadImagen($id);
-
-        if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
-        }
-
-        $imagen = $this->repository->findById($id);
-
-        if (!$imagen) {
-            throw new NotFoundException('Imagen no encontrada');
-        }
+        $imagenes = $this->repository->all();
 
         return [
-            'items' => [$imagen],
-            'total' => 1,
+            'items' => $imagenes,
+            'total' => $imagenes->count(),
         ];
     }
 
     public function obtener($rawId): PropiedadImagen
     {
-        $id = PropiedadImagenSanitizer::sanitizarIdPropiedadImagen($rawId);
+        $id = PropiedadImagenSanitizer::sanitizarIdPropiedadImagen(
+            $rawId
+        );
 
-        $validacion = PropiedadImagenValidator::validarSoloIdPropiedadImagen($id);
+        $validacion = PropiedadImagenValidator::validarSoloIdPropiedadImagen(
+            $id
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $imagen = $this->repository->findById($id);
 
         if (!$imagen) {
-            throw new NotFoundException('Imagen no encontrada');
+            throw new NotFoundException(
+                'Imagen no encontrada'
+            );
         }
 
         return $imagen;
     }
 
-    public function crear(array $rawData, $file, object $user): PropiedadImagen
-    {
-        $data = PropiedadImagenSanitizer::sanitizarPropiedadImagen($rawData);
+    public function crear(
+        array $rawData,
+        $file,
+        int $usuarioId,
+        int $rolId
+    ): PropiedadImagen {
+        $data = PropiedadImagenSanitizer::sanitizarPropiedadImagen(
+            $rawData
+        );
 
-        $validacion = PropiedadImagenValidator::validarCrearPropiedadImagen($data);
+        $validacion = PropiedadImagenValidator::validarCrearPropiedadImagen(
+            $data
+        );
 
         if (!$validacion['success']) {
-            throw new ValidationException($validacion['errors']);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $errorImagen = $this->cargaImagenValidator->validate($file);
 
         if ($errorImagen !== null) {
             throw new ValidationException([
-                'imagen' => $errorImagen,
+                'imagen' => $errorImagen
             ]);
         }
 
         $propiedadId = (int) $data['propiedad_id'];
 
-        $propiedad = $this->propiedadService->obtener($propiedadId);
+        // Se obtiene la propiedad para validar permisos.
+        $propiedad = $this->propiedadService->obtener(
+            $propiedadId
+        );
 
-        $this->verificarPermiso($propiedad, $user);
+        $this->policy->gestionarPropiedad(
+            $usuarioId,
+            $rolId,
+            $propiedad
+        );
 
-        $uploadDir = dirname(__DIR__, 2) . '/public/uploads/propiedades';
+        $uploadDir = dirname(__DIR__, 2)
+            . '/public/uploads/propiedades';
 
         $nombreArchivo = $this->gestorArchivos->upload(
             $file,
             $uploadDir
         );
 
-        $cantidadImagenes = $this->repository->countByPropiedadId($propiedadId);
+        $ruta = '/uploads/propiedades/' . $nombreArchivo;
 
-        $this->logActividadService->registrar(
-            (int) $user->sub,
+        $imagen = DB::transaction(
+            function () use (
+                $propiedadId,
+                $data,
+                $ruta
+            ): PropiedadImagen {
+                // Bloqueamos la propiedad durante toda la operación.
+                $this->propiedadService
+                    ->obtenerParaActualizar($propiedadId);
+
+                $cantidadImagenes = $this->repository
+                    ->countByPropiedadId($propiedadId);
+
+                return $this->repository->create([
+                    'propiedad_id' => $propiedadId,
+                    'ruta' => $ruta,
+                    'descripcion' => $data['descripcion'],
+                    'es_principal' => $cantidadImagenes === 0 ? 1 : 0,
+                ]);
+            }
+        );
+
+        $this->logService->registrar(
+            $usuarioId,
             'Creación de imagen para propiedad ID: ' . $propiedadId
         );
 
-        return $this->repository->create([
-            'propiedad_id' => $propiedadId,
-            'ruta' => '/uploads/propiedades/' . $nombreArchivo,
-            'descripcion' => $data['descripcion'],
-            'es_principal' => $cantidadImagenes === 0 ? 1 : 0,
-        ]);
+        return $imagen;
     }
 
-    public function establecerPrincipal($rawId, object $user): PropiedadImagen
-    {
+    public function establecerPrincipal(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): PropiedadImagen {
         $imagen = $this->obtener($rawId);
 
-        $this->verificarPermiso($imagen->propiedad, $user);
+        $this->policy->gestionar(
+            $usuarioId,
+            $rolId,
+            $imagen
+        );
 
-        $this->repository->clearPrincipalByPropiedadId((int) $imagen->propiedad_id);
-        $this->repository->setPrincipal($imagen);
+        DB::transaction(
+            function () use ($imagen): void {
+                $this->repository->clearPrincipalByPropiedadId(
+                    (int) $imagen->propiedad_id
+                );
+
+                $this->repository->setPrincipal($imagen);
+            }
+        );
+
+        $this->logService->registrar(
+            $usuarioId,
+            'Imagen principal actualizada para propiedad ID: '
+            . $imagen->propiedad_id
+        );
 
         return $imagen->refresh();
     }
 
-    public function eliminar($rawId, object $user): void
-    {
+    public function eliminar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): void {
         $imagen = $this->obtener($rawId);
 
-        $this->verificarPermiso($imagen->propiedad, $user);
+        $this->policy->gestionar(
+            $usuarioId,
+            $rolId,
+            $imagen
+        );
 
-        $rutaFisica = dirname(__DIR__, 2) . '/public' . $imagen->ruta;
+        $propiedadId = (int) $imagen->propiedad_id;
+        $eraPrincipal = (int) $imagen->es_principal === 1;
+        $ruta = $imagen->ruta;
 
-        if (file_exists($rutaFisica)) {
-            unlink($rutaFisica);
-        }
+        DB::transaction(
+            function () use (
+                $imagen,
+                $propiedadId,
+                $eraPrincipal
+            ): void {
+                $this->repository->delete($imagen);
 
-        $this->repository->delete($imagen);
-        $this->logActividadService->registrar(
-            (int) $user->sub,
-            'Eliminación de imagen para propiedad ID: ' . $imagen->propiedad_id
+                if (!$eraPrincipal) {
+                    return;
+                }
+
+                $imagenesRestantes = $this->repository
+                    ->findByPropiedadId($propiedadId);
+
+                if ($imagenesRestantes->isEmpty()) {
+                    return;
+                }
+
+                $nuevaPrincipal = $imagenesRestantes->first();
+
+                $this->repository->setPrincipal(
+                    $nuevaPrincipal
+                );
+            }
+        );
+
+        $this->gestorArchivos->delete($ruta);
+
+        $this->logService->registrar(
+            $usuarioId,
+            'Eliminación de imagen para propiedad ID: '
+            . $propiedadId
         );
     }
 }

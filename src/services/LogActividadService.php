@@ -6,11 +6,11 @@ namespace App\Services;
 
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Helpers\IpHelper;
 use App\Repositories\LogActividadRepositoryInterface;
 use App\Sanitizers\LogActividadSanitizer;
 use App\Validators\LogActividadValidator;
 use Illuminate\Support\Collection;
-
 
 class LogActividadService
 {
@@ -43,16 +43,15 @@ class LogActividadService
         return $log;
     }
 
-    public function registrar(int $usuarioId, string $accion, ?string $ipAddress = null): void 
+    public function registrar(int $usuarioId, string $accion): void
     {
         $data = LogActividadSanitizer::sanitizarCrear([
             'usuario_id' => $usuarioId,
             'accion' => $accion,
-            'ip_address' => $ipAddress ?? LogActividadSanitizer::getClientIp(),
-            'fecha' => date('Y-m-d H:i:s'),
+            'ip_address' => IpHelper::obtener(),
         ]);
 
-        $validacion = LogActividadValidator::validarCrear($data);
+        $validacion = LogActividadValidator::validar($data);
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);

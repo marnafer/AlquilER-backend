@@ -8,19 +8,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Rol extends Model
 {
 
+    public const USUARIO = 1;
+    public const ADMIN = 2;
+    
     use SoftDeletes;
 
     protected $table = 'roles';
-
+    protected $primaryKey = 'id';
     public $timestamps = false;
 
-    protected $fillable = [
-        'nombre'
-    ];
+    protected $fillable = ['nombre'];
 
-    /**
-     * Relación con usuarios
-     */
+    protected $hidden = ['deleted_at'];
+
     public function usuarios()
     {
         return $this->hasMany(
@@ -28,5 +28,4 @@ class Rol extends Model
             'rol_id'
         );
     }
-
 }

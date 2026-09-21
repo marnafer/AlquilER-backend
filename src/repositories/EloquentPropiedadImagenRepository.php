@@ -43,20 +43,39 @@ class EloquentPropiedadImagenRepository implements PropiedadImagenRepositoryInte
         return PropiedadImagen::create($data);
     }
 
-    public function clearPrincipalByPropiedadId(int $propiedadId): bool
+    public function clearPrincipalByPropiedadId(int $propiedadId): void
     {
-        return PropiedadImagen::query()
+        PropiedadImagen::query()
             ->where('propiedad_id', $propiedadId)
-            ->update(['es_principal' => 0]) >= 0;
+            ->update([
+                'es_principal' => 0
+            ]);
     }
 
-    public function setPrincipal(PropiedadImagen $imagen): bool
+    public function setPrincipal(PropiedadImagen $imagen): void
     {
-        return (bool) $imagen->update(['es_principal' => 1]);
+        $imagen->update([
+            'es_principal' => 1
+        ]);
     }
 
-    public function delete(PropiedadImagen $imagen): bool
+    public function delete(PropiedadImagen $imagen): void
     {
-        return (bool) $imagen->delete();
+        $imagen->delete();
+    }
+
+    public function recorrerRutas(callable $callback): void
+    {
+        PropiedadImagen::query()
+            ->select(['id', 'ruta'])
+            ->orderBy('id')
+            ->chunkById(
+                1000,
+                function (Collection $imagenes) use ($callback): void {
+                    foreach ($imagenes as $imagen) {
+                        $callback($imagen->ruta);
+                    }
+                }
+            );
     }
 }

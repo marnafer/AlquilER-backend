@@ -16,17 +16,19 @@ class Reserva extends Model
     protected $fillable = [
         'propiedad_id',
         'usuario_id',
+        'estado',
         'fecha_inicio_alquiler',
         'fecha_fin_alquiler',
-        'estado'
+        'fecha_confirmacion'
     ];
 
     protected $casts = [
-        'fecha_inicio_alquiler' => 'date',
-        'fecha_fin_alquiler' => 'date',
         'fecha_reserva' => 'datetime',
+        'fecha_confirmacion' => 'datetime',
         'deleted_at' => 'datetime'
     ];
+
+    protected $hidden = ['deleted_at'];
 
     /*
     |--------------------------------------------------------------------------
@@ -50,9 +52,9 @@ class Reserva extends Model
         );
     }
 
-    public function resena()
+    public function resenas()
     {
-        return $this->hasOne(
+        return $this->hasMany(
             Resena::class,
             'reserva_id'
         );

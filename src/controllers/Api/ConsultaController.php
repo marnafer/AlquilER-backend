@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
 use App\Helpers\Request;
-use App\Services\ConsultaService;
+use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Services\ConsultaService;
 
 class ConsultaController
 {
@@ -16,15 +18,17 @@ class ConsultaController
         $this->service = $service;
     }
 
-    public function adminIndex()
+    public function adminIndex(): void
     {
         $user = AutenticadorMiddleware::verificar();
-        $rolId = (int) $user->rol_id;
 
-        // Opcional: capturar parámetros de filtrado si se envían por query string
+        $rolId = (int) $user->rol_id;
         $filtros = $_GET ?? [];
 
-        $consultas = $this->service->listarConsultas($rolId, $filtros);
+        $consultas = $this->service->listar(
+            $rolId,
+            $filtros
+        );
 
         Response::success([
             'items' => $consultas,
@@ -32,15 +36,18 @@ class ConsultaController
         ]);
     }
 
-    public function index()
+    public function index(): void
     {
-        // Guardamos el objeto retornado por middleware
         $user = AutenticadorMiddleware::verificar();
-        
+
         $usuarioId = (int) $user->sub;
         $rolId = (int) $user->rol_id;
 
-        $consultas = $this->service->obtenerConsultasPorUsuario($usuarioId, $usuarioId, $rolId);
+        $consultas = $this->service->listarPorUsuario(
+            $usuarioId,
+            $usuarioId,
+            $rolId
+        );
 
         Response::success([
             'items' => $consultas,
@@ -48,17 +55,11 @@ class ConsultaController
         ]);
     }
 
-    /**
-     * GET /api/consultas/propiedad/{propiedadId}
-     *
-     * Obtener las consultas de una propiedad.
-     * Solo el dueño de la propiedad o un administrador.
-     */
-    public function indexByPropiedad($propiedadId)
+    public function indexByPropiedad($propiedadId): void
     {
         $user = AutenticadorMiddleware::verificar();
 
-        $consultas = $this->service->obtenerConsultasPorPropiedad(
+        $consultas = $this->service->listarPorPropiedad(
             (int) $propiedadId,
             (int) $user->sub,
             (int) $user->rol_id
@@ -70,17 +71,11 @@ class ConsultaController
         ]);
     }
 
-    /**
-     * GET /api/consultas/usuario/{usuarioId}
-     *
-     * Obtener las consultas de un usuario.
-     * Solo el propio usuario o un administrador.
-     */
-    public function indexByUsuario($usuarioId)
+    public function indexByUsuario($usuarioId): void
     {
         $user = AutenticadorMiddleware::verificar();
 
-        $consultas = $this->service->obtenerConsultasPorUsuario(
+        $consultas = $this->service->listarPorUsuario(
             (int) $usuarioId,
             (int) $user->sub,
             (int) $user->rol_id
@@ -92,23 +87,26 @@ class ConsultaController
         ]);
     }
 
-    public function show($id)
+    public function show($id): void
     {
         $user = AutenticadorMiddleware::verificar();
-        
-        $consulta = $this->service->obtenerConsultaAutorizada((int) $id, (int) $user->sub);
+
+        $consulta = $this->service->obtenerAutorizada(
+            (int) $id,
+            (int) $user->sub
+        );
 
         Response::success($consulta);
     }
 
-    public function store()
+    public function store(): void
     {
         $user = AutenticadorMiddleware::verificar();
-        
+
         $data = Request::json();
         $data['usuario_id'] = (int) $user->sub;
 
-        $id = $this->service->crearConsulta($data);
+        $id = $this->service->crear($data);
 
         Response::created(
             ['id' => $id],
@@ -116,11 +114,15 @@ class ConsultaController
         );
     }
 
-    public function update($id)
+    public function update($id): void
     {
         $user = AutenticadorMiddleware::verificar();
-        
-        $this->service->actualizarConsulta((int) $id, Request::json(), (int) $user->sub);
+
+        $this->service->actualizar(
+            (int) $id,
+            Request::json(),
+            (int) $user->sub
+        );
 
         Response::success(
             [],
@@ -129,37 +131,19 @@ class ConsultaController
         );
     }
 
-    public function delete($id)
+    public function delete($id): void
     {
         $user = AutenticadorMiddleware::verificar();
-        
-        $this->service->eliminarConsulta((int) $id, (int) $user->sub);
+
+        $this->service->eliminar(
+            (int) $id,
+            (int) $user->sub
+        );
 
         Response::success(
             [],
             200,
             'Consulta eliminada exitosamente'
         );
-    }
-
-    public function restore($id)
-    {
-        $user = AutenticadorMiddleware::verificar();
-
-        $this->service->restaurarConsulta((int) $id, (int) $user->sub);
-
-        Response::success(
-            [],
-            200,
-            'Consulta restaurada exitosamente'
-        );
-    }
-
-    /**
-     * Alias para index() para compatibilidad con tests
-     */
-    public function listar($request)
-    {
-        return $this->index($request);
     }
 }

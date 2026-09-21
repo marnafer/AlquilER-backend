@@ -23,7 +23,9 @@ class EloquentLocalidadRepository implements LocalidadRepositoryInterface
 
     public function findDeletedById(int $id): ?Localidad
     {
-        return Localidad::onlyTrashed()->find($id);
+        return Localidad::onlyTrashed()
+            ->whereKey($id)
+            ->first();
     }
 
     public function existsByNameInProvince(

@@ -8,8 +8,6 @@ class PropiedadImagen extends Model
 {
     protected $table = 'propiedad_imagenes';
 
-    protected $primaryKey = 'id';
-
     public $timestamps = false;
 
     protected $fillable = [
@@ -19,11 +17,11 @@ class PropiedadImagen extends Model
         'es_principal'
     ];
 
+    /**
+     * Relación: Una imagen pertenece a una propiedad.
+     */
     public function propiedad()
     {
-        return $this->belongsTo(
-            Propiedad::class,
-            'propiedad_id'
-        );
+        return $this->belongsTo(Propiedad::class, 'propiedad_id');
     }
 }

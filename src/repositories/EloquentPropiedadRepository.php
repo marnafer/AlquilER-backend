@@ -34,10 +34,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
     public function findDeletedById(int $id): ?Propiedad
     {
-        return Propiedad::query()
-            ->withTrashed()
-            ->whereKey($id)
-            ->first();
+        return Propiedad::onlyTrashed()->find($id);
     }
 
     public function create(array $data): Propiedad
@@ -58,5 +55,13 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function restore(Propiedad $propiedad): bool
     {
         return (bool) $propiedad->restore();
+    }
+
+    public function findByIdForUpdate(int $id): ?Propiedad
+    {
+        return Propiedad::query()
+            ->whereKey($id)
+            ->lockForUpdate()
+            ->first();
     }
 }

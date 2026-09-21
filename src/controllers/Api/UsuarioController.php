@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
 use App\Helpers\Request;
+use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
 use App\Services\UsuarioService;
 
@@ -45,12 +45,12 @@ class UsuarioController
     /**
      * GET /api/usuarios/me
      */
-    public function profile($request = null): void
+    public function profile(): void
     {
         $user = AutenticadorMiddleware::verificar();
 
         Response::success(
-            $this->service->obtener((int) $user->sub)
+            $this->service->obtenerConRol((int) $user->sub)
         );
     }
 
@@ -103,33 +103,5 @@ class UsuarioController
             200,
             'Usuario restaurado correctamente'
         );
-    }
-
-    /**
-     * Métodos alias en español para compatibilidad con tests
-     */
-    public function listar($request): void
-    {
-        $this->index();
-    }
-
-    public function obtener($request, $id): void
-    {
-        $this->show($id);
-    }
-
-    public function actualizar($request, $id): void
-    {
-        $this->update($id);
-    }
-
-    public function eliminar($request, $id): void
-    {
-        $this->delete($id);
-    }
-
-    public function restaurar($request, $id): void
-    {
-        $this->restore($id);
     }
 }

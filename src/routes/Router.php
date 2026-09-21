@@ -6,6 +6,7 @@ namespace App\Routes;
 
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\NotFoundException;
+use ReflectionMethod;
 
 class Router
 {
@@ -48,8 +49,8 @@ class Router
             $instance = is_object($controller)
                 ? $controller
                 : new $controller();
-                
-            $instance->$action();
+
+            $this->invocarAccion($instance, $action);
 
             return;
         }
@@ -76,7 +77,7 @@ class Router
                     : new $controller();
 
                 // pasar parámetros al controller
-                $instance->$action(...$matches);
+                $this->invocarAccion($instance, $action, $matches);
 
                 return;
             }
@@ -100,5 +101,21 @@ class Router
         }
 
         throw new NotFoundException();
+    }
+
+    /**
+     * Invoca la acción del controlador inyectando $request
+     * como primer argumento si el método lo declara.
+     */
+    private function invocarAccion(object $instance, string $action, array $params = []): void
+    {
+        $reflexion = new ReflectionMethod($instance, $action);
+        $parametros = $reflexion->getParameters();
+
+        if (isset($parametros[0]) && $parametros[0]->getName() === 'request') {
+            array_unshift($params, null);
+        }
+
+        $instance->$action(...$params);
     }
 }

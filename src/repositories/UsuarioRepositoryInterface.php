@@ -1,9 +1,9 @@
 <?php
 
 namespace App\Repositories;
-use Illuminate\Database\Eloquent\Collection;
 
 use App\Models\Usuario;
+use Illuminate\Database\Eloquent\Collection;
 
 interface UsuarioRepositoryInterface
 {
@@ -11,19 +11,30 @@ interface UsuarioRepositoryInterface
 
     public function findById(int $id): ?Usuario;
 
+    public function findDeletedById(int $id): ?Usuario;
+
+    public function findByIdWithRole(int $id): ?Usuario;
+
+    public function findByEmail(string $email): ?Usuario;
+
+    public function existsByEmail(
+        string $email,
+        ?int $exceptId = null
+    ): bool;
+
     public function create(array $data): Usuario;
 
-    public function update(Usuario $usuario, array $data): bool;
+    public function createWithRole(
+        array $data,
+        int $roleId
+    ): Usuario;
+
+    public function update(
+        Usuario $usuario,
+        array $data
+    ): bool;
 
     public function delete(Usuario $usuario): bool;
 
     public function restore(Usuario $usuario): bool;
-
-    public function findDeletedById(int $id): ?Usuario;
-
-    public function existsByEmail(string $email, ?int $exceptId = null): bool;
-
-    public function findByEmail(string $email): ?Usuario;
-
-    public function createWithRole(array $data, int $roleId): Usuario;
 }

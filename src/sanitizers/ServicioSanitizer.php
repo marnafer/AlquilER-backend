@@ -4,64 +4,72 @@ namespace App\Sanitizers;
 
 class ServicioSanitizer
 {
-    /**
-     * Sanitiza un ID de servicio
-     */
-    public static function sanitizarIdServicio($id): ?int
-    {
-        if (
-            !is_string($id)
-            && !is_int($id)
-        ) {
-            return null;
-        }
-
-        if (
-            is_string($id)
-            && !ctype_digit($id)
-        ) {
-            return null;
-        }
-
-        $id = (int) $id;
-
-        return $id > 0 ? $id : null;
+    public static function sanitizar(
+        array $data
+    ): array {
+        return [
+            'id' => self::sanitizarId(
+                $data['id'] ?? null
+            ),
+            'nombre' => self::sanitizarNombre(
+                $data['nombre'] ?? null
+            ),
+        ];
     }
 
-    /**
-     * Sanitiza nombre de servicio
-     */
-    public static function sanitizarNombre($nombre): ?string
+    public static function sanitizarId($id): ?int
     {
+        if ($id === null || $id === '') {
+            return null;
+        }
+
+        $id = filter_var(
+            $id,
+            FILTER_VALIDATE_INT
+        );
+
+        return (
+            $id !== false &&
+            $id > 0
+        )
+            ? $id
+            : null;
+    }
+
+    public static function sanitizarNombre(
+        $nombre
+    ): ?string {
         if ($nombre === null || $nombre === '') {
             return null;
         }
 
         $nombre = trim($nombre);
-        $nombre = preg_replace('/\s+/u', ' ', $nombre);
+        $nombre = preg_replace(
+            '/\s+/u',
+            ' ',
+            $nombre
+        );
+        $nombre = strip_tags($nombre);
+        $nombre = htmlspecialchars(
+            $nombre,
+            ENT_QUOTES,
+            'UTF-8'
+        );
 
         return $nombre;
     }
 
-    /**
-     * Sanitiza payload completo de servicio
-     */
-    public static function sanitizarServicio(array $data): array
-    {
+    public static function sanitizarActualizacion(
+        array $data
+    ): array {
         return [
-            'id' => self::sanitizarIdServicio($data['id'] ?? null),
-            'nombre' => self::sanitizarNombre($data['nombre'] ?? null),
-        ];
-    }
-
-    /**
-     * Sanitiza payload de actualización de servicio
-     */
-    public static function sanitizarActualizacionServicio(array $data): array 
-    {
-        return [
-            'nombre' => isset($data['nombre'])
-                ? self::sanitizarNombre($data['nombre'])
+            'nombre' => array_key_exists(
+                'nombre',
+                $data
+            )
+                ? self::sanitizarNombre(
+                    $data['nombre']
+                )
                 : null,
         ];
     }

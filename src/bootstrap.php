@@ -67,6 +67,10 @@ use App\Validators\CargaImagenValidator;
 // POLICIES
 use App\Policies\ConsultaPolicy;
 use App\Policies\FavoritoPolicy;
+use App\Policies\PropiedadImagenPolicy;
+use App\Policies\PropiedadPolicy;
+use App\Policies\ResenaPolicy;
+use App\Policies\ReservaPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
@@ -93,6 +97,10 @@ $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
 $favoritoPolicy = new FavoritoPolicy(); 
+$propiedadPolicy = new PropiedadPolicy();
+$propiedadImagenPolicy = new PropiedadImagenPolicy();
+$resenaPolicy = new ResenaPolicy();
+$reservaPolicy = new ReservaPolicy();
 
 // INSTANCIAR SERVICES
 $logActividadService = new LogActividadService(
@@ -136,7 +144,9 @@ $propiedadService = new PropiedadService(
     $propiedadRepository,
     $logActividadService,
     $categoriaRepository,
-    $localidadRepository
+    $localidadRepository,
+    $reservaRepository,
+    $propiedadPolicy
 );
 
 $gestorArchivos = new GestorArchivosLocales();
@@ -147,7 +157,8 @@ $propiedadImagenService = new PropiedadImagenService(
     $propiedadService,
     $logActividadService,
     $gestorArchivos,
-    $cargaImagenValidator
+    $cargaImagenValidator,
+    $propiedadImagenPolicy
 );
 
 $favoritoService = new FavoritoService(
@@ -160,6 +171,7 @@ $favoritoService = new FavoritoService(
 $reservaService = new ReservaService(
     $reservaRepository,
     $propiedadRepository,
+    $reservaPolicy,
     $logActividadService
 );
 
@@ -175,8 +187,7 @@ $consultaService = new ConsultaService(
 $resenaService = new ResenaService(
     $resenaRepository,
     $reservaRepository,
-    $propiedadRepository,
-    $usuarioRepository,
+    $resenaPolicy,
     $logActividadService
 );
 
@@ -184,7 +195,8 @@ $propiedadServicioService = new PropiedadServicioService(
     $propiedadServicioRepository,
     $propiedadRepository,
     $servicioRepository,
-    $logActividadService
+    $logActividadService,
+    $propiedadPolicy
 );
 
 $mensajeConsultaService = new MensajeConsultaService(

@@ -162,23 +162,6 @@ INSERT INTO `propiedades` (`id`, `titulo`, `descripcion`, `precio`, `expensas`, 
 (5, 'Casa', 'Casa grande', 150000.00, 0.00, 'Las Palmeras', 2, 1, 1, 2, 1, 1, 8, 1, NULL),
 (6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 1, 12, 1, '2026-08-20 01:23:17');
 
---
--- Disparadores `propiedades`
---
-DELIMITER $$
-CREATE TRIGGER `tr_soft_delete_propiedad` AFTER UPDATE ON `propiedades` FOR EACH ROW BEGIN
-    -- Verificamos si la propiedad acaba de ser marcada como borrada
-    IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
-        -- Cancelamos las reservas que aún no hayan finalizado
-        UPDATE `reservas`
-        SET `estado` = 'cancelada'
-        WHERE `propiedad_id` = NEW.id 
-        AND `estado` IN ('pendiente', 'confirmada');
-    END IF;
-END
-$$
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
@@ -192,15 +175,6 @@ CREATE TABLE IF NOT EXISTS `propiedad_imagenes` (
   `descripcion` varchar(300) DEFAULT NULL,
   `es_principal` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `propiedad_imagenes`
---
-
-INSERT INTO `propiedad_imagenes` (`id`, `propiedad_id`, `ruta`, `descripcion`, `es_principal`) VALUES
-(10, 5, '/uploads/propiedades/1781884415_ec345ebf4332.webp', 'Frente', 1),
-(11, 4, '/uploads/propiedades/1781884431_4b52f57fff6e.webp', 'Frente', 0),
-(12, 1, '/uploads/propiedades/1781884445_0b842d678997.webp', 'Interior', 0);
 
 -- --------------------------------------------------------
 
@@ -261,9 +235,11 @@ CREATE TABLE `refresh_tokens` (
 -- Estructura de tabla para la tabla `resenas`
 --
 
-CREATE TABLE IF NOT EXISTS `resenas` (
+  CREATE TABLE `resenas` (
   `id` int(11) UNSIGNED NOT NULL,
   `reserva_id` int(11) UNSIGNED NOT NULL,
+  `tipo` enum('propiedad','inquilino') NOT NULL,
+  `calificador_id` int(11) UNSIGNED NOT NULL,
   `calificacion` tinyint(1) UNSIGNED NOT NULL,
   `comentario` text DEFAULT NULL,
   `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -274,8 +250,10 @@ CREATE TABLE IF NOT EXISTS `resenas` (
 -- Volcado de datos para la tabla `resenas`
 --
 
-INSERT INTO `resenas` (`id`, `reserva_id`, `calificacion`, `comentario`, `fecha_publicacion`, `deleted_at`) VALUES
-(1, 5, 5, 'Excelente lugara', '2026-06-15 03:53:00', '2026-06-15 03:58:29');
+INSERT INTO `resenas`
+(`id`, `reserva_id`, `tipo`, `calificador_id`, `calificacion`, `comentario`, `fecha_publicacion`, `deleted_at`)
+VALUES
+(1, 5, 'propiedad', 2, 5, 'Excelente lugar', '2026-06-15 03:53:00', '2026-06-15 03:58:29');
 
 -- --------------------------------------------------------
 
@@ -291,6 +269,7 @@ CREATE TABLE IF NOT EXISTS `reservas` (
   `fecha_fin_alquiler` date DEFAULT NULL,
   `estado` enum('pendiente','confirmada','rechazada','cancelada','finalizada') DEFAULT 'pendiente',
   `fecha_reserva` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_confirmacion` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -303,6 +282,21 @@ INSERT INTO `reservas` (`id`, `propiedad_id`, `usuario_id`, `fecha_inicio_alquil
 (3, 1, 2, '2026-07-01', '2027-07-01', 'rechazada', '2026-06-13 22:19:33', NULL),
 (4, 1, 2, '2026-07-01', '2027-07-01', 'cancelada', '2026-06-13 22:24:21', NULL),
 (5, 1, 2, '2026-05-01', NULL, 'finalizada', '2026-06-15 03:51:20', NULL);
+
+-- --------------------------------------------------------
+
+DROP EVENT IF EXISTS `finalizar_reservas_vencidas`;
+
+CREATE EVENT `finalizar_reservas_vencidas`
+ON SCHEDULE EVERY 1 DAY
+STARTS '2026-09-21 00:05:00'
+DO
+    UPDATE `reservas`
+    SET `estado` = 'finalizada'
+    WHERE `estado` IN ('pendiente', 'confirmada')
+      AND `fecha_fin_alquiler` IS NOT NULL
+      AND `fecha_fin_alquiler` < CURDATE()
+      AND `deleted_at` IS NULL;
 
 -- --------------------------------------------------------
 
@@ -322,8 +316,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
 
 INSERT INTO `roles` (`id`, `nombre`) VALUES
 (1, 'usuario'),
-(2, 'administrador'),
-(4, 'propietario');
+(2, 'administrador');
 
 -- --------------------------------------------------------
 
@@ -376,6 +369,23 @@ INSERT INTO `usuarios` (`id`, `nombre`, `apellido`, `email`, `telefono`, `domici
 (12, 'Usuario', 'User', 'user@gmail.com', '3436789098', 'Jordania', '$2y$10$E/I3eeSTgugi33mPH4brNuvtmXIqNm9aSusB0kOBEC32dFhV3Lp2e', 1, NULL);
 
 -- --------------------------------------------------------
+
+--
+-- Disparadores `propiedades`
+--
+DELIMITER $$
+CREATE TRIGGER `tr_soft_delete_propiedad` AFTER UPDATE ON `propiedades` FOR EACH ROW BEGIN
+    -- Verificamos si la propiedad acaba de ser marcada como borrada
+    IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+        -- Cancelamos las reservas que aún no hayan finalizado
+        UPDATE `reservas`
+        SET `estado` = 'cancelada'
+        WHERE `propiedad_id` = NEW.id 
+        AND `estado` IN ('pendiente', 'confirmada');
+    END IF;
+END
+$$
+DELIMITER ;
 
 --
 -- Estructura Stand-in para la vista `v_usuarios_activos`
@@ -491,8 +501,11 @@ ALTER TABLE `refresh_tokens`
 --
 ALTER TABLE `resenas`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uk_resena_reserva` (`reserva_id`),
-  ADD KEY `fk_reseña_reserva` (`reserva_id`);
+  ADD UNIQUE KEY `unique_resena_reserva_tipo` (`reserva_id`,`tipo`),
+  ADD KEY `idx_resenas_reserva_id` (`reserva_id`),
+  ADD KEY `idx_resenas_calificador_id` (`calificador_id`),
+  ADD KEY `idx_resenas_tipo` (`tipo`),
+  ADD KEY `idx_resenas_calificacion` (`calificacion`);
 
 --
 -- Indices de la tabla `reservas`
@@ -571,7 +584,7 @@ ALTER TABLE `propiedades`
 -- AUTO_INCREMENT de la tabla `propiedad_imagenes`
 --
 ALTER TABLE `propiedad_imagenes`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `propiedad_servicio`
@@ -595,7 +608,8 @@ ALTER TABLE `refresh_tokens`
 -- AUTO_INCREMENT de la tabla `resenas`
 --
 ALTER TABLE `resenas`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
 
 --
 -- AUTO_INCREMENT de la tabla `reservas`
@@ -689,7 +703,8 @@ ALTER TABLE `refresh_tokens`
 -- Filtros para la tabla `resenas`
 --
 ALTER TABLE `resenas`
-  ADD CONSTRAINT `fk_resenas_reserva` FOREIGN KEY (`reserva_id`) REFERENCES `reservas` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_resenas_calificador` FOREIGN KEY (`calificador_id`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_resenas_reserva` FOREIGN KEY (`reserva_id`) REFERENCES `reservas` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Filtros para la tabla `reservas`

@@ -56,7 +56,7 @@ class LocalidadSanitizer
         $nombre = preg_replace('/\s+/u', ' ', $nombre);
         $nombre = mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
 
-        return mb_substr($nombre, 0, 150);
+        return mb_substr($nombre, 0, 100);
     }
 
     public static function sanitizarCodigoPostal($codigoPostal): ?string
@@ -72,7 +72,7 @@ class LocalidadSanitizer
         $codigoPostal = trim((string) $codigoPostal);
         $codigoPostal = preg_replace('/\s+/u', ' ', $codigoPostal);
 
-        return mb_substr($codigoPostal, 0, 20);
+        return mb_substr($codigoPostal, 0, 15);
     }
 
     public static function sanitizarProvinciaId($provinciaId): ?int

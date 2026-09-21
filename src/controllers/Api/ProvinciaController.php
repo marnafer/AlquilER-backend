@@ -2,14 +2,13 @@
 
 namespace App\Controllers\Api;
 
-use App\Services\ProvinciaService;
-use App\Helpers\Response;
 use App\Helpers\Request;
+use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Services\ProvinciaService;
 
 class ProvinciaController
 {
-
     private readonly ProvinciaService $service;
 
     public function __construct(ProvinciaService $service)
@@ -17,9 +16,7 @@ class ProvinciaController
         $this->service = $service;
     }
 
-    /**
-     * GET /api/provincias
-     */
+    // GET /api/provincias
     public function index()
     {
         Response::success(
@@ -27,9 +24,7 @@ class ProvinciaController
         );
     }
 
-    /**
-     * GET /api/provincias/{id}
-     */
+    // GET /api/provincias/{id}
     public function show($id)
     {
         Response::success(
@@ -37,14 +32,14 @@ class ProvinciaController
         );
     }
 
-    /**
-     * POST /api/provincias
-     */
+    // POST /api/provincias
     public function store()
-    { 
+    {
         AutenticadorMiddleware::soloAdmin();
 
-        $provincia = $this->service->crear(Request::json());
+        $provincia = $this->service->crear(
+            Request::json()
+        );
 
         Response::created(
             $provincia,
@@ -52,26 +47,24 @@ class ProvinciaController
         );
     }
 
-    /**
-     * PUT /api/provincias/{id}
-     */
+    // PUT /api/provincias/{id}
     public function update($id)
     {
         AutenticadorMiddleware::soloAdmin();
 
-        $this->service->actualizar($id, Request::json());
+        $this->service->actualizar(
+            $id,
+            Request::json()
+        );
 
         Response::success(
             [],
-             200,
+            200,
             'Provincia actualizada exitosamente'
-         );
-
+        );
     }
 
-    /**
-     * DELETE /api/provincias/{id}
-     */
+    // DELETE /api/provincias/{id}
     public function delete($id)
     {
         AutenticadorMiddleware::soloAdmin();
@@ -85,52 +78,17 @@ class ProvinciaController
         );
     }
 
-    /**
-     * POST /api/provincias/{id}/restaurar
-     */
+    // POST /api/provincias/{id}/restaurar
     public function restore($id)
     {
         AutenticadorMiddleware::soloAdmin();
 
-       $this->service->restaurar($id);
+        $this->service->restaurar($id);
 
-       Response::success(
+        Response::success(
             [],
             200,
             'Provincia restaurada exitosamente'
         );
-    }
-
-    /**
-     * Métodos alias en español para compatibilidad con tests
-     */
-    public function listar()
-    {
-        return $this->index();
-    }
-
-    public function crear()
-    {
-        return $this->store();
-    }
-
-    public function obtener($id)
-    {
-        return $this->show($id);
-    }
-
-    public function actualizar($id)
-    {
-        return $this->update($id);
-    }
-
-    public function eliminar($id)
-    {
-        return $this->delete($id);
-    }
-
-    public function restaurar($id)
-    {
-        return $this->restore($id);
     }
 }

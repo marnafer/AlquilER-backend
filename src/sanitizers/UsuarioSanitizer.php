@@ -4,17 +4,25 @@ namespace App\Sanitizers;
 
 class UsuarioSanitizer
 {
-    public static function sanitizarUsuario($data) {
+    public static function sanitizarUsuario($data)
+    {
         return [
-            'id' => self::sanitizarIdUsuario($data['id'] ?? null),
-            'nombre' => self::sanitizarNombre($data['nombre'] ?? null),
-            'apellido' => self::sanitizarApellido($data['apellido'] ?? null),
-            'email' => self::sanitizarEmail($data['email'] ?? null),
-            'telefono' => self::sanitizarTelefono($data['telefono'] ?? null),
-            'domicilio' => self::sanitizarDomicilio($data['domicilio'] ?? null),
+            'nombre' => self::sanitizarNombre(
+                $data['nombre'] ?? null
+            ),
+            'apellido' => self::sanitizarApellido(
+                $data['apellido'] ?? null
+            ),
+            'email' => self::sanitizarEmail(
+                $data['email'] ?? null
+            ),
+            'telefono' => self::sanitizarTelefono(
+                $data['telefono'] ?? null
+            ),
+            'domicilio' => self::sanitizarDomicilio(
+                $data['domicilio'] ?? null
+            ),
             'contrasena' => $data['contrasena'] ?? null,
-            'rol_id' => self::sanitizarRolId($data['rol_id'] ?? null),
-            'deleted_at' => self::sanitizarFechaEliminacion($data['deleted_at'] ?? null)
         ];
     }
 

@@ -7,91 +7,132 @@ use App\Controllers\Api\AutenticadorController;
 use App\Services\AutenticadorService;
 use App\Exceptions\ValidationException;
 use App\Exceptions\UnauthorizedException;
-use App\Models\Usuario;
 
 class AutenticadorControllerTest extends TestCase
 {
     private $controller;
     private $service;
-    private $tokenProviderMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = $this->createMock(AutenticadorService::class);
-        $this->controller = new AutenticadorController($this->service);
+
+        $this->service = $this->createMock(
+            AutenticadorService::class
+        );
+
+        $this->controller = new AutenticadorController(
+            $this->service
+        );
     }
 
-    /** @test */
-    public function it_can_login()
+    public function test_login_funciona_correctamente(): void
     {
-        $input = json_encode([
-            'email' => 'test@test.com',
-            'contrasena' => 'password123' // Corregido de password a contrasena según tu service
-        ]);
-        file_put_contents('php://input', $input);
+        $resultado = [
+            'access_token' => 'access-token',
+            'refresh_token' => 'refresh-token',
+            'token_type' => 'Bearer',
+            'expires_in' => 3600,
+        ];
 
-        // Ahora esperamos que el servicio devuelva la estructura con ambos tokens
         $this->service
             ->expects($this->once())
             ->method('login')
             ->with([
                 'email' => 'test@test.com',
-                'contrasena' => 'password123'
+                'contrasena' => 'password123',
             ])
             ->willReturn($resultado);
 
-        ob_start();
-        $this->controller->login();
-        $output = ob_get_clean();
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'email' => 'test@test.com',
+                'contrasena' => 'password123',
+            ]),
+            fn() => $this->controller->login()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('"access_token"', $output);
-        $this->assertStringContainsString('"refresh_token"', $output);
+        $this->assertTrue($response['success']);
+
+        $this->assertSame(
+            $resultado,
+            $response['data']
+        );
     }
 
-    /** @test */
-    public function it_returns_bad_request_when_login_missing_fields()
+    public function test_login_devuelve_error_de_validacion(): void
     {
-        $input = json_encode(['email' => 'test@test.com']);
-        file_put_contents('php://input', $input);
-
-        // Simulamos que el servicio lanza la excepción de validación porque falta la contraseña
         $this->service
             ->expects($this->once())
             ->method('login')
             ->with([
-                'email' => 'test@test.com'
+                'email' => 'test@test.com',
             ])
             ->willThrowException(
-                new \App\Exceptions\ValidationException([
+                new ValidationException([
                     'credenciales' => [
-                        'Faltan datos'
-                    ]
+                        'Faltan datos',
+                    ],
                 ])
             );
 
-        $this->expectException(ValidationException::class);
-        
-        $this->controller->login();
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'email' => 'test@test.com',
+            ]),
+            fn() => $this->controller->login()
+        );
+
+        $this->assertFalse($response['success']);
+
+        $this->assertArrayHasKey(
+            'validation_errors',
+            $response
+        );
+
+        $this->assertSame(
+            [
+                'credenciales' => [
+                    'Faltan datos',
+                ],
+            ],
+            $response['validation_errors']
+        );
     }
 
-    /** @test */
-    public function it_can_register() // Cambiado a register() para coincidir con tu controlador
+    public function test_login_devuelve_error_si_las_credenciales_son_invalidas(): void
     {
-        $input = json_encode([
-            'nombre' => 'Test',
-            'apellido' => 'User',
-            'email' => 'test@test.com',
-            'contrasena' => 'password123',
-            'telefono' => '123456789',
-            'domicilio' => 'Calle 123'
-        ]);
-        file_put_contents('php://input', $input);
+        $this->service
+            ->expects($this->once())
+            ->method('login')
+            ->with([
+                'email' => 'test@test.com',
+                'contrasena' => 'password_incorrecta',
+            ])
+            ->willThrowException(
+                new UnauthorizedException(
+                    'Credenciales inválidas'
+                )
+            );
 
-        $usuario = new Usuario();
-        $usuario->id = 1;
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'email' => 'test@test.com',
+                'contrasena' => 'password_incorrecta',
+            ]),
+            fn() => $this->controller->login()
+        );
 
+        $this->assertFalse($response['success']);
+
+        $this->assertStringContainsString(
+            'Credenciales inválidas',
+            $response['error']
+        );
+    }
+
+    public function test_register_funciona_correctamente(): void
+    {
         $this->service
             ->expects($this->once())
             ->method('registrar')
@@ -101,70 +142,152 @@ class AutenticadorControllerTest extends TestCase
                 'email' => 'test@test.com',
                 'contrasena' => 'password123',
                 'telefono' => '123456789',
-                'domicilio' => 'Calle 123'
-            ])
-            ->willReturn($usuario);
+                'domicilio' => 'Calle 123',
+            ]);
 
-        ob_start();
-        $this->controller->register();
-        $output = ob_get_clean();
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'nombre' => 'Test',
+                'apellido' => 'User',
+                'email' => 'test@test.com',
+                'contrasena' => 'password123',
+                'telefono' => '123456789',
+                'domicilio' => 'Calle 123',
+            ]),
+            fn() => $this->controller->register()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('Usuario registrado', $output);
+        $this->assertTrue($response['success']);
+
+        $this->assertStringContainsString(
+            'Usuario registrado',
+            $response['message']
+        );
     }
 
-    /** @test */
-    public function it_can_refresh_token()
+    public function test_refresh_funciona_correctamente(): void
     {
-        $input = json_encode([
-            'refresh_token' => 'token_viejo_enviado_por_cliente'
-        ]);
-        file_put_contents('php://input', $input);
+        $resultado = [
+            'access_token' => 'nuevo-access-token',
+            'refresh_token' => 'nuevo-refresh-token',
+            'token_type' => 'Bearer',
+            'expires_in' => 3600,
+        ];
 
         $this->service
             ->expects($this->once())
             ->method('refresh')
             ->with([
-                'refresh_token' => 'token_viejo_enviado_por_cliente'
+                'refresh_token' => 'token_viejo_enviado_por_cliente',
             ])
             ->willReturn($resultado);
 
-        ob_start();
-        $this->controller->refresh();
-        $output = ob_get_clean();
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'refresh_token' => 'token_viejo_enviado_por_cliente',
+            ]),
+            fn() => $this->controller->refresh()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('"nuevo_jwt_token"', $output);
-        $this->assertStringContainsString('"nuevo_refresh_token"', $output);
+        $this->assertTrue($response['success']);
+
+        $this->assertSame(
+            $resultado,
+            $response['data']
+        );
+
+        $this->assertStringContainsString(
+            'Token refrescado correctamente',
+            $response['message']
+        );
     }
 
-    /** @test */
-    public function it_can_logout()
+    public function test_refresh_devuelve_error_si_el_token_no_es_valido(): void
     {
-        // Simulamos el payload del frontend enviando el refresh token
-        $input = json_encode(['refresh_token' => 'token_a_invalidar']);
-        file_put_contents('php://input', $input);
-
-        // Simulamos el header de autorización que exige AutenticadorMiddleware::verificar()
-        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_jwt_valido';
-
-        // Verificamos que el controlador llame al servicio pasándole el JSON
         $this->service
             ->expects($this->once())
-            ->method('validate')
-            ->with('token_jwt_valido')
-            ->willReturn(
-                (object) [
-                    'sub' => 1,
-                    'rol_id' => 1
-                ]
+            ->method('refresh')
+            ->with([
+                'refresh_token' => 'token_invalido',
+            ])
+            ->willThrowException(
+                new UnauthorizedException(
+                    'Refresh token inválido'
+                )
             );
 
-        ob_start();
-        $this->controller->logout();
-        $output = ob_get_clean();
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'refresh_token' => 'token_invalido',
+            ]),
+            fn() => $this->controller->refresh()
+        );
 
-        $this->assertStringContainsString('"success":true', $output);
-        $this->assertStringContainsString('Sesión cerrada correctamente', $output);
+        $this->assertFalse($response['success']);
+
+        $this->assertStringContainsString(
+            'Refresh token inválido',
+            $response['error']
+        );
+    }
+
+    public function test_refresh_devuelve_error_de_validacion(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('refresh')
+            ->with([])
+            ->willThrowException(
+                new ValidationException([
+                    'refresh_token' => [
+                        'El refresh token es requerido',
+                    ],
+                ])
+            );
+
+        $response = $this->captureJsonWithBody(
+            json_encode([]),
+            fn() => $this->controller->refresh()
+        );
+
+        $this->assertFalse($response['success']);
+
+        $this->assertArrayHasKey(
+            'validation_errors',
+            $response
+        );
+
+        $this->assertSame(
+            [
+                'refresh_token' => [
+                    'El refresh token es requerido',
+                ],
+            ],
+            $response['validation_errors']
+        );
+    }
+
+    public function test_logout_funciona_correctamente(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('logout')
+            ->with([
+                'refresh_token' => 'token_a_invalidar',
+            ]);
+
+        $response = $this->captureJsonWithBody(
+            json_encode([
+                'refresh_token' => 'token_a_invalidar',
+            ]),
+            fn() => $this->controller->logout()
+        );
+
+        $this->assertTrue($response['success']);
+
+        $this->assertStringContainsString(
+            'Sesión cerrada correctamente',
+            $response['message']
+        );
     }
 }

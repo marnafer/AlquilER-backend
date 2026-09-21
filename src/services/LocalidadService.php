@@ -36,12 +36,12 @@ class LocalidadService
     {
         $id = LocalidadSanitizer::sanitizarIdLocalidad($rawId);
 
-        $validacion = LocalidadValidator::validarIdLocalidad($id);
+        $validacion = LocalidadValidator::validarSoloIdLocalidad($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']],
-            ]);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $localidad = $this->localidadRepository->findById($id);
@@ -167,12 +167,12 @@ class LocalidadService
     {
         $id = LocalidadSanitizer::sanitizarIdLocalidad($rawId);
 
-        $validacion = LocalidadValidator::validarIdLocalidad($id);
+        $validacion = LocalidadValidator::validarSoloIdLocalidad($id);
 
         if (!$validacion['success']) {
-            throw new ValidationException([
-                'id' => [$validacion['error']],
-            ]);
+            throw new ValidationException(
+                $validacion['errors']
+            );
         }
 
         $localidad = $this->localidadRepository->findDeletedById($id);

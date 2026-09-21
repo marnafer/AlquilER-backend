@@ -10,15 +10,40 @@ final class GestorArchivosLocales implements GestorArchivosInterface
 {
     public function upload(array $file, string $directory): string
     {
-        if (!is_dir($directory) && !mkdir($directory, 0755, true)) {
+        if (
+            !is_dir($directory)
+            && !@mkdir($directory, 0755, true)
+            && !is_dir($directory)
+        ) {
             throw new BadRequestException(
                 'No se pudo crear el directorio de imágenes'
             );
         }
 
-        $extension = strtolower(
-            pathinfo($file['name'], PATHINFO_EXTENSION)
-        );
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+
+        if ($finfo === false) {
+            throw new BadRequestException(
+                'No se pudo determinar el formato de la imagen'
+            );
+        }
+
+        $mime = finfo_file($finfo, $file['tmp_name']);
+
+        finfo_close($finfo);
+
+        $extensiones = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+        ];
+
+        if ($mime === false || !isset($extensiones[$mime])) {
+            throw new BadRequestException(
+                'Formato de imagen no permitido'
+            );
+        }
+
+        $extension = $extensiones[$mime];
 
         $nombreArchivo = time()
             . '_'
@@ -35,5 +60,20 @@ final class GestorArchivosLocales implements GestorArchivosInterface
         }
 
         return $nombreArchivo;
+    }
+
+    public function delete(string $path): void
+    {
+        $rutaFisica = dirname(__DIR__, 2) . '/public' . $path;
+
+        if (!file_exists($rutaFisica)) {
+            return;
+        }
+
+        if (!unlink($rutaFisica)) {
+            throw new BadRequestException(
+                'No se pudo eliminar la imagen'
+            );
+        }
     }
 }
