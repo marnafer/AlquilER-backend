@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Exceptions\ForbiddenException;
+use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Consulta;
@@ -718,6 +719,221 @@ class ConsultaServiceTest extends TestCase
             20,
             5,
             1
+        );
+    }
+
+    public function test_listar_convierte_los_flags_de_papelera_a_booleanos(): void
+    {
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(2)
+            ->willReturn(true);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('getAll')
+            ->with(['solo_eliminados' => true])
+            ->willReturn([]);
+
+        $resultado = $this->service->listar(
+            2,
+            ['solo_eliminados' => 'true']
+        );
+
+        $this->assertSame([], $resultado);
+    }
+
+    public function test_obtenerAutorizada_permite_al_administrador(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 10;
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeParticipar')
+            ->with(5, $consulta)
+            ->willReturn(false);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(2)
+            ->willReturn(true);
+
+        $resultado = $this->service->obtenerAutorizada(
+            10,
+            5,
+            2
+        );
+
+        $this->assertSame($consulta, $resultado);
+    }
+
+    public function test_restaurar_restaura_consulta_eliminada_por_admin(): void
+    {
+        $usuario = new Usuario();
+        $usuario->id = 99;
+        $usuario->rol_id = 2;
+
+        $consulta = new Consulta();
+        $consulta->id = 10;
+        $consulta->deleted_at = '2026-01-01 00:00:00';
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(99)
+            ->willReturn($usuario);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(2)
+            ->willReturn(true);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('restore')
+            ->with(10)
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'consulta_restaurada');
+
+        $resultado = $this->service->restaurar(
+            10,
+            99
+        );
+
+        $this->assertTrue($resultado);
+    }
+
+    public function test_restaurar_rechaza_a_usuario_no_administrador(): void
+    {
+        $usuario = new Usuario();
+        $usuario->id = 99;
+        $usuario->rol_id = 1;
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(99)
+            ->willReturn($usuario);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(1)
+            ->willReturn(false);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No autorizado para restaurar consultas'
+        );
+
+        $this->service->restaurar(
+            10,
+            99
+        );
+    }
+
+    public function test_restaurar_rechaza_consulta_no_eliminada(): void
+    {
+        $usuario = new Usuario();
+        $usuario->id = 99;
+        $usuario->rol_id = 2;
+
+        $consulta = new Consulta();
+        $consulta->id = 10;
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(99)
+            ->willReturn($usuario);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(2)
+            ->willReturn(true);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La consulta no está eliminada'
+        );
+
+        $this->service->restaurar(
+            10,
+            99
+        );
+    }
+
+    public function test_restaurar_rechaza_consulta_inexistente(): void
+    {
+        $usuario = new Usuario();
+        $usuario->id = 99;
+        $usuario->rol_id = 2;
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(99)
+            ->willReturn($usuario);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(2)
+            ->willReturn(true);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn(null);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'Consulta no encontrada'
+        );
+
+        $this->service->restaurar(
+            10,
+            99
         );
     }
 }

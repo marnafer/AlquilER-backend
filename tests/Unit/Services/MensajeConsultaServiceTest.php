@@ -52,7 +52,7 @@ final class MensajeConsultaServiceTest extends TestCase
 
         $this->consultaService->expects($this->once())
             ->method('obtenerConsultaAutorizada')
-            ->with(100, 5)
+            ->with(100, 5, null)
             ->willReturn($consulta);
 
         $mensajeEsperado = new MensajeConsulta([
@@ -125,7 +125,7 @@ final class MensajeConsultaServiceTest extends TestCase
     {
         $this->consultaService->expects($this->once())
             ->method('obtenerConsultaAutorizada')
-            ->with(100, 5)
+            ->with(100, 5, null)
             ->willThrowException(
                 new ForbiddenException('No autorizado')
             );
@@ -166,7 +166,7 @@ final class MensajeConsultaServiceTest extends TestCase
 
         $this->consultaService->expects($this->once())
             ->method('obtenerConsultaAutorizada')
-            ->with(100, 5)
+            ->with(100, 5, null)
             ->willReturn($consulta);
 
         $this->mensajeRepository->expects($this->once())
@@ -183,7 +183,7 @@ final class MensajeConsultaServiceTest extends TestCase
     {
         $this->consultaService->expects($this->once())
             ->method('obtenerConsultaAutorizada')
-            ->with(100, 5)
+            ->with(100, 5, null)
             ->willThrowException(
                 new ForbiddenException('No autorizado')
             );

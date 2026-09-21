@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\ForbiddenException;
+use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\UnauthorizedException;
 use App\Exceptions\ValidationException;
@@ -44,6 +45,18 @@ class ConsultaService
             $rawFiltros
         );
 
+        // Los flags de papelera no los sanea ConsultaSanitizer; se pasan como booleanos reales
+        foreach (
+            ['incluir_eliminados', 'solo_eliminados'] as $flag
+        ) {
+            if (array_key_exists($flag, $rawFiltros)) {
+                $filtros[$flag] = filter_var(
+                    $rawFiltros[$flag],
+                    FILTER_VALIDATE_BOOLEAN
+                );
+            }
+        }
+
         $filtrosLimpios = array_filter(
             $filtros,
             fn($value) => !is_null($value) && $value !== ''
@@ -79,7 +92,8 @@ class ConsultaService
 
     public function obtenerAutorizada(
         $rawConsultaId,
-        int $usuarioLogueadoId
+        int $usuarioLogueadoId,
+        ?int $rolId = null
     ): Consulta {
         $consultaId = ConsultaSanitizer::sanitizarId(
             $rawConsultaId
@@ -97,12 +111,20 @@ class ConsultaService
 
         $consulta = $this->obtener($consultaId);
 
+        $participa = $this->policy->puedeParticipar(
+            $usuarioLogueadoId,
+            $consulta
+        );
+
         if (
-            !$this->policy->puedeParticipar(
-                $usuarioLogueadoId,
-                $consulta
-            )
+            !$participa
+            && $rolId !== null
+            && $this->policy->puedeAdministrar($rolId)
         ) {
+            $participa = true;
+        }
+
+        if (!$participa) {
             throw new ForbiddenException(
                 'No tienes permiso para acceder a esta consulta'
             );
@@ -118,11 +140,13 @@ class ConsultaService
      */
     public function obtenerConsultaAutorizada(
         $rawConsultaId,
-        int $usuarioLogueadoId
+        int $usuarioLogueadoId,
+        ?int $rolId = null
     ): Consulta {
         return $this->obtenerAutorizada(
             $rawConsultaId,
-            $usuarioLogueadoId
+            $usuarioLogueadoId,
+            $rolId
         );
     }
 
@@ -305,6 +329,63 @@ class ConsultaService
             $this->logService->registrar(
                 $usuarioId,
                 'consulta_eliminada'
+            );
+        }
+
+        return $resultado;
+    }
+
+    public function restaurar(
+        $rawId,
+        int $usuarioId
+    ): bool {
+        $id = ConsultaSanitizer::sanitizarId($rawId);
+
+        $validacion = ConsultaValidator::validarSoloIdConsulta(
+            $id
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        $usuario = $this->usuarioRepository->findById(
+            $usuarioId
+        );
+
+        if (
+            !$usuario
+            || !$this->policy->puedeAdministrar(
+                $usuario->rol_id
+            )
+        ) {
+            throw new ForbiddenException(
+                'No autorizado para restaurar consultas'
+            );
+        }
+
+        $consulta = $this->consultaRepository->findById($id);
+
+        if (!$consulta) {
+            throw new NotFoundException(
+                'Consulta no encontrada'
+            );
+        }
+
+        if (!$consulta->trashed()) {
+            throw new ConflictException(
+                'La consulta no está eliminada'
+            );
+        }
+
+        $resultado = $this->consultaRepository->restore($id);
+
+        if ($resultado) {
+            $this->logService->registrar(
+                $usuarioId,
+                'consulta_restaurada'
             );
         }
 

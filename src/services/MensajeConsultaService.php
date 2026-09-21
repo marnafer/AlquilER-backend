@@ -19,8 +19,11 @@ class MensajeConsultaService
     ) {
     }
 
-    public function crearMensaje(array $rawData, int $usuarioLogueadoId): MensajeConsulta
-    {
+    public function crearMensaje(
+        array $rawData,
+        int $usuarioLogueadoId,
+        ?int $rolId = null
+    ): MensajeConsulta {
         $data = MensajeConsultaSanitizer::sanitizarMensajeConsulta($rawData);
         $data['usuario_id'] = $usuarioLogueadoId;
 
@@ -31,7 +34,11 @@ class MensajeConsultaService
         }
 
         // Delega la búsqueda y validación de seguridad a la Policy mediante ConsultaService
-        $consulta = $this->consultaService->obtenerConsultaAutorizada($data['consulta_id'], $usuarioLogueadoId);
+        $consulta = $this->consultaService->obtenerConsultaAutorizada(
+            $data['consulta_id'],
+            $usuarioLogueadoId,
+            $rolId
+        );
 
         $mensaje = $this->mensajeRepository->create([
             'consulta_id' => $consulta->id,
@@ -48,9 +55,16 @@ class MensajeConsultaService
         return $mensaje;
     }
 
-    public function obtenerHistorial(int $consultaId, int $usuarioLogueadoId)
-    {
-        $this->consultaService->obtenerConsultaAutorizada($consultaId, $usuarioLogueadoId);
+    public function obtenerHistorial(
+        int $consultaId,
+        int $usuarioLogueadoId,
+        ?int $rolId = null
+    ) {
+        $this->consultaService->obtenerConsultaAutorizada(
+            $consultaId,
+            $usuarioLogueadoId,
+            $rolId
+        );
 
         return $this->mensajeRepository->findByConsultaId($consultaId);
     }

@@ -12,10 +12,17 @@ class ConsultaPolicy
 {
 
     /**
-     * Chat: Solo interesado o dueño de la propiedad.
+     * Chat: Solo interesado, dueño de la propiedad o administrador.
      */
-    public function puedeParticipar(int $usuarioId, Consulta $consulta): bool
-    {
+    public function puedeParticipar(
+        int $usuarioId,
+        Consulta $consulta,
+        ?int $rolId = null
+    ): bool {
+        if ($rolId === Rol::ADMIN) {
+            return true;
+        }
+
         $esInteresado = $consulta->usuario_id === $usuarioId;
         
         $esDueno = false;

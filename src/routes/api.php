@@ -188,6 +188,8 @@ $router->put('/api/consultas/{id}', [$consultaController, 'update']);
 
 $router->delete('/api/consultas/{id}', [$consultaController, 'delete']);
 
+$router->post('/api/consultas/{id}/restaurar', [$consultaController, 'restore']);
+
 /*
 |--------------------------------------------------------------------------
 | RESEÑAS
