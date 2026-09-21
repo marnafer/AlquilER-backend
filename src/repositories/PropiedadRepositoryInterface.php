@@ -22,4 +22,6 @@ interface PropiedadRepositoryInterface
     public function delete(Propiedad $propiedad): bool;
 
     public function restore(Propiedad $propiedad): bool;
+
+    public function findByIdForUpdate(int $id): ?Propiedad;
 }

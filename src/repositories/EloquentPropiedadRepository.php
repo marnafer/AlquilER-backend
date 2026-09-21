@@ -56,4 +56,12 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     {
         return (bool) $propiedad->restore();
     }
+
+    public function findByIdForUpdate(int $id): ?Propiedad
+    {
+        return Propiedad::query()
+            ->whereKey($id)
+            ->lockForUpdate()
+            ->first();
+    }
 }

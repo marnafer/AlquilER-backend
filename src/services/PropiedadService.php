@@ -72,6 +72,19 @@ class PropiedadService
         return $propiedad;
     }
 
+    public function obtenerParaActualizar(int $id): Propiedad
+    {
+        $propiedad = $this->repository->findByIdForUpdate($id);
+
+        if (!$propiedad) {
+            throw new NotFoundException(
+                'Propiedad no encontrada'
+            );
+        }
+
+        return $propiedad;
+    }
+
     public function crear(
         array $rawData,
         int $usuarioId

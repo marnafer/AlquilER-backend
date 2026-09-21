@@ -83,18 +83,17 @@ class PropiedadImagenService
             );
         }
 
-        $errorImagen = $this->cargaImagenValidator->validate(
-            $file
-        );
+        $errorImagen = $this->cargaImagenValidator->validate($file);
 
         if ($errorImagen !== null) {
             throw new ValidationException([
-                'imagen' => $errorImagen,
+                'imagen' => $errorImagen
             ]);
         }
 
         $propiedadId = (int) $data['propiedad_id'];
 
+        // Se obtiene la propiedad para validar permisos.
         $propiedad = $this->propiedadService->obtener(
             $propiedadId
         );
@@ -121,6 +120,10 @@ class PropiedadImagenService
                 $data,
                 $ruta
             ): PropiedadImagen {
+                // Bloqueamos la propiedad durante toda la operación.
+                $this->propiedadService
+                    ->obtenerParaActualizar($propiedadId);
+
                 $cantidadImagenes = $this->repository
                     ->countByPropiedadId($propiedadId);
 
@@ -135,8 +138,7 @@ class PropiedadImagenService
 
         $this->logService->registrar(
             $usuarioId,
-            'Creación de imagen para propiedad ID: '
-            . $propiedadId
+            'Creación de imagen para propiedad ID: ' . $propiedadId
         );
 
         return $imagen;
