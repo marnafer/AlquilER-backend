@@ -174,6 +174,8 @@ $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
 
 $router->get('/api/admin/consultas', [$consultaController, 'adminIndex']);
 
+$router->get('/api/admin/propiedades', [$propiedadController, 'adminIndex']);
+
 $router->get('/api/consultas', [$consultaController, 'index']);
 
 $router->get('/api/consultas/{id}', [$consultaController, 'show']);

@@ -9,6 +9,8 @@ interface PropiedadRepositoryInterface
 {
     public function all(): Collection;
 
+    public function allParaAdmin(array $filtros = []): Collection;
+
     public function porUsuario(int $usuarioId): Collection;
 
     public function findById(int $id): ?Propiedad;

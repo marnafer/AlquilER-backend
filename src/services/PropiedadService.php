@@ -39,6 +39,35 @@ class PropiedadService
         ];
     }
 
+    public function listarParaAdmin(array $filtros = []): array
+    {
+        $filtrosLimpios = [];
+
+        foreach (
+            ['incluir_eliminados', 'solo_eliminados'] as $flag
+        ) {
+            if (array_key_exists($flag, $filtros)) {
+                $filtrosLimpios[$flag] = filter_var(
+                    $filtros[$flag],
+                    FILTER_VALIDATE_BOOLEAN
+                );
+            }
+        }
+
+        $filtrosLimpios = array_filter(
+            $filtrosLimpios
+        );
+
+        $propiedades = $this->repository->allParaAdmin(
+            $filtrosLimpios
+        );
+
+        return [
+            'items' => $propiedades,
+            'total' => $propiedades->count(),
+        ];
+    }
+
     public function misPropiedades(int $usuarioId): array
     {
         $propiedades = $this->repository->porUsuario($usuarioId);

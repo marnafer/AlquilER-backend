@@ -24,6 +24,18 @@ class PropiedadController
         );
     }
 
+    // GET /api/admin/propiedades
+    public function adminIndex(): void
+    {
+        AutenticadorMiddleware::soloAdmin();
+
+        Response::success(
+            $this->service->listarParaAdmin(
+                $_GET ?? []
+            )
+        );
+    }
+
     // GET /api/propiedades/mis-propiedades
     public function misPropiedades(): void
     {

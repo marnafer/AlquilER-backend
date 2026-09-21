@@ -15,6 +15,20 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ->get();
     }
 
+    public function allParaAdmin(array $filtros = []): Collection
+    {
+        $query = Propiedad::query()
+            ->with(['usuario', 'categoria', 'localidad', 'imagenes', 'imagenPrincipal']);
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query->orderByDesc('id')->get();
+    }
+
     public function porUsuario(int $usuarioId): Collection
     {
         return Propiedad::query()

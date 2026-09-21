@@ -142,6 +142,77 @@ class PropiedadServiceTest extends TestCase
         $this->assertSame(2, $resultado['total']);
     }
 
+    public function test_listar_para_admin_devuelve_propiedades_y_total(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('allParaAdmin')
+            ->with([])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarParaAdmin([]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_para_admin_convierte_bandera_solo_eliminados(): void
+    {
+        $propiedades = new Collection();
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('allParaAdmin')
+            ->with(['solo_eliminados' => true])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarParaAdmin(
+            ['solo_eliminados' => 'true']
+        );
+
+        $this->assertCount(0, $resultado['items']);
+    }
+
+    public function test_listar_para_admin_descarta_bandera_false(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('allParaAdmin')
+            ->with([])
+            ->willReturn(new Collection());
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarParaAdmin(
+            ['solo_eliminados' => '0']
+        );
+
+        $this->assertCount(0, $resultado['items']);
+    }
+
     public function test_mis_propiedades_devuelve_propiedades_y_total(): void
     {
         $propiedades = new Collection([
