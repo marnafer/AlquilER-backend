@@ -20,9 +20,9 @@ class RolService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $roles = $this->repository->all();
+        $roles = $this->repository->all($filtros);
 
         return [
             'items' => $roles,

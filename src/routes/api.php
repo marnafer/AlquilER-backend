@@ -212,6 +212,8 @@ $router->put('/api/resenas/{id}', [$resenaController, 'update']);
 
 $router->delete('/api/resenas/{id}', [$resenaController, 'delete']);
 
+$router->post('/api/resenas/{id}/restaurar', [$resenaController, 'restore']);
+
 /*
 |--------------------------------------------------------------------------
 | SERVICIOS

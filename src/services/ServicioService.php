@@ -20,9 +20,9 @@ class ServicioService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $servicios = $this->repository->all();
+        $servicios = $this->repository->all($filtros);
 
         return [
             'items' => $servicios,

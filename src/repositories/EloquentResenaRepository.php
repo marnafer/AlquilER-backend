@@ -18,6 +18,12 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
                 'calificador',
             ]);
 
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
         if (!empty($filtros['tipo'])) {
             $query->where('tipo', $filtros['tipo']);
         }

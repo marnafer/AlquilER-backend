@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface LocalidadRepositoryInterface
 {
-    public function all(): Collection;
+    public function all(array $filtros = []): Collection;
 
     public function findById(int $id): ?Localidad;
 
