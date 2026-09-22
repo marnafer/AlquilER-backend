@@ -10,6 +10,7 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
+use App\Models\Rol;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
 use App\Policies\ResenaPolicy;
@@ -192,16 +193,15 @@ class ResenaService
             );
         }
 
-        $this->policy->crear(
+        $tipo = $this->policy->crear(
             $reserva,
-            $usuarioId,
-            $data['tipo']
+            $usuarioId
         );
 
         if (
             $this->repository->existePorReservaYTipo(
                 (int) $data['reserva_id'],
-                $data['tipo']
+                $tipo
             )
         ) {
             throw new ConflictException(
@@ -209,6 +209,7 @@ class ResenaService
             );
         }
 
+        $data['tipo'] = $tipo;
         $data['calificador_id'] = $usuarioId;
 
         $resena = $this->repository->create(
@@ -251,7 +252,7 @@ class ResenaService
             );
         }
 
-        if ($rolId !== 2 && (int) $resena->calificador_id !== $usuarioId) {
+        if ($rolId !== Rol::ADMIN && (int) $resena->calificador_id !== $usuarioId) {
             throw new ForbiddenException(
                 'No tienes permiso para editar esta reseña'
             );

@@ -23,22 +23,17 @@ class ResenaPolicy
      */
     public function crear(
         Reserva $reserva,
-        int $usuarioId,
-        string $tipo
-    ): void {
-        if (
-            $tipo === 'propiedad' &&
-            (int) $reserva->usuario_id === $usuarioId
-        ) {
-            return;
+        int $usuarioId
+    ): string {
+        if ((int) $reserva->usuario_id === $usuarioId) {
+            return 'propiedad';
         }
 
         if (
-            $tipo === 'inquilino' &&
             $reserva->propiedad &&
             (int) $reserva->propiedad->usuario_id === $usuarioId
         ) {
-            return;
+            return 'inquilino';
         }
 
         throw new ForbiddenException(
