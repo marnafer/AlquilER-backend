@@ -20,9 +20,9 @@ Class CategoriaService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $categorias = $this->repository->all();
+        $categorias = $this->repository->all($filtros);
 
         return [
             'items' => $categorias,

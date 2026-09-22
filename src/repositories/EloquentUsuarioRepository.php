@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Collection;
 
 class EloquentUsuarioRepository implements UsuarioRepositoryInterface
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Usuario::query()
+        $query = Usuario::query();
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query
             ->orderByDesc('id')
             ->get();
     }

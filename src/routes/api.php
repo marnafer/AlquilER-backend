@@ -174,6 +174,8 @@ $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
 
 $router->get('/api/admin/consultas', [$consultaController, 'adminIndex']);
 
+$router->get('/api/admin/propiedades', [$propiedadController, 'adminIndex']);
+
 $router->get('/api/consultas', [$consultaController, 'index']);
 
 $router->get('/api/consultas/{id}', [$consultaController, 'show']);
@@ -187,6 +189,8 @@ $router->post('/api/consultas', [$consultaController, 'store']);
 $router->put('/api/consultas/{id}', [$consultaController, 'update']);
 
 $router->delete('/api/consultas/{id}', [$consultaController, 'delete']);
+
+$router->post('/api/consultas/{id}/restaurar', [$consultaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -211,6 +215,8 @@ $router->post('/api/resenas', [$resenaController, 'store']);
 $router->put('/api/resenas/{id}', [$resenaController, 'update']);
 
 $router->delete('/api/resenas/{id}', [$resenaController, 'delete']);
+
+$router->post('/api/resenas/{id}/restaurar', [$resenaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------

@@ -21,9 +21,9 @@ class UsuarioService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $usuarios = $this->repository->all();
+        $usuarios = $this->repository->all($filtros);
 
         return [
             'items' => $usuarios,

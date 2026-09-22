@@ -73,6 +73,73 @@ class PropiedadControllerTest extends TestCase
         $this->assertSame($data, $response['data']);
     }
 
+    public function test_adminIndex_devuelve_el_listado_global_de_propiedades(): void
+    {
+        $this->actingAs(5, 2);
+
+        $_GET = [];
+
+        $propiedades = [
+            'items' => [
+                ['id' => 1, 'titulo' => 'Casa 1'],
+            ],
+            'total' => 1,
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarParaAdmin')
+            ->with([])
+            ->willReturn($propiedades);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->adminIndex()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($propiedades, $response['data']);
+    }
+
+    public function test_adminIndex_pasa_los_filtros_al_service(): void
+    {
+        $this->actingAs(5, 2);
+
+        $_GET = ['solo_eliminados' => 'true'];
+
+        $propiedades = [
+            'items' => [],
+            'total' => 0,
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarParaAdmin')
+            ->with($_GET)
+            ->willReturn($propiedades);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->adminIndex()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($propiedades, $response['data']);
+
+        $_GET = [];
+    }
+
+    public function test_adminIndex_rechaza_a_usuario_no_admin(): void
+    {
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('listarParaAdmin');
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->controller->adminIndex();
+    }
+
     public function test_it_can_list_my_properties(): void
     {
         $this->actingAs(5, 1);

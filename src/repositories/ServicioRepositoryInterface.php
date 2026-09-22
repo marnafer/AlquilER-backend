@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 interface ServicioRepositoryInterface
 {
-    public function all(): Collection;
+    public function all(array $filtros = []): Collection;
 
     public function findById(int $id): ?Servicio;
 

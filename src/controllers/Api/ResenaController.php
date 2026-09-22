@@ -61,6 +61,20 @@ class ResenaController
             $filtros['fecha_hasta'] = $_GET['fecha_hasta'];
         }
 
+        if (isset($_GET['solo_eliminados'])) {
+            $filtros['solo_eliminados'] = filter_var(
+                $_GET['solo_eliminados'],
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        if (isset($_GET['incluir_eliminados'])) {
+            $filtros['incluir_eliminados'] = filter_var(
+                $_GET['incluir_eliminados'],
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
         Response::success(
             $this->service->listar($filtros),
             200,
@@ -184,6 +198,24 @@ class ResenaController
             [],
             200,
             'Reseña eliminada exitosamente'
+        );
+    }
+
+    // POST /api/resenas/{id}/restaurar
+    public function restore($id)
+    {
+        $usuario = AutenticadorMiddleware::verificar();
+
+        $this->service->restaurar(
+            (int) $id,
+            (int) $usuario->sub,
+            (int) $usuario->rol_id
+        );
+
+        Response::success(
+            null,
+            200,
+            'Reseña restaurada exitosamente'
         );
     }
 }

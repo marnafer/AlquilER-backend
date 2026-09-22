@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface UsuarioRepositoryInterface
 {
-    public function all(): Collection;
+    public function all(array $filtros = []): Collection;
 
     public function findById(int $id): ?Usuario;
 

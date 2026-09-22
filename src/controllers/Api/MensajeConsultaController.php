@@ -20,7 +20,11 @@ class MensajeConsultaController
     {
         $user = AutenticadorMiddleware::verificar();
         
-        $mensajes = $this->service->obtenerHistorial((int) $consultaId, (int) $user->sub);
+        $mensajes = $this->service->obtenerHistorial(
+            (int) $consultaId,
+            (int) $user->sub,
+            (int) $user->rol_id
+        );
 
         Response::success([
             'items' => $mensajes,
@@ -35,7 +39,11 @@ class MensajeConsultaController
         $data = Request::json();
         $data['consulta_id'] = (int) $consultaId;
 
-        $mensaje = $this->service->crearMensaje($data, (int) $user->sub);
+        $mensaje = $this->service->crearMensaje(
+            $data,
+            (int) $user->sub,
+            (int) $user->rol_id
+        );
 
         Response::created(
             $mensaje,
