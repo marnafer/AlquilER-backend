@@ -3,9 +3,21 @@
  * Router de Debug
  */
 
-require_once SRC_PATH . 'controllers/DebugController.php';
+require_once SRC_PATH . 'controllers/Api/DebugController.php';
 
 use App\Controllers\DebugController;
+
+// Defensa en profundidad: aunque este archivo sea incluido por algún otro
+// camino, las rutas de debug solo responden en entorno de desarrollo.
+if (($_ENV['APP_ENV'] ?? 'production') !== 'development') {
+    http_response_code(404);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => false,
+        'error' => 'Not Found'
+    ]);
+    exit;
+}
 
 $controller = new DebugController();
 $method = $_SERVER['REQUEST_METHOD'];

@@ -247,11 +247,8 @@ final class ResenaServiceTest extends TestCase
         $this->resenaPolicy
             ->expects($this->once())
             ->method('crear')
-            ->with(
-                $reserva,
-                2,
-                'propiedad'
-            );
+            ->with($reserva, 2)
+            ->willReturn('propiedad');
 
         $this->resenaRepository
             ->expects($this->once())
@@ -319,11 +316,8 @@ final class ResenaServiceTest extends TestCase
         $this->resenaPolicy
             ->expects($this->once())
             ->method('crear')
-            ->with(
-                $reserva,
-                9,
-                'inquilino'
-            );
+            ->with($reserva, 9)
+            ->willReturn('inquilino');
 
         $this->resenaRepository
             ->expects($this->once())
@@ -434,11 +428,8 @@ final class ResenaServiceTest extends TestCase
         $this->resenaPolicy
             ->expects($this->once())
             ->method('crear')
-            ->with(
-                $reserva,
-                2,
-                'propiedad'
-            );
+            ->with($reserva, 2)
+            ->willReturn('propiedad');
 
         $this->resenaRepository
             ->expects($this->once())

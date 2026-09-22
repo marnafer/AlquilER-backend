@@ -112,5 +112,11 @@
 
     require_once SRC_PATH . 'routes/api.php';
 
+    // Rutas de depuración: solo se montan (y por tanto responden)
+    // en entorno de desarrollo.
+    if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
+        require_once SRC_PATH . 'routes/debug_router.php';
+    }
+
     $router->dispatch($method, $path);
     exit;

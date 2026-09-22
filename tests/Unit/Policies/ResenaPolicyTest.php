@@ -27,13 +27,12 @@ final class ResenaPolicyTest extends TestCase
         $reserva = new Reserva();
         $reserva->usuario_id = 5;
 
-        $this->policy->crear(
+        $tipo = $this->policy->crear(
             $reserva,
-            5,
-            'propiedad'
+            5
         );
 
-        $this->addToAssertionCount(1);
+        $this->assertSame('propiedad', $tipo);
     }
 
     public function test_permite_al_dueno_crear_resena_de_inquilino(): void
@@ -45,26 +44,28 @@ final class ResenaPolicyTest extends TestCase
         $reserva->usuario_id = 5;
         $reserva->setRelation('propiedad', $propiedad);
 
-        $this->policy->crear(
+        $tipo = $this->policy->crear(
             $reserva,
-            9,
-            'inquilino'
+            9
         );
 
-        $this->addToAssertionCount(1);
+        $this->assertSame('inquilino', $tipo);
     }
 
     public function test_deniega_a_un_tercero_crear_resena_de_propiedad(): void
     {
+        $propiedad = new Propiedad();
+        $propiedad->usuario_id = 9;
+
         $reserva = new Reserva();
         $reserva->usuario_id = 5;
+        $reserva->setRelation('propiedad', $propiedad);
 
         $this->expectException(ForbiddenException::class);
 
         $this->policy->crear(
             $reserva,
-            10,
-            'propiedad'
+            10
         );
     }
 
@@ -81,12 +82,11 @@ final class ResenaPolicyTest extends TestCase
 
         $this->policy->crear(
             $reserva,
-            10,
-            'inquilino'
+            10
         );
     }
 
-    public function test_deniega_al_inquilino_crear_resena_de_inquilino(): void
+    public function test_deriva_tipo_propiedad_para_el_inquilino(): void
     {
         $propiedad = new Propiedad();
         $propiedad->usuario_id = 9;
@@ -95,16 +95,15 @@ final class ResenaPolicyTest extends TestCase
         $reserva->usuario_id = 5;
         $reserva->setRelation('propiedad', $propiedad);
 
-        $this->expectException(ForbiddenException::class);
-
-        $this->policy->crear(
+        $tipo = $this->policy->crear(
             $reserva,
-            5,
-            'inquilino'
+            5
         );
+
+        $this->assertSame('propiedad', $tipo);
     }
 
-    public function test_deniega_al_dueno_crear_resena_de_propiedad(): void
+    public function test_deriva_tipo_inquilino_para_el_propietario(): void
     {
         $propiedad = new Propiedad();
         $propiedad->usuario_id = 9;
@@ -113,13 +112,12 @@ final class ResenaPolicyTest extends TestCase
         $reserva->usuario_id = 5;
         $reserva->setRelation('propiedad', $propiedad);
 
-        $this->expectException(ForbiddenException::class);
-
-        $this->policy->crear(
+        $tipo = $this->policy->crear(
             $reserva,
-            9,
-            'propiedad'
+            9
         );
+
+        $this->assertSame('inquilino', $tipo);
     }
 
     public function test_permite_al_autor_eliminar_su_propia_resena(): void
