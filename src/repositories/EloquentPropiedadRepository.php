@@ -7,10 +7,26 @@ use Illuminate\Database\Eloquent\Collection;
 
 class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Propiedad::query()
-            ->with(['imagenes', 'imagenPrincipal'])
+        $query = Propiedad::query()
+            ->with(['imagenes', 'imagenPrincipal']);
+
+        if (isset($filtros['categoria_id'])) {
+            $query->where(
+                'categoria_id',
+                $filtros['categoria_id']
+            );
+        }
+
+        if (isset($filtros['localidad_id'])) {
+            $query->where(
+                'localidad_id',
+                $filtros['localidad_id']
+            );
+        }
+
+        return $query
             ->orderBy('id', 'asc')
             ->get();
     }
@@ -18,7 +34,13 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function allParaAdmin(array $filtros = []): Collection
     {
         $query = Propiedad::query()
-            ->with(['usuario', 'categoria', 'localidad', 'imagenes', 'imagenPrincipal']);
+            ->with([
+                'usuario',
+                'categoria',
+                'localidad',
+                'imagenes',
+                'imagenPrincipal'
+            ]);
 
         if (!empty($filtros['solo_eliminados'])) {
             $query->onlyTrashed();
@@ -26,7 +48,9 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             $query->withTrashed();
         }
 
-        return $query->orderByDesc('id')->get();
+        return $query
+            ->orderByDesc('id')
+            ->get();
     }
 
     public function porUsuario(int $usuarioId): Collection
@@ -56,8 +80,10 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
         return Propiedad::create($data);
     }
 
-    public function update(Propiedad $propiedad, array $data): bool
-    {
+    public function update(
+        Propiedad $propiedad,
+        array $data
+    ): bool {
         return $propiedad->update($data);
     }
 

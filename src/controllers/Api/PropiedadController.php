@@ -20,7 +20,9 @@ class PropiedadController
     public function index(): void
     {
         Response::success(
-            $this->service->listar()
+            $this->service->listar(
+                $_GET ?? []
+            )
         );
     }
 

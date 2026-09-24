@@ -50,8 +50,10 @@ class PropiedadControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_can_list_properties(): void
+        public function test_it_can_list_properties(): void
     {
+        $_GET = [];
+
         $data = [
             'items' => [
                 ['id' => 1, 'titulo' => 'Casa 1'],
@@ -63,6 +65,7 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('listar')
+            ->with([])
             ->willReturn($data);
 
         $response = $this->captureJson(
@@ -71,6 +74,8 @@ class PropiedadControllerTest extends TestCase
 
         $this->assertTrue($response['success']);
         $this->assertSame($data, $response['data']);
+
+        $_GET = [];
     }
 
     public function test_adminIndex_devuelve_el_listado_global_de_propiedades(): void
@@ -892,5 +897,35 @@ class PropiedadControllerTest extends TestCase
             'validation_errors',
             $response
         );
+    }
+
+    public function test_index_pasa_los_filtros_al_service(): void
+    {
+        $_GET = [
+            'categoria_id' => '2',
+            'localidad_id' => '3',
+        ];
+
+        $data = [
+            'items' => [
+                ['id' => 1, 'titulo' => 'Casa filtrada'],
+            ],
+            'total' => 1,
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listar')
+            ->with($_GET)
+            ->willReturn($data);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($data, $response['data']);
+
+        $_GET = [];
     }
 }

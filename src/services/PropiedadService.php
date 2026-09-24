@@ -29,9 +29,65 @@ class PropiedadService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $propiedades = $this->repository->all();
+        $filtrosLimpios = [];
+
+        foreach (
+            ['categoria_id', 'localidad_id'] as $campo
+        ) {
+            if (!array_key_exists($campo, $filtros)) {
+                continue;
+            }
+
+            $id = PropiedadSanitizer::sanitizarId(
+                $filtros[$campo]
+            );
+
+            if ($id === null) {
+                throw new ValidationException([
+                    $campo => [
+                        $campo === 'categoria_id'
+                            ? 'La categoría debe ser un ID válido'
+                            : 'La localidad debe ser un ID válido'
+                    ],
+                ]);
+            }
+
+            $filtrosLimpios[$campo] = $id;
+        }
+
+        if (isset($filtrosLimpios['categoria_id'])) {
+            if (
+                !$this->categoriaRepository->findById(
+                    $filtrosLimpios['categoria_id']
+                )
+            ) {
+                throw new ValidationException([
+                    'categoria_id' => [
+                        'La categoría seleccionada no existe'
+                    ],
+                ]);
+            }
+        }
+
+        if (isset($filtrosLimpios['localidad_id'])) {
+            if (
+                !$this->localidadRepository->findById(
+                    $filtrosLimpios['localidad_id']
+                )
+            ) {
+                throw new ValidationException([
+                    'localidad_id' => [
+                        'La localidad seleccionada no existe'
+                    ],
+                ]);
+            }
+        }
+
+        $propiedades = $this->repository->all(
+            $filtrosLimpios
+        );
 
         return [
             'items' => $propiedades,
