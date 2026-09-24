@@ -13,14 +13,14 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ->with(['imagenes', 'imagenPrincipal']);
 
         if (isset($filtros['categoria_id'])) {
-            $query->where(
+            $query->whereIn(
                 'categoria_id',
                 $filtros['categoria_id']
             );
         }
 
         if (isset($filtros['localidad_id'])) {
-            $query->where(
+            $query->whereIn(
                 'localidad_id',
                 $filtros['localidad_id']
             );

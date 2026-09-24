@@ -40,48 +40,78 @@ class PropiedadService
                 continue;
             }
 
-            $id = PropiedadSanitizer::sanitizarId(
-                $filtros[$campo]
-            );
+            $valor = $filtros[$campo];
 
-            if ($id === null) {
-                throw new ValidationException([
-                    $campo => [
-                        $campo === 'categoria_id'
-                            ? 'La categoría debe ser un ID válido'
-                            : 'La localidad debe ser un ID válido'
-                    ],
-                ]);
+            if ($valor === null || $valor === '') {
+                continue;
             }
 
-            $filtrosLimpios[$campo] = $id;
+            $valores = is_array($valor)
+                ? $valor
+                : [$valor];
+
+            if ($valores === []) {
+                continue;
+            }
+
+            $ids = [];
+
+            foreach ($valores as $valorId) {
+                $id = PropiedadSanitizer::sanitizarId(
+                    $valorId
+                );
+
+                if ($id === null) {
+                    throw new ValidationException([
+                        $campo => [
+                            $campo === 'categoria_id'
+                                ? 'La categoría debe ser un ID válido'
+                                : 'La localidad debe ser un ID válido'
+                        ],
+                    ]);
+                }
+
+                $ids[] = $id;
+            }
+
+            $filtrosLimpios[$campo] = array_values(
+                array_unique($ids)
+            );
         }
 
         if (isset($filtrosLimpios['categoria_id'])) {
-            if (
-                !$this->categoriaRepository->findById(
-                    $filtrosLimpios['categoria_id']
-                )
+            foreach (
+                $filtrosLimpios['categoria_id'] as $categoriaId
             ) {
-                throw new ValidationException([
-                    'categoria_id' => [
-                        'La categoría seleccionada no existe'
-                    ],
-                ]);
+                if (
+                    !$this->categoriaRepository->findById(
+                        $categoriaId
+                    )
+                ) {
+                    throw new ValidationException([
+                        'categoria_id' => [
+                            'La categoría seleccionada no existe'
+                        ],
+                    ]);
+                }
             }
         }
 
         if (isset($filtrosLimpios['localidad_id'])) {
-            if (
-                !$this->localidadRepository->findById(
-                    $filtrosLimpios['localidad_id']
-                )
+            foreach (
+                $filtrosLimpios['localidad_id'] as $localidadId
             ) {
-                throw new ValidationException([
-                    'localidad_id' => [
-                        'La localidad seleccionada no existe'
-                    ],
-                ]);
+                if (
+                    !$this->localidadRepository->findById(
+                        $localidadId
+                    )
+                ) {
+                    throw new ValidationException([
+                        'localidad_id' => [
+                            'La localidad seleccionada no existe'
+                        ],
+                    ]);
+                }
             }
         }
 

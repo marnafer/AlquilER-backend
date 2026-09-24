@@ -1041,7 +1041,7 @@ class PropiedadServiceTest extends TestCase
         $repository->expects($this->once())
             ->method('all')
             ->with([
-                'categoria_id' => 2,
+                'categoria_id' => [2],
             ])
             ->willReturn($propiedades);
 
@@ -1083,7 +1083,7 @@ class PropiedadServiceTest extends TestCase
         $repository->expects($this->once())
             ->method('all')
             ->with([
-                'localidad_id' => 3,
+                'localidad_id' => [3],
             ])
             ->willReturn($propiedades);
 
@@ -1137,8 +1137,8 @@ class PropiedadServiceTest extends TestCase
         $repository->expects($this->once())
             ->method('all')
             ->with([
-                'categoria_id' => 2,
-                'localidad_id' => 3,
+                'categoria_id' => [2],
+                'localidad_id' => [3],
             ])
             ->willReturn($propiedades);
 
@@ -1156,4 +1156,326 @@ class PropiedadServiceTest extends TestCase
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
     }
+    
+    public function test_listar_filtra_por_multiples_categorias(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoria1 = new Categoria();
+        $categoria1->id = 1;
+
+        $categoria2 = new Categoria();
+        $categoria2->id = 2;
+
+        $categoriaRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use (
+                    $categoria1,
+                    $categoria2
+                ) {
+                    return match ($id) {
+                        1 => $categoria1,
+                        2 => $categoria2,
+                        default => null,
+                    };
+                }
+            );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => ['1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_multiples_localidades(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $localidad1 = new Localidad();
+        $localidad1->id = 1;
+
+        $localidad2 = new Localidad();
+        $localidad2->id = 2;
+
+        $localidadRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use (
+                    $localidad1,
+                    $localidad2
+                ) {
+                    return match ($id) {
+                        1 => $localidad1,
+                        2 => $localidad2,
+                        default => null,
+                    };
+                }
+            );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'localidad_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            localidadRepository: $localidadRepository
+        );
+
+        $resultado = $service->listar([
+            'localidad_id' => ['1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_multiples_categorias_y_localidades(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $categoria1 = new Categoria();
+        $categoria1->id = 1;
+
+        $categoria2 = new Categoria();
+        $categoria2->id = 2;
+
+        $localidad1 = new Localidad();
+        $localidad1->id = 1;
+
+        $localidad2 = new Localidad();
+        $localidad2->id = 2;
+
+        $categoriaRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use (
+                    $categoria1,
+                    $categoria2
+                ) {
+                    return match ($id) {
+                        1 => $categoria1,
+                        2 => $categoria2,
+                        default => null,
+                    };
+                }
+            );
+
+        $localidadRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use (
+                    $localidad1,
+                    $localidad2
+                ) {
+                    return match ($id) {
+                        1 => $localidad1,
+                        2 => $localidad2,
+                        default => null,
+                    };
+                }
+            );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [1, 2],
+                'localidad_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository,
+            localidadRepository: $localidadRepository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => ['1', '2'],
+            'localidad_id' => ['1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_elimina_ids_duplicados(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoria1 = new Categoria();
+        $categoria1->id = 1;
+
+        $categoria2 = new Categoria();
+        $categoria2->id = 2;
+
+        $categoriaRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use (
+                    $categoria1,
+                    $categoria2
+                ) {
+                    return match ($id) {
+                        1 => $categoria1,
+                        2 => $categoria2,
+                        default => null,
+                    };
+                }
+            );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => ['1', '1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_lanza_excepcion_si_una_categoria_no_existe(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoria = new Categoria();
+        $categoria->id = 1;
+
+        $categoriaRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use ($categoria) {
+                    return $id === 1
+                        ? $categoria
+                        : null;
+                }
+            );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository
+        )->listar([
+            'categoria_id' => ['1', '999'],
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_una_localidad_no_existe(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $localidad = new Localidad();
+        $localidad->id = 1;
+
+        $localidadRepository->expects($this->exactly(2))
+            ->method('findById')
+            ->willReturnCallback(
+                function (int $id) use ($localidad) {
+                    return $id === 1
+                        ? $localidad
+                        : null;
+                }
+            );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository,
+            localidadRepository: $localidadRepository
+        )->listar([
+            'localidad_id' => ['1', '999'],
+        ]);
+    }
+
+
 }

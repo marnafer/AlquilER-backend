@@ -902,8 +902,8 @@ class PropiedadControllerTest extends TestCase
     public function test_index_pasa_los_filtros_al_service(): void
     {
         $_GET = [
-            'categoria_id' => '2',
-            'localidad_id' => '3',
+            'categoria_id' => ['1', '2'],
+            'localidad_id' => ['1', '3'],
         ];
 
         $data = [
