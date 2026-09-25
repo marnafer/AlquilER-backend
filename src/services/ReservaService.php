@@ -21,7 +21,8 @@ class ReservaService
         private readonly ReservaRepositoryInterface $reservaRepository,
         private readonly PropiedadRepositoryInterface $propiedadRepository,
         private readonly ReservaPolicy $policy,
-        private readonly LogActividadService $logService
+        private readonly LogActividadService $logService,
+        private readonly NotificacionService $notificacionService
     ) {
     }
 
@@ -149,6 +150,14 @@ class ReservaService
             'reserva_creada'
         );
 
+        $this->notificacionService->crear(
+            $propietarioId,
+            'reserva_nueva',
+            'Nueva solicitud de reserva',
+            'Un inquilino envió una solicitud de reserva para tu propiedad.',
+            (int) $id
+        );
+
         return $id;
     }
 
@@ -191,6 +200,14 @@ class ReservaService
             $this->logService->registrar(
                 $usuarioId,
                 'reserva_confirmada'
+            );
+
+            $this->notificacionService->crear(
+                (int) $reserva->usuario_id,
+                'reserva_confirmada',
+                'Reserva confirmada',
+                'Tu solicitud de reserva fue confirmada por el propietario.',
+                (int) $reserva->id
             );
         }
 
@@ -236,6 +253,14 @@ class ReservaService
             $this->logService->registrar(
                 $usuarioId,
                 'reserva_rechazada'
+            );
+
+            $this->notificacionService->crear(
+                (int) $reserva->usuario_id,
+                'reserva_rechazada',
+                'Reserva rechazada',
+                'El propietario rechazó tu solicitud de reserva.',
+                (int) $reserva->id
             );
         }
 

@@ -131,6 +131,24 @@ CREATE TABLE IF NOT EXISTS `mensajes_consultas` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `notificaciones`
+--
+
+CREATE TABLE IF NOT EXISTS `notificaciones` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `usuario_id` int(11) UNSIGNED NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `mensaje` text DEFAULT NULL,
+  `referencia_id` int(11) UNSIGNED DEFAULT NULL,
+  `leida` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_notificacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `propiedades`
 --
 
@@ -458,6 +476,14 @@ ALTER TABLE `mensajes_consultas`
   ADD KEY `fk_mensaje_usuario` (`usuario_id`);
 
 --
+-- Indices de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_notificacion_usuario` (`usuario_id`),
+  ADD KEY `idx_notificaciones_fecha` (`fecha_notificacion`);
+
+--
 -- Indices de la tabla `propiedades`
 --
 ALTER TABLE `propiedades`
@@ -575,6 +601,12 @@ ALTER TABLE `mensajes_consultas`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `propiedades`
 --
 ALTER TABLE `propiedades`
@@ -671,6 +703,12 @@ ALTER TABLE `logs_actividad`
 ALTER TABLE `mensajes_consultas`
   ADD CONSTRAINT `fk_mensaje_consulta` FOREIGN KEY (`consulta_id`) REFERENCES `consultas` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_mensaje_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD CONSTRAINT `fk_notificacion_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Filtros para la tabla `propiedades`

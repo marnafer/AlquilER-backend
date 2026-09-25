@@ -19,6 +19,7 @@ use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\ConsultaService;
 use App\Services\LogActividadService;
+use App\Services\NotificacionService;
 use PHPUnit\Framework\TestCase;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,6 +32,7 @@ class ConsultaServiceTest extends TestCase
     private $mensajeConsultaRepository;
     private $logService;
     private $policyMock;
+    private $notificacionService;
     private $service;
 
     protected function setUp(): void
@@ -61,13 +63,18 @@ class ConsultaServiceTest extends TestCase
             ConsultaPolicy::class
         );
 
+        $this->notificacionService = $this->createMock(
+            NotificacionService::class
+        );
+
         $this->service = new ConsultaService(
             $this->consultaRepository,
             $this->propiedadRepository,
             $this->usuarioRepository,
             $this->mensajeConsultaRepository,
             $this->logService,
-            $this->policyMock
+            $this->policyMock,
+            $this->notificacionService
         );
 
         $capsule = new Capsule;
@@ -255,6 +262,7 @@ class ConsultaServiceTest extends TestCase
     {
         $propiedad = new Propiedad();
         $propiedad->id = 20;
+        $propiedad->usuario_id = 7;
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -283,6 +291,17 @@ class ConsultaServiceTest extends TestCase
             ->method('registrar')
             ->with(5, 'consulta_creada');
 
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                7,
+                'consulta_nueva',
+                'Nueva consulta',
+                $this->isType('string'),
+                10
+            );
+
         $resultado = $this->service->crear([
             'propiedad_id' => 20,
             'usuario_id' => 5
@@ -295,6 +314,7 @@ class ConsultaServiceTest extends TestCase
     {
         $propiedad = new Propiedad();
         $propiedad->id = 20;
+        $propiedad->usuario_id = 7;
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -323,6 +343,17 @@ class ConsultaServiceTest extends TestCase
             ->expects($this->once())
             ->method('registrar')
             ->with(5, 'consulta_creada');
+
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                7,
+                'consulta_nueva',
+                'Nueva consulta',
+                $this->isType('string'),
+                10
+            );
 
         $resultado = $this->service->crear([
             'propiedad_id' => 20,

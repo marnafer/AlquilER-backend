@@ -22,6 +22,7 @@ use App\Models\LogActividad;
 use App\Models\RefreshToken;
 use App\Models\PropiedadServicio;
 use App\Models\MensajeConsulta;
+use App\Models\Notificacion;
 
 class IntegridadBaseDeDatosTest extends TestCase
 {
@@ -157,6 +158,12 @@ class IntegridadBaseDeDatosTest extends TestCase
             $mensaje = MensajeConsulta::with(['consulta', 'usuario'])->first();
             $this->assertNotNull($mensaje->consulta, 'Relación MensajeConsulta -> Consulta rota.');
             $this->assertNotNull($mensaje->usuario, 'Relación MensajeConsulta -> Usuario rota.');
+        }
+
+        // 17. Notificaciones y Relación
+        if (Notificacion::count() > 0) {
+            $notificacion = Notificacion::with('usuario')->first();
+            $this->assertNotNull($notificacion->usuario, 'Relación Notificacion -> Usuario rota.');
         }
 
         $this->assertTrue(true);

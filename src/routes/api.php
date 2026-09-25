@@ -286,6 +286,20 @@ $router->post('/api/propiedades/{id}/restaurar', [$propiedadController, 'restore
 
 /*
 |--------------------------------------------------------------------------
+| NOTIFICACIONES
+|--------------------------------------------------------------------------
+*/
+
+$router->get('/api/notificaciones', [$notificacionController, 'index']);
+
+$router->get('/api/notificaciones/no-leidas', [$notificacionController, 'noLeidas']);
+
+$router->put('/api/notificaciones/{id}/leer', [$notificacionController, 'marcarLeida']);
+
+$router->put('/api/notificaciones/leer-todas', [$notificacionController, 'marcarTodasLeidas']);
+
+/*
+|--------------------------------------------------------------------------
 | MENSAJES DE CONSULTA
 |--------------------------------------------------------------------------
 */

@@ -12,6 +12,7 @@ use App\Repositories\MensajeConsultaRepositoryInterface;
 use App\Services\ConsultaService;
 use App\Services\LogActividadService;
 use App\Services\MensajeConsultaService;
+use App\Services\NotificacionService;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
 
@@ -20,6 +21,7 @@ final class MensajeConsultaServiceTest extends TestCase
     private $mensajeRepository;
     private $consultaService;
     private $logActividadService;
+    private $notificacionService;
     private $service;
 
     protected function setUp(): void
@@ -38,10 +40,15 @@ final class MensajeConsultaServiceTest extends TestCase
             LogActividadService::class
         );
 
+        $this->notificacionService = $this->createMock(
+            NotificacionService::class
+        );
+
         $this->service = new MensajeConsultaService(
             $this->mensajeRepository,
             $this->consultaService,
-            $this->logActividadService
+            $this->logActividadService,
+            $this->notificacionService
         );
     }
 
@@ -49,6 +56,7 @@ final class MensajeConsultaServiceTest extends TestCase
     {
         $consulta = new Consulta();
         $consulta->id = 100;
+        $consulta->usuario_id = 5;
 
         $this->consultaService->expects($this->once())
             ->method('obtenerConsultaAutorizada')
@@ -75,10 +83,103 @@ final class MensajeConsultaServiceTest extends TestCase
                 'Envió un mensaje en la consulta #100'
             );
 
+        $this->notificacionService->expects($this->never())
+            ->method('crear');
+
         $resultado = $this->service->crearMensaje([
             'consulta_id' => 100,
             'mensaje' => 'Hola, me interesa'
         ], 5);
+
+        $this->assertSame($mensajeEsperado, $resultado);
+    }
+
+    public function test_crear_mensaje_notifica_al_propietario_cuando_escribe_el_interesado(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 100;
+        $consulta->usuario_id = 5;
+
+        $propiedad = new \App\Models\Propiedad();
+        $propiedad->setAttribute('id', 30);
+        $propiedad->setAttribute('usuario_id', 7);
+        $consulta->setRelation('propiedad', $propiedad);
+
+        $this->consultaService->expects($this->once())
+            ->method('obtenerConsultaAutorizada')
+            ->with(100, 5, null)
+            ->willReturn($consulta);
+
+        $mensajeEsperado = new MensajeConsulta([
+            'mensaje' => 'Hola, me interesa'
+        ]);
+
+        $this->mensajeRepository->expects($this->once())
+            ->method('create')
+            ->willReturn($mensajeEsperado);
+
+        $this->logActividadService->expects($this->once())
+            ->method('registrar');
+
+        $this->notificacionService->expects($this->once())
+            ->method('crear')
+            ->with(
+                7,
+                'mensaje_nuevo',
+                'Nuevo mensaje en consulta',
+                $this->isType('string'),
+                100
+            );
+
+        $resultado = $this->service->crearMensaje([
+            'consulta_id' => 100,
+            'mensaje' => 'Hola, me interesa'
+        ], 5);
+
+        $this->assertSame($mensajeEsperado, $resultado);
+    }
+
+    public function test_crear_mensaje_notifica_al_interesado_cuando_escribe_el_propietario(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 100;
+        $consulta->usuario_id = 5;
+
+        $propiedad = new \App\Models\Propiedad();
+        $propiedad->setAttribute('id', 30);
+        $propiedad->setAttribute('usuario_id', 7);
+        $consulta->setRelation('propiedad', $propiedad);
+
+        $this->consultaService->expects($this->once())
+            ->method('obtenerConsultaAutorizada')
+            ->with(100, 7, null)
+            ->willReturn($consulta);
+
+        $mensajeEsperado = new MensajeConsulta([
+            'mensaje' => 'Claro, contáctame'
+        ]);
+
+        $this->mensajeRepository->expects($this->once())
+            ->method('create')
+            ->willReturn($mensajeEsperado);
+
+        $this->logActividadService->expects($this->once())
+            ->method('registrar');
+
+        $this->notificacionService->expects($this->once())
+            ->method('crear')
+            ->with(
+                5,
+                'mensaje_nuevo',
+                'Nuevo mensaje en consulta',
+                $this->isType('string'),
+                100
+            );
+
+        $resultado = $this->service->crearMensaje([
+            'consulta_id' => 100,
+            'mensaje' => 'Claro, contáctame'
+        ], 7);
 
         $this->assertSame($mensajeEsperado, $resultado);
     }

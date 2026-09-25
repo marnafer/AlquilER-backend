@@ -15,7 +15,8 @@ class MensajeConsultaService
     public function __construct(
         private readonly MensajeConsultaRepositoryInterface $mensajeRepository,
         private readonly ConsultaService $consultaService,
-        private readonly LogActividadService $logActividadService
+        private readonly LogActividadService $logActividadService,
+        private readonly NotificacionService $notificacionService
     ) {
     }
 
@@ -51,6 +52,30 @@ class MensajeConsultaService
             $usuarioLogueadoId,
             "Envió un mensaje en la consulta #{$consulta->id}"
         );
+
+        // Notifica al otro participante de la consulta (interesado o propietario)
+        $propietarioId = null;
+
+        if (
+            $consulta->relationLoaded('propiedad')
+            && $consulta->propiedad
+        ) {
+            $propietarioId = (int) $consulta->propiedad->usuario_id;
+        }
+
+        $destinatarioId = ($usuarioLogueadoId === (int) $consulta->usuario_id)
+            ? $propietarioId
+            : (int) $consulta->usuario_id;
+
+        if ($destinatarioId && $destinatarioId !== $usuarioLogueadoId) {
+            $this->notificacionService->crear(
+                $destinatarioId,
+                'mensaje_nuevo',
+                'Nuevo mensaje en consulta',
+                "Recibiste un nuevo mensaje en la consulta #{$consulta->id}.",
+                (int) $consulta->id
+            );
+        }
 
         return $mensaje;
     }

@@ -27,7 +27,8 @@ class ConsultaService
         private readonly UsuarioRepositoryInterface $usuarioRepository,
         private readonly MensajeConsultaRepositoryInterface $mensajeConsultaRepository,
         private readonly LogActividadService $logService,
-        private readonly ConsultaPolicy $policy
+        private readonly ConsultaPolicy $policy,
+        private readonly NotificacionService $notificacionService
     ) {
     }
 
@@ -178,8 +179,14 @@ class ConsultaService
             );
         }
 
+        $propietarioId = (int) $propiedad->usuario_id;
+
         return DB::transaction(
-            function () use ($data, $propiedadId): int {
+            function () use (
+                $data,
+                $propiedadId,
+                $propietarioId
+            ): int {
                 $consultaId = $this->consultaRepository->create([
                     'propiedad_id' => $propiedadId,
                     'usuario_id' => $data['usuario_id'],
@@ -193,6 +200,16 @@ class ConsultaService
                         'mensaje' => $data['mensaje'],
                         'fecha_mensaje' => date('Y-m-d H:i:s')
                     ]);
+                }
+
+                if ((int) $data['usuario_id'] !== $propietarioId) {
+                    $this->notificacionService->crear(
+                        $propietarioId,
+                        'consulta_nueva',
+                        'Nueva consulta',
+                        'Un interesado realizó una consulta sobre tu propiedad.',
+                        (int) $consultaId
+                    );
                 }
 
                 $this->logService->registrar(

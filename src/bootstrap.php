@@ -19,6 +19,7 @@ use App\Controllers\Api\LogActividadController;
 use App\Controllers\Api\PropiedadController;
 use App\Controllers\Api\FavoritoController;
 use App\Controllers\Api\MensajeConsultaController;
+use App\Controllers\Api\NotificacionController;
 
 // HELPERS - MIDDLEWARES
 use App\Helpers\JwtProvider;
@@ -41,6 +42,7 @@ use App\Repositories\EloquentResenaRepository;
 use App\Repositories\EloquentPropiedadServicioRepository;
 use App\Repositories\EloquentRefreshTokenRepository;
 use App\Repositories\EloquentMensajeConsultaRepository;
+use App\Repositories\EloquentNotificacionRepository;
 
 // SERVICES
 use App\Services\AutenticadorService;
@@ -60,6 +62,7 @@ use App\Services\ResenaService;
 use App\Services\PropiedadServicioService;
 use App\Services\GestorArchivosLocales;
 use App\Services\MensajeConsultaService;
+use App\Services\NotificacionService;
 
 //VALIDATORS
 use App\Validators\CargaImagenValidator;
@@ -93,6 +96,7 @@ $resenaRepository = new EloquentResenaRepository();
 $propiedadServicioRepository = new EloquentPropiedadServicioRepository();
 $refreshTokenRepository = new EloquentRefreshTokenRepository();
 $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
+$notificacionRepository = new EloquentNotificacionRepository();
 
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
@@ -103,6 +107,10 @@ $resenaPolicy = new ResenaPolicy();
 $reservaPolicy = new ReservaPolicy();
 
 // INSTANCIAR SERVICES
+$notificacionService = new NotificacionService(
+    $notificacionRepository
+);
+
 $logActividadService = new LogActividadService(
     $logActividadRepository
 );
@@ -172,7 +180,8 @@ $reservaService = new ReservaService(
     $reservaRepository,
     $propiedadRepository,
     $reservaPolicy,
-    $logActividadService
+    $logActividadService,
+    $notificacionService
 );
 
 $consultaService = new ConsultaService(
@@ -181,7 +190,8 @@ $consultaService = new ConsultaService(
     $usuarioRepository,
     $mensajeConsultaRepository,
     $logActividadService,
-    $consultaPolicy
+    $consultaPolicy,
+    $notificacionService
 );
 
 $resenaService = new ResenaService(
@@ -202,7 +212,8 @@ $propiedadServicioService = new PropiedadServicioService(
 $mensajeConsultaService = new MensajeConsultaService(
     $mensajeConsultaRepository,
     $consultaService,
-    $logActividadService
+    $logActividadService,
+    $notificacionService
 );
 
 // CONTROLLERS & EXPORT
@@ -222,5 +233,6 @@ return [
     'consultaController' => new ConsultaController($consultaService),
     'resenaController' => new ResenaController($resenaService),
     'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService),
+    'notificacionController' => new NotificacionController($notificacionService),
     'propiedadServicioController' => new PropiedadServicioController($propiedadServicioService),
 ];
