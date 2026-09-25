@@ -20,6 +20,18 @@ $router->post('/api/autenticador/logout', [$autenticadorController, 'logout']);
 
 $router->post('/api/autenticador/refresh', [$autenticadorController, 'refresh']);
 
+$router->post('/api/autenticador/recuperar', [$recuperarContrasenaController, 'solicitar']);
+
+$router->post('/api/autenticador/restablecer', [$recuperarContrasenaController, 'restablecer']);
+
+/*
+|--------------------------------------------------------------------------
+| CONTACTO
+|--------------------------------------------------------------------------
+*/
+
+$router->post('/api/contacto', [$contactoController, 'store']);
+
 /*
 |--------------------------------------------------------------------------
 | USUARIOS
@@ -175,6 +187,12 @@ $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
 $router->get('/api/admin/consultas', [$consultaController, 'adminIndex']);
 
 $router->get('/api/admin/propiedades', [$propiedadController, 'adminIndex']);
+
+$router->post('/api/admin/usuarios', [$usuarioController, 'storeAdmin']);
+
+$router->post('/api/admin/reservas', [$reservaController, 'storeAdmin']);
+
+$router->post('/api/admin/resenas', [$resenaController, 'storeAdmin']);
 
 $router->get('/api/consultas', [$consultaController, 'index']);
 

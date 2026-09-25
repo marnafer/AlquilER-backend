@@ -17,6 +17,7 @@ use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\PropiedadService;
 use Illuminate\Database\Eloquent\Collection;
@@ -29,7 +30,8 @@ class PropiedadServiceTest extends TestCase
         ?LogActividadService $logService = null,
         ?CategoriaRepositoryInterface $categoriaRepository = null,
         ?LocalidadRepositoryInterface $localidadRepository = null,
-        ?ReservaRepositoryInterface $reservaRepository = null
+        ?ReservaRepositoryInterface $reservaRepository = null,
+        ?UsuarioRepositoryInterface $usuarioRepository = null
     ): PropiedadService {
         return new PropiedadService(
             $repository
@@ -52,7 +54,11 @@ class PropiedadServiceTest extends TestCase
                 ?? $this->createMock(
                     ReservaRepositoryInterface::class
                 ),
-            new PropiedadPolicy()
+            new PropiedadPolicy(),
+            $usuarioRepository
+                ?? $this->createMock(
+                    UsuarioRepositoryInterface::class
+                )
         );
     }
 

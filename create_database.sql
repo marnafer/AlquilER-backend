@@ -149,6 +149,18 @@ CREATE TABLE IF NOT EXISTS `notificaciones` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `password_resets`
+--
+
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `email` varchar(190) NOT NULL,
+  `token` varchar(100) NOT NULL,
+  `expiracion` datetime NOT NULL,
+  `usado` tinyint(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
 -- Estructura de tabla para la tabla `propiedades`
 --
 
@@ -484,6 +496,14 @@ ALTER TABLE `notificaciones`
   ADD KEY `idx_notificaciones_fecha` (`fecha_notificacion`);
 
 --
+-- Indices de la tabla `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_password_resets_token` (`token`),
+  ADD KEY `idx_password_resets_email` (`email`);
+
+--
 -- Indices de la tabla `propiedades`
 --
 ALTER TABLE `propiedades`
@@ -604,6 +624,12 @@ ALTER TABLE `mensajes_consultas`
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `password_resets`
+--
+ALTER TABLE `password_resets`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --

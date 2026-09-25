@@ -148,6 +148,22 @@ class ResenaController
         );
     }
 
+    // POST /api/admin/resenas
+    public function storeAdmin()
+    {
+        $admin = AutenticadorMiddleware::soloAdmin();
+
+        $resena = $this->service->crearDesdeAdmin(
+            Request::json(),
+            (int) $admin->sub
+        );
+
+        Response::created(
+            $resena,
+            'Reseña creada correctamente'
+        );
+    }
+
     // POST /api/resenas
     public function store()
     {

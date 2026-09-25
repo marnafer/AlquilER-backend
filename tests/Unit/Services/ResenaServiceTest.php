@@ -13,6 +13,7 @@ use App\Models\Reserva;
 use App\Policies\ResenaPolicy;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\ResenaService;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,6 +25,7 @@ final class ResenaServiceTest extends TestCase
     private $reservaRepository;
     private $resenaPolicy;
     private $logService;
+    private $usuarioRepository;
     private $resenaService;
 
     protected function setUp(): void
@@ -46,11 +48,16 @@ final class ResenaServiceTest extends TestCase
             LogActividadService::class
         );
 
+        $this->usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
         $this->resenaService = new ResenaService(
             $this->resenaRepository,
             $this->reservaRepository,
             $this->resenaPolicy,
-            $this->logService
+            $this->logService,
+            $this->usuarioRepository
         );
     }
 

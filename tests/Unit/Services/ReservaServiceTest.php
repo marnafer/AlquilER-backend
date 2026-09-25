@@ -14,6 +14,7 @@ use App\Models\Reserva;
 use App\Policies\ReservaPolicy;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\NotificacionService;
 use App\Services\ReservaService;
@@ -27,6 +28,7 @@ final class ReservaServiceTest extends TestCase
     private $reservaPolicy;
     private $logService;
     private $notificacionService;
+    private $usuarioRepository;
     private $reservaService;
 
     protected function setUp(): void
@@ -53,12 +55,17 @@ final class ReservaServiceTest extends TestCase
             NotificacionService::class
         );
 
+        $this->usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
         $this->reservaService = new ReservaService(
             $this->reservaRepository,
             $this->propiedadRepository,
             $this->reservaPolicy,
             $this->logService,
-            $this->notificacionService
+            $this->notificacionService,
+            $this->usuarioRepository
         );
     }
 

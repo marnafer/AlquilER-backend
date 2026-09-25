@@ -88,6 +88,22 @@ class ReservaController
         );
     }
 
+    // POST /api/admin/reservas
+    public function storeAdmin()
+    {
+        $admin = AutenticadorMiddleware::soloAdmin();
+
+        $id = $this->service->crearDesdeAdmin(
+            Request::json(),
+            (int) $admin->sub
+        );
+
+        Response::created(
+            ['id' => $id],
+            'Reserva creada correctamente'
+        );
+    }
+
     // PUT /api/reservas/{id}/confirmar
     public function confirm($id)
     {

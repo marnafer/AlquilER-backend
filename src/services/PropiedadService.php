@@ -9,11 +9,13 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\ConflictException;
 use App\Models\Propiedad;
+use App\Models\Rol;
 use App\Policies\PropiedadPolicy;
 use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
 
@@ -25,7 +27,8 @@ class PropiedadService
         private readonly CategoriaRepositoryInterface $categoriaRepository,
         private readonly LocalidadRepositoryInterface $localidadRepository,
         private readonly ReservaRepositoryInterface $reservaRepository,
-        private readonly PropiedadPolicy $policy
+        private readonly PropiedadPolicy $policy,
+        private readonly UsuarioRepositoryInterface $usuarioRepository
     ) {
     }
 
@@ -202,13 +205,44 @@ class PropiedadService
 
     public function crear(
         array $rawData,
-        int $usuarioId
+        int $usuarioId,
+        int $rolId = Rol::USUARIO,
+        ?int $propietarioId = null
     ): Propiedad {
         $data = PropiedadSanitizer::sanitizarCrear(
             $rawData
         );
 
         $data['usuario_id'] = $usuarioId;
+
+        if (
+            $rolId === Rol::ADMIN
+            && $propietarioId !== null
+        ) {
+            $idPropietario = PropiedadSanitizer::sanitizarId(
+                $propietarioId
+            );
+
+            if ($idPropietario === null) {
+                throw new ValidationException([
+                    'propietario_id' => [
+                        'El ID del propietario no es válido',
+                    ],
+                ]);
+            }
+
+            if (
+                !$this->usuarioRepository->findById(
+                    $idPropietario
+                )
+            ) {
+                throw new NotFoundException(
+                    'El propietario no existe'
+                );
+            }
+
+            $data['usuario_id'] = $idPropietario;
+        }
 
         $validacion = PropiedadValidator::validar(
             $data

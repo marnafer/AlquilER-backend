@@ -20,6 +20,8 @@ use App\Controllers\Api\PropiedadController;
 use App\Controllers\Api\FavoritoController;
 use App\Controllers\Api\MensajeConsultaController;
 use App\Controllers\Api\NotificacionController;
+use App\Controllers\Api\RecuperarContrasenaController;
+use App\Controllers\Api\ContactoController;
 
 // HELPERS - MIDDLEWARES
 use App\Helpers\JwtProvider;
@@ -43,6 +45,7 @@ use App\Repositories\EloquentPropiedadServicioRepository;
 use App\Repositories\EloquentRefreshTokenRepository;
 use App\Repositories\EloquentMensajeConsultaRepository;
 use App\Repositories\EloquentNotificacionRepository;
+use App\Repositories\EloquentPasswordResetRepository;
 
 // SERVICES
 use App\Services\AutenticadorService;
@@ -63,6 +66,9 @@ use App\Services\PropiedadServicioService;
 use App\Services\GestorArchivosLocales;
 use App\Services\MensajeConsultaService;
 use App\Services\NotificacionService;
+use App\Services\MailService;
+use App\Services\RecuperarContrasenaService;
+use App\Services\ContactoService;
 
 //VALIDATORS
 use App\Validators\CargaImagenValidator;
@@ -97,6 +103,7 @@ $propiedadServicioRepository = new EloquentPropiedadServicioRepository();
 $refreshTokenRepository = new EloquentRefreshTokenRepository();
 $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
 $notificacionRepository = new EloquentNotificacionRepository();
+$passwordResetRepository = new EloquentPasswordResetRepository();
 
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
@@ -154,7 +161,8 @@ $propiedadService = new PropiedadService(
     $categoriaRepository,
     $localidadRepository,
     $reservaRepository,
-    $propiedadPolicy
+    $propiedadPolicy,
+    $usuarioRepository
 );
 
 $gestorArchivos = new GestorArchivosLocales();
@@ -181,7 +189,8 @@ $reservaService = new ReservaService(
     $propiedadRepository,
     $reservaPolicy,
     $logActividadService,
-    $notificacionService
+    $notificacionService,
+    $usuarioRepository
 );
 
 $consultaService = new ConsultaService(
@@ -198,7 +207,8 @@ $resenaService = new ResenaService(
     $resenaRepository,
     $reservaRepository,
     $resenaPolicy,
-    $logActividadService
+    $logActividadService,
+    $usuarioRepository
 );
 
 $propiedadServicioService = new PropiedadServicioService(
@@ -214,6 +224,21 @@ $mensajeConsultaService = new MensajeConsultaService(
     $consultaService,
     $logActividadService,
     $notificacionService
+);
+
+$mailService = MailService::desdeEntorno();
+
+$recuperarContrasenaService = new RecuperarContrasenaService(
+    $usuarioRepository,
+    $passwordResetRepository,
+    $mailService,
+    $logActividadService,
+    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
+);
+
+$contactoService = new ContactoService(
+    $mailService,
+    trim((string) ($_ENV['MAIL_TO'] ?? ''))
 );
 
 // CONTROLLERS & EXPORT
@@ -235,4 +260,6 @@ return [
     'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService),
     'notificacionController' => new NotificacionController($notificacionService),
     'propiedadServicioController' => new PropiedadServicioController($propiedadServicioService),
+    'recuperarContrasenaController' => new RecuperarContrasenaController($recuperarContrasenaService),
+    'contactoController' => new ContactoController($contactoService),
 ];

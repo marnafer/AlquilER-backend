@@ -76,6 +76,24 @@ class UsuarioController
     }
 
     /**
+     * POST /api/admin/usuarios
+     */
+    public function storeAdmin(): void
+    {
+        $admin = AutenticadorMiddleware::soloAdmin();
+
+        $usuario = $this->service->crearDesdeAdmin(
+            Request::json(),
+            (int) $admin->sub
+        );
+
+        Response::created(
+            $usuario,
+            'Usuario creado correctamente'
+        );
+    }
+
+    /**
      * PUT /api/usuarios/{id}
      */
     public function update($id): void

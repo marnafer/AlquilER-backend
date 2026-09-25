@@ -12,6 +12,7 @@ use App\Exceptions\ValidationException;
 use App\Policies\ReservaPolicy;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\ReservaSanitizer;
 use App\Validators\ReservaValidator;
 
@@ -22,7 +23,8 @@ class ReservaService
         private readonly PropiedadRepositoryInterface $propiedadRepository,
         private readonly ReservaPolicy $policy,
         private readonly LogActividadService $logService,
-        private readonly NotificacionService $notificacionService
+        private readonly NotificacionService $notificacionService,
+        private readonly UsuarioRepositoryInterface $usuarioRepository
     ) {
     }
 
@@ -157,6 +159,116 @@ class ReservaService
             'Un inquilino envió una solicitud de reserva para tu propiedad.',
             (int) $id
         );
+
+        return $id;
+    }
+
+    public function crearDesdeAdmin(
+        array $rawData,
+        int $adminId
+    ): int {
+        $data = ReservaSanitizer::sanitizarCrear($rawData);
+
+        $usuarioId = ReservaSanitizer::sanitizarId(
+            $rawData['usuario_id'] ?? null
+        );
+
+        $estado = isset($rawData['estado'])
+            ? strtolower(trim((string) $rawData['estado']))
+            : 'pendiente';
+
+        $validacion = ReservaValidator::validarCrear($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        $errores = [];
+
+        if ($usuarioId === null) {
+            $errores['usuario_id'] = 'El ID de usuario es requerido';
+        }
+
+        if (
+            !in_array(
+                $estado,
+                ['pendiente', 'confirmada'],
+                true
+            )
+        ) {
+            $errores['estado'] = 'El estado debe ser pendiente o confirmada';
+        }
+
+        if (!empty($errores)) {
+            throw new ValidationException($errores);
+        }
+
+        $propiedadId = (int) $data['propiedad_id'];
+
+        $propiedad = $this->propiedadRepository
+            ->findById($propiedadId);
+
+        if (!$propiedad) {
+            throw new NotFoundException(
+                'La propiedad no existe'
+            );
+        }
+
+        if (
+            !$this->usuarioRepository->findById(
+                (int) $usuarioId
+            )
+        ) {
+            throw new NotFoundException(
+                'El usuario no existe'
+            );
+        }
+
+        if (!$propiedad->disponible) {
+            throw new ConflictException(
+                'La propiedad no está disponible para alquiler'
+            );
+        }
+
+        $propietarioId = (int) $propiedad->usuario_id;
+
+        $payload = [
+            'usuario_id' => (int) $usuarioId,
+            'estado' => $estado,
+        ];
+
+        if ($estado === 'confirmada') {
+            $payload['fecha_confirmacion'] = date('Y-m-d H:i:s');
+        }
+
+        $id = $this->reservaRepository->create(
+            array_merge($data, $payload)
+        );
+
+        $this->logService->registrar(
+            $adminId,
+            'reserva_creada'
+        );
+
+        $this->notificacionService->crear(
+            $propietarioId,
+            'reserva_nueva',
+            'Nueva solicitud de reserva',
+            'Un inquilino envió una solicitud de reserva para tu propiedad.',
+            (int) $id
+        );
+
+        if ($estado === 'confirmada') {
+            $this->notificacionService->crear(
+                (int) $usuarioId,
+                'reserva_confirmada',
+                'Reserva confirmada',
+                'Tu solicitud de reserva fue confirmada por el propietario.',
+                (int) $id
+            );
+        }
 
         return $id;
     }

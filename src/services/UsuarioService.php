@@ -8,6 +8,7 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Models\Rol;
 use App\Models\Usuario;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
@@ -157,6 +158,62 @@ class UsuarioService
             $usuario->id,
             'Actualización de usuario'
         );
+    }
+
+    public function crearDesdeAdmin(
+        array $rawData,
+        int $adminId
+    ): Usuario {
+        $data = UsuarioSanitizer::sanitizarUsuario($rawData);
+
+        $rolId = UsuarioSanitizer::sanitizarRolId(
+            $rawData['rol_id'] ?? null
+        );
+
+        $validacion = UsuarioValidator::validarRegistro($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        if (
+            !in_array(
+                (int) $rolId,
+                [Rol::USUARIO, Rol::ADMIN],
+                true
+            )
+        ) {
+            throw new ValidationException([
+                'rol_id' => [
+                    'El rol debe ser usuario o administrador',
+                ],
+            ]);
+        }
+
+        if ($this->repository->existsByEmail($data['email'])) {
+            throw new ConflictException(
+                'El email ya está registrado'
+            );
+        }
+
+        $data['contrasena'] = password_hash(
+            $data['contrasena'],
+            PASSWORD_DEFAULT
+        );
+
+        $usuario = $this->repository->createWithRole(
+            $data,
+            (int) $rolId
+        );
+
+        $this->logActividadService->registrar(
+            $adminId,
+            'Alta de usuario desde administración'
+        );
+
+        return $usuario;
     }
 
     public function eliminar($rawId): void
