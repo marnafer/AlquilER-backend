@@ -37,6 +37,9 @@ class PropiedadSanitizer
             'disponible' => self::sanitizarDisponible(
                 $data['disponible'] ?? null
             ),
+            'destacada' => self::sanitizarDestacada(
+                $data['destacada'] ?? null
+            ),
             'categoria_id' => self::sanitizarEnteroPositivo(
                 $data['categoria_id'] ?? null
             ),
@@ -112,6 +115,13 @@ class PropiedadSanitizer
             $sanitizado['disponible'] =
                 self::sanitizarDisponible(
                     $data['disponible']
+                );
+        }
+
+        if (array_key_exists('destacada', $data)) {
+            $sanitizado['destacada'] =
+                self::sanitizarDestacada(
+                    $data['destacada']
                 );
         }
 
@@ -283,6 +293,24 @@ class PropiedadSanitizer
 
         $valor = filter_var(
             $disponible,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        return $valor === null
+            ? null
+            : ($valor ? 1 : 0);
+    }
+
+    public static function sanitizarDestacada(
+        $destacada
+    ): ?int {
+        if ($destacada === null || $destacada === '') {
+            return 0;
+        }
+
+        $valor = filter_var(
+            $destacada,
             FILTER_VALIDATE_BOOLEAN,
             FILTER_NULL_ON_FAILURE
         );

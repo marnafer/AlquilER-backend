@@ -197,6 +197,20 @@ class PropiedadValidator
         return null;
     }
 
+    public static function validarDestacada(
+        $destacada
+    ): ?string {
+        if ($destacada === null) {
+            return 'El campo destacada es inválido';
+        }
+
+        if (!in_array($destacada, [0, 1], true)) {
+            return 'El campo destacada es inválido';
+        }
+
+        return null;
+    }
+
     public static function validarCategoriaId(
         $categoriaId
     ): ?string {
@@ -273,6 +287,10 @@ class PropiedadValidator
 
             'disponible' => self::validarDisponible(
                 $data['disponible'] ?? null
+            ),
+
+            'destacada' => self::validarDestacada(
+                $data['destacada'] ?? null
             ),
 
             'categoria_id' => self::validarCategoriaId(

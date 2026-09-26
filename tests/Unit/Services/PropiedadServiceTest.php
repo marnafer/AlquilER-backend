@@ -174,6 +174,208 @@ class PropiedadServiceTest extends TestCase
         $this->assertSame(1, $resultado['total']);
     }
 
+    public function test_listar_destacadas_filtra_por_destacada_y_disponible(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'destacada' => 1,
+                'disponible' => 1,
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarDestacadas();
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_crear_fuerza_destacada_cero_si_no_es_admin(): void
+    {
+        $datos = $this->datosPropiedad();
+        $datos['destacada'] = 1;
+
+        $categoria = new Categoria();
+        $categoria->id = 2;
+
+        $localidad = new Localidad();
+        $localidad->id = 3;
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoriaRepository->method('findById')
+            ->willReturn($categoria);
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $localidadRepository->method('findById')
+            ->willReturn($localidad);
+
+        $capturado = null;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('create')
+            ->willReturnCallback(
+                function (array $data) use (&$capturado) {
+                    $capturado = $data;
+
+                    return $this->propiedad();
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository,
+            localidadRepository: $localidadRepository
+        );
+
+        $service->crear($datos, 7, 1);
+
+        $this->assertSame(0, $capturado['destacada']);
+    }
+
+    public function test_crear_permite_destacada_si_es_admin(): void
+    {
+        $datos = $this->datosPropiedad();
+        $datos['destacada'] = 1;
+
+        $categoria = new Categoria();
+        $categoria->id = 2;
+
+        $localidad = new Localidad();
+        $localidad->id = 3;
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoriaRepository->method('findById')
+            ->willReturn($categoria);
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $localidadRepository->method('findById')
+            ->willReturn($localidad);
+
+        $capturado = null;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('create')
+            ->willReturnCallback(
+                function (array $data) use (&$capturado) {
+                    $capturado = $data;
+
+                    return $this->propiedad();
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository,
+            localidadRepository: $localidadRepository
+        );
+
+        $service->crear($datos, 7, 2);
+
+        $this->assertSame(1, $capturado['destacada']);
+    }
+
+    public function test_actualizar_ignora_destacada_si_no_es_admin(): void
+    {
+        $propiedad = $this->propiedad();
+        $propiedad->destacada = 0;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->method('findById')
+            ->willReturn($propiedad);
+
+        $capturado = null;
+
+        $repository->expects($this->once())
+            ->method('update')
+            ->willReturnCallback(
+                function (Propiedad $p, array $data) use (&$capturado) {
+                    $capturado = $data;
+
+                    return true;
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $service->actualizar(7, 1, 1, [
+            'titulo' => 'Nuevo titulo',
+            'destacada' => 1,
+        ]);
+
+        $this->assertArrayNotHasKey('destacada', $capturado);
+        $this->assertSame('Nuevo titulo', $capturado['titulo']);
+    }
+
+    public function test_actualizar_permite_destacada_si_es_admin(): void
+    {
+        $propiedad = $this->propiedad();
+        $propiedad->destacada = 0;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->method('findById')
+            ->willReturn($propiedad);
+
+        $capturado = null;
+
+        $repository->expects($this->once())
+            ->method('update')
+            ->willReturnCallback(
+                function (Propiedad $p, array $data) use (&$capturado) {
+                    $capturado = $data;
+
+                    return true;
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $service->actualizar(7, 2, 1, ['destacada' => 1]);
+
+        $this->assertSame(1, $capturado['destacada']);
+    }
+
     public function test_listar_para_admin_convierte_bandera_solo_eliminados(): void
     {
         $propiedades = new Collection();

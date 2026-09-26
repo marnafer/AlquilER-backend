@@ -128,6 +128,21 @@ class PropiedadService
         ];
     }
 
+    public function listarDestacadas(): array
+    {
+        $propiedades = $this->repository->all(
+            [
+                'destacada' => 1,
+                'disponible' => 1,
+            ]
+        );
+
+        return [
+            'items' => $propiedades,
+            'total' => $propiedades->count(),
+        ];
+    }
+
     public function listarParaAdmin(array $filtros = []): array
     {
         $filtrosLimpios = [];
@@ -214,6 +229,10 @@ class PropiedadService
         );
 
         $data['usuario_id'] = $usuarioId;
+
+        if ($rolId !== Rol::ADMIN) {
+            $data['destacada'] = 0;
+        }
 
         if (
             $rolId === Rol::ADMIN
@@ -318,6 +337,10 @@ class PropiedadService
             $rawData['usuario_id']
         );
 
+        if ($rolId !== Rol::ADMIN) {
+            unset($rawData['destacada']);
+        }
+
         $camposPermitidos = [
             'titulo',
             'descripcion',
@@ -329,6 +352,7 @@ class PropiedadService
             'cantidad_banos',
             'capacidad',
             'disponible',
+            'destacada',
             'categoria_id',
             'localidad_id',
         ];
@@ -362,6 +386,7 @@ class PropiedadService
                 $propiedad->cantidad_banos,
             'capacidad' => $propiedad->capacidad,
             'disponible' => (int) $propiedad->disponible,
+            'destacada' => (int) $propiedad->destacada,
             'categoria_id' => $propiedad->categoria_id,
             'localidad_id' => $propiedad->localidad_id,
         ];

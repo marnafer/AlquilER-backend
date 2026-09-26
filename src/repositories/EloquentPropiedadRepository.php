@@ -26,6 +26,20 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             );
         }
 
+        if (isset($filtros['destacada'])) {
+            $query->where(
+                'destacada',
+                (int) $filtros['destacada']
+            );
+        }
+
+        if (isset($filtros['disponible'])) {
+            $query->where(
+                'disponible',
+                (int) $filtros['disponible']
+            );
+        }
+
         return $query
             ->orderBy('id', 'asc')
             ->get();

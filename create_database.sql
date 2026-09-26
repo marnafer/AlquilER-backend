@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS `propiedades` (
   `cantidad_banos` tinyint(2) UNSIGNED NOT NULL,
   `capacidad` tinyint(3) UNSIGNED DEFAULT NULL,
   `disponible` tinyint(1) NOT NULL DEFAULT 1,
+  `destacada` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   `categoria_id` int(11) UNSIGNED NOT NULL,
   `usuario_id` int(11) UNSIGNED NOT NULL,
   `localidad_id` int(11) UNSIGNED NOT NULL,

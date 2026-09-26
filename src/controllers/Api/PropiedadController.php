@@ -26,6 +26,14 @@ class PropiedadController
         );
     }
 
+    // GET /api/propiedades/destacadas
+    public function destacadas(): void
+    {
+        Response::success(
+            $this->service->listarDestacadas()
+        );
+    }
+
     // GET /api/admin/propiedades
     public function adminIndex(): void
     {

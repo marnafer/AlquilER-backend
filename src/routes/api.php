@@ -292,6 +292,8 @@ $router->get('/api/propiedades', [$propiedadController, 'index']);
 
 $router->get('/api/propiedades/mis-propiedades', [$propiedadController, 'misPropiedades']);
 
+$router->get('/api/propiedades/destacadas', [$propiedadController, 'destacadas']);
+
 $router->post('/api/propiedades', [$propiedadController, 'store']);
 
 $router->get('/api/propiedades/{id}', [$propiedadController, 'show']);
