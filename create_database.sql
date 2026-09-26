@@ -187,11 +187,11 @@ CREATE TABLE IF NOT EXISTS `propiedades` (
 -- Volcado de datos para la tabla `propiedades`
 --
 
-INSERT INTO `propiedades` (`id`, `titulo`, `descripcion`, `precio`, `expensas`, `direccion`, `cantidad_ambientes`, `cantidad_dormitorios`, `cantidad_banos`, `capacidad`, `disponible`, `categoria_id`, `usuario_id`, `localidad_id`, `deleted_at`) VALUES
-(1, 'Casa prueba', 'Prueba', 150000.00, 0.00, 'Prueba', 2, 1, 1, 2, 0, 1, 2, 1, NULL),
-(4, 'Casa quinta actualizada', 'Descripción modificada', 200000.00, 7000.00, 'San Martin 456', 6, 4, 2, 8, 1, 1, 6, 1, NULL),
-(5, 'Casa', 'Casa grande', 150000.00, 0.00, 'Las Palmeras', 2, 1, 1, 2, 1, 1, 8, 1, NULL),
-(6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 1, 12, 1, '2026-08-20 01:23:17');
+INSERT INTO `propiedades` (`id`, `titulo`, `descripcion`, `precio`, `expensas`, `direccion`, `cantidad_ambientes`, `cantidad_dormitorios`, `cantidad_banos`, `capacidad`, `disponible`, `destacada`, `categoria_id`, `usuario_id`, `localidad_id`, `deleted_at`) VALUES
+(1, 'Casa prueba', 'Prueba', 150000.00, 0.00, 'Prueba', 2, 1, 1, 2, 0, 0, 1, 2, 1, NULL),
+(4, 'Casa quinta actualizada', 'Descripción modificada', 200000.00, 7000.00, 'San Martin 456', 6, 4, 2, 8, 1, 1, 1, 6, 1, NULL),
+(5, 'Casa', 'Casa grande', 150000.00, 0.00, 'Las Palmeras', 2, 1, 1, 2, 1, 1, 1, 8, 1, NULL),
+(6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 0, 1, 12, 1, '2026-08-20 01:23:17');
 
 -- --------------------------------------------------------
 
