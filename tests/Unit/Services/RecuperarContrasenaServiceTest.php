@@ -14,9 +14,37 @@ use App\Services\LogActividadService;
 use App\Services\MailService;
 use App\Services\RecuperarContrasenaService;
 use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Eloquent\Model;
 
 final class RecuperarContrasenaServiceTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Los modelos que se instancian aqui (Usuario, PasswordReset) tienen
+        // casts de fecha, y al asignarlos Eloquent pide la conexion para
+        // obtener el formato de fecha. Se declara una conexion propia para no
+        // depender de un Capsule global dejado por otro test.
+        $capsule = new Capsule;
+
+        $capsule->addConnection([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+        ]);
+
+        $capsule->setAsGlobal();
+        $capsule->bootEloquent();
+    }
+
+    protected function tearDown(): void
+    {
+        Model::unsetConnectionResolver();
+
+        parent::tearDown();
+    }
+
     private function crearServicio(
         UsuarioRepositoryInterface $usuarioRepository,
         PasswordResetRepositoryInterface $passwordResetRepository,

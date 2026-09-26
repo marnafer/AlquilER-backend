@@ -23,6 +23,7 @@ use App\Services\NotificacionService;
 use PHPUnit\Framework\TestCase;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class ConsultaServiceTest extends TestCase
 {
@@ -86,6 +87,16 @@ class ConsultaServiceTest extends TestCase
 
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
+    }
+
+    protected function tearDown(): void
+    {
+        // El Capsule con SQLite :memory: queda instalado como global. Si
+        // se filtra, los tests de Integracion heredan una base sin tablas
+        // y fallan con "no such table".
+        Model::unsetConnectionResolver();
+
+        parent::tearDown();
     }
 
     public function test_listar_devuelve_las_consultas_para_un_administrador(): void
