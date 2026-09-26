@@ -30,25 +30,26 @@ class IntegridadBaseDeDatosTest extends TestCase
     {
         parent::setUp();
 
-        try {
-            Capsule::connection();
-        } catch (\Throwable $e) {
-            $capsule = new Capsule;
-            
-            $capsule->addConnection([
-                'driver'    => 'mysql',
-                'host'      => '127.0.0.1',
-                'database'  => 'sistema_alquiler_db_dev',
-                'username'  => 'root',
-                'password'  => '',
-                'charset'   => 'utf8mb4',
-                'collation' => 'utf8mb4_general_ci',
-                'prefix'    => '',
-            ]);
+        // Se declara siempre la conexion MySQL en vez de solo cuando
+        // Capsule::connection() falla: otros tests (ConsultaServiceTest,
+        // PropiedadImagenServiceTest) instalan un Capsule global con
+        // SQLite :memory: que, de quedar en el aire, hacia que esta
+        // llamada tenga exito y el test corra contra una base sin tablas.
+        $capsule = new Capsule;
 
-            $capsule->setAsGlobal();
-            $capsule->bootEloquent();
-        }
+        $capsule->addConnection([
+            'driver'    => 'mysql',
+            'host'      => '127.0.0.1',
+            'database'  => 'sistema_alquiler_db_dev',
+            'username'  => 'root',
+            'password'  => '',
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_general_ci',
+            'prefix'    => '',
+        ]);
+
+        $capsule->setAsGlobal();
+        $capsule->bootEloquent();
     }
 
     

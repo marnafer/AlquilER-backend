@@ -72,21 +72,8 @@ class CategoriaControllerTest extends TestCase
             ->method('listar')
             ->willReturn($categorias);
 
-        ob_start();
-
-        try {
-            $this->controller->index();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
         );
 
         $this->assertTrue(
@@ -117,21 +104,8 @@ class CategoriaControllerTest extends TestCase
             ->with(1)
             ->willReturn($categoria);
 
-        ob_start();
-
-        try {
-            $this->controller->show(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->show(1)
         );
 
         $this->assertTrue(
@@ -170,21 +144,8 @@ class CategoriaControllerTest extends TestCase
             ])
             ->willReturn($categoria);
 
-        ob_start();
-
-        try {
-            $this->controller->store();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->store()
         );
 
         $this->assertTrue(
@@ -220,21 +181,8 @@ class CategoriaControllerTest extends TestCase
                 ]
             );
 
-        ob_start();
-
-        try {
-            $this->controller->update(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->update(1)
         );
 
         $this->assertTrue(
@@ -259,21 +207,8 @@ class CategoriaControllerTest extends TestCase
             ->method('eliminar')
             ->with(1);
 
-        ob_start();
-
-        try {
-            $this->controller->delete(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(1)
         );
 
         $this->assertTrue(
@@ -298,21 +233,8 @@ class CategoriaControllerTest extends TestCase
             ->method('restaurar')
             ->with(1);
 
-        ob_start();
-
-        try {
-            $this->controller->restore(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(1)
         );
 
         $this->assertTrue(
@@ -362,21 +284,8 @@ class CategoriaControllerTest extends TestCase
                 ])
             );
 
-        ob_start();
-
-        try {
-            $this->controller->store();
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->store()
         );
 
         $this->assertTrue(
@@ -413,21 +322,8 @@ class CategoriaControllerTest extends TestCase
                 ]
             );
 
-        ob_start();
-
-        try {
-            $this->controller->update(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->update(1)
         );
 
         $this->assertTrue(
@@ -453,21 +349,8 @@ class CategoriaControllerTest extends TestCase
             ->method('eliminar')
             ->with(1);
 
-        ob_start();
-
-        try {
-            $this->controller->delete(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->delete(1)
         );
 
         $this->assertTrue(
@@ -493,21 +376,8 @@ class CategoriaControllerTest extends TestCase
             ->method('restaurar')
             ->with(1);
 
-        ob_start();
-
-        try {
-            $this->controller->restore(1);
-            $output = ob_get_clean();
-        } catch (\Throwable $e) {
-            ob_end_clean();
-            throw $e;
-        }
-
-        $this->assertJson($output);
-
-        $response = json_decode(
-            $output,
-            true
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(1)
         );
 
         $this->assertTrue(
