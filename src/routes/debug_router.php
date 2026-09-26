@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Router de Debug
  */
@@ -12,43 +13,49 @@ use App\Controllers\DebugController;
 if (($_ENV['APP_ENV'] ?? 'production') !== 'development') {
     http_response_code(404);
     header('Content-Type: application/json; charset=utf-8');
+
     echo json_encode([
         'success' => false,
         'error' => 'Not Found'
     ]);
+
     exit;
 }
 
 $controller = new DebugController();
-$method = $_SERVER['REQUEST_METHOD'];
-$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+
+$debugMethod = $_SERVER['REQUEST_METHOD'];
+$debugPath = parse_url(
+    $_SERVER['REQUEST_URI'] ?? '',
+    PHP_URL_PATH
+);
 
 // Estadísticas
-if ($path === '/api/debug/stats' && $method === 'GET') {
+if ($debugPath === '/api/debug/stats' && $debugMethod === 'GET') {
     $controller->stats();
     exit;
 }
 
 // Logs
-if ($path === '/api/debug/logs' && $method === 'GET') {
+if ($debugPath === '/api/debug/logs' && $debugMethod === 'GET') {
     $controller->logs();
     exit;
 }
 
 // Limpiar log
-if ($path === '/api/debug/clear-log' && $method === 'POST') {
+if ($debugPath === '/api/debug/clear-log' && $debugMethod === 'POST') {
     $controller->clearLog();
     exit;
 }
 
 // Test DB
-if ($path === '/api/debug/test-db' && $method === 'GET') {
+if ($debugPath === '/api/debug/test-db' && $debugMethod === 'GET') {
     $controller->testDB();
     exit;
 }
 
 // PHP Info
-if ($path === '/api/debug/phpinfo' && $method === 'GET') {
+if ($debugPath === '/api/debug/phpinfo' && $debugMethod === 'GET') {
     $controller->phpinfo();
     exit;
 }
