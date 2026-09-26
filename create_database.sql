@@ -191,7 +191,11 @@ INSERT INTO `propiedades` (`id`, `titulo`, `descripcion`, `precio`, `expensas`, 
 (1, 'Casa prueba', 'Prueba', 150000.00, 0.00, 'Prueba', 2, 1, 1, 2, 0, 0, 1, 2, 1, NULL),
 (4, 'Casa quinta actualizada', 'Descripción modificada', 200000.00, 7000.00, 'San Martin 456', 6, 4, 2, 8, 1, 1, 1, 6, 1, NULL),
 (5, 'Casa', 'Casa grande', 150000.00, 0.00, 'Las Palmeras', 2, 1, 1, 2, 1, 1, 1, 8, 1, NULL),
-(6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 0, 1, 12, 1, '2026-08-20 01:23:17');
+(6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 0, 1, 12, 1, '2026-08-20 01:23:17'),
+(9, 'Departamento moderno en Paraná', 'Luminoso, cerca del centro. Ideal para estudiante o pareja.', 180000.00, 1500.00, 'Corrientes 850', 2, 1, 1, 2, 1, 1, 2, 2, 2, NULL),
+(10, 'Cabaña en Crespo', 'Tranquilidad entre árboles. Parrilla, galería y mucha luz.', 320000.00, 0.00, 'Ruta 6 Km 15', 3, 2, 1, 4, 1, 1, 3, 6, 1, NULL),
+(11, 'Casa familiar en Crespo', 'Espaciosa, con patio y cochera. Listo para mudarse.', 280000.00, 0.00, 'Belgrano 420', 5, 3, 2, 5, 1, 1, 1, 8, 1, NULL),
+(12, 'Monoambiente céntrico Paraná', 'Eficiente, con balcón y muy luminoso. Excelente ubicación.', 150000.00, 1200.00, 'Gral. López 680', 1, 0, 1, 2, 1, 0, 2, 9, 2, NULL);
 
 -- --------------------------------------------------------
 
