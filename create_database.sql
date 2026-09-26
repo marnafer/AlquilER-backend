@@ -18,6 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
+DROP DATABASE IF EXISTS sistema_alquiler_db_dev;
 CREATE DATABASE IF NOT EXISTS sistema_alquiler_db_dev;
 USE sistema_alquiler_db_dev;
 --
