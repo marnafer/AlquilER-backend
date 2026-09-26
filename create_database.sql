@@ -228,7 +228,50 @@ CREATE TABLE IF NOT EXISTS `propiedad_servicio` (
 --
 
 INSERT INTO `propiedad_servicio` (`id`, `propiedad_id`, `servicio_id`) VALUES
-(6, 1, 1);
+(6, 1, 1),
+(7, 4, 5),
+(8, 4, 6),
+(9, 4, 3),
+(10, 4, 15),
+(11, 4, 13),
+(12, 4, 20),
+(13, 5, 5),
+(14, 5, 1),
+(15, 5, 3),
+(16, 5, 9),
+(17, 5, 10),
+(18, 5, 14),
+(19, 5, 7),
+(20, 9, 4),
+(21, 9, 5),
+(22, 9, 3),
+(23, 9, 10),
+(24, 9, 9),
+(25, 9, 11),
+(26, 9, 19),
+(27, 10, 4),
+(28, 10, 5),
+(29, 10, 1),
+(30, 10, 6),
+(31, 10, 14),
+(32, 10, 16),
+(33, 10, 17),
+(34, 10, 8),
+(35, 11, 4),
+(36, 11, 5),
+(37, 11, 3),
+(38, 11, 12),
+(39, 11, 15),
+(40, 11, 16),
+(41, 11, 13),
+(42, 11, 8),
+(43, 12, 4),
+(44, 12, 5),
+(45, 12, 3),
+(46, 12, 10),
+(47, 12, 15),
+(48, 12, 23),
+(49, 12, 9);
 
 -- --------------------------------------------------------
 
@@ -371,7 +414,27 @@ CREATE TABLE IF NOT EXISTS `servicios` (
 
 INSERT INTO `servicios` (`id`, `nombre`, `deleted_at`) VALUES
 (1, 'Gas natural', NULL),
-(3, 'Wifi', NULL);
+(3, 'Wifi', NULL),
+(4, 'Agua', NULL),
+(5, 'Luz', NULL),
+(6, 'Aire Acondicionado', NULL),
+(7, 'Calefacción', NULL),
+(8, 'Agua caliente', NULL),
+(9, 'Heladera', NULL),
+(10, 'Cocina Equipada', NULL),
+(11, 'Lavadero', NULL),
+(12, 'TV Cable', NULL),
+(13, 'Estacionamiento', NULL),
+(14, 'Amueblado', NULL),
+(15, 'Balcón', NULL),
+(16, 'Patio', NULL),
+(17, 'Piscina', NULL),
+(18, 'Gimnasio', NULL),
+(19, 'Ascensor', NULL),
+(20, 'Seguridad', NULL),
+(21, 'Limpieza', NULL),
+(22, 'Mascotas', NULL),
+(23, 'Escritorio', NULL);
 
 -- --------------------------------------------------------
 
