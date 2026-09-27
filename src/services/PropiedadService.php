@@ -34,151 +34,21 @@ class PropiedadService
 
     public function listar(array $filtros = []): array
     {
-        $filtrosLimpios = [];
+        $filtrosLimpios =
+            PropiedadSanitizer::sanitizarFiltros(
+                $filtros
+            );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Categorías y localidades
-        |--------------------------------------------------------------------------
-        */
+        $validacion =
+            PropiedadValidator::validarFiltros(
+                $filtrosLimpios
+            );
 
-        foreach (
-            ['categoria_id', 'localidad_id'] as $campo
-        ) {
-            if (!array_key_exists($campo, $filtros)) {
-                continue;
-            }
-
-            $valor = $filtros[$campo];
-
-            if ($valor === null || $valor === '') {
-                continue;
-            }
-
-            $valores = is_array($valor)
-                ? $valor
-                : [$valor];
-
-            if ($valores === []) {
-                continue;
-            }
-
-            $ids = [];
-
-            foreach ($valores as $valorId) {
-                $id = PropiedadSanitizer::sanitizarId(
-                    $valorId
-                );
-
-                if ($id === null) {
-                    throw new ValidationException([
-                        $campo => [
-                            $campo === 'categoria_id'
-                                ? 'La categoría debe ser un ID válido'
-                                : 'La localidad debe ser un ID válido'
-                        ],
-                    ]);
-                }
-
-                $ids[] = $id;
-            }
-
-            $filtrosLimpios[$campo] = array_values(
-                array_unique($ids)
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
             );
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Precios
-        |--------------------------------------------------------------------------
-        */
-
-        foreach (
-            ['precio_min', 'precio_max'] as $campo
-        ) {
-            if (!array_key_exists($campo, $filtros)) {
-                continue;
-            }
-
-            $precio = PropiedadSanitizer::sanitizarPrecioFiltro(
-                $filtros[$campo]
-            );
-
-            $error = PropiedadValidator::validarPrecioFiltro(
-                $precio
-            );
-
-            if ($error !== null) {
-                throw new ValidationException([
-                    $campo => [$error],
-                ]);
-            }
-
-            if ($precio !== null) {
-                $filtrosLimpios[$campo] = (float) $precio;
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Cantidades mínimas
-        |--------------------------------------------------------------------------
-        */
-
-        foreach (
-            [
-                'cantidad_ambientes',
-                'cantidad_dormitorios',
-                'cantidad_banos',
-                'capacidad'
-            ] as $campo
-        ) {
-            if (!array_key_exists($campo, $filtros)) {
-                continue;
-            }
-
-            $cantidad = PropiedadSanitizer::sanitizarCantidadFiltro(
-                $filtros[$campo]
-            );
-
-            $error = PropiedadValidator::validarCantidadFiltro(
-                $cantidad
-            );
-
-            if ($error !== null) {
-                throw new ValidationException([
-                    $campo => [$error],
-                ]);
-            }
-
-            if ($cantidad !== null) {
-                $filtrosLimpios[$campo] = (int) $cantidad;
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Rango de precios
-        |--------------------------------------------------------------------------
-        */
-
-        $error = PropiedadValidator::validarRangoPrecio(
-            $filtrosLimpios['precio_min'] ?? null,
-            $filtrosLimpios['precio_max'] ?? null
-        );
-
-        if ($error !== null) {
-            throw new ValidationException([
-                'precio_min' => [$error],
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Consulta
-        |--------------------------------------------------------------------------
-        */
 
         $propiedades = $this->repository->all(
             $filtrosLimpios

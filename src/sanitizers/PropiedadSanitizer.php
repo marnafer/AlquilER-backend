@@ -45,7 +45,7 @@ class PropiedadSanitizer
             ),
             'localidad_id' => self::sanitizarEnteroPositivo(
                 $data['localidad_id'] ?? null
-            )
+            ),
         ];
     }
 
@@ -148,6 +148,76 @@ class PropiedadSanitizer
     |--------------------------------------------------------------------------
     */
 
+    public static function sanitizarFiltros(array $filtros): array
+    {
+        $sanitizado = [];
+
+        if (array_key_exists('categoria_id', $filtros)) {
+            $sanitizado['categoria_id'] =
+                self::sanitizarIdsFiltro(
+                    $filtros['categoria_id']
+                );
+        }
+
+        if (array_key_exists('localidad_id', $filtros)) {
+            $sanitizado['localidad_id'] =
+                self::sanitizarIdsFiltro(
+                    $filtros['localidad_id']
+                );
+        }
+
+        if (array_key_exists('servicio_id', $filtros)) {
+            $sanitizado['servicio_id'] =
+                self::sanitizarIdsFiltro(
+                    $filtros['servicio_id']
+                );
+        }
+
+        if (array_key_exists('precio_min', $filtros)) {
+            $sanitizado['precio_min'] =
+                self::sanitizarPrecioFiltro(
+                    $filtros['precio_min']
+                );
+        }
+
+        if (array_key_exists('precio_max', $filtros)) {
+            $sanitizado['precio_max'] =
+                self::sanitizarPrecioFiltro(
+                    $filtros['precio_max']
+                );
+        }
+
+        if (array_key_exists('cantidad_ambientes', $filtros)) {
+            $sanitizado['cantidad_ambientes'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['cantidad_ambientes']
+                );
+        }
+
+        if (array_key_exists('cantidad_dormitorios', $filtros)) {
+            $sanitizado['cantidad_dormitorios'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['cantidad_dormitorios']
+                );
+        }
+
+        if (array_key_exists('cantidad_banos', $filtros)) {
+            $sanitizado['cantidad_banos'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['cantidad_banos']
+                );
+        }
+
+        if (array_key_exists('capacidad', $filtros)) {
+            $sanitizado['capacidad'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['capacidad']
+                );
+        }
+
+        return $sanitizado;
+    }
+
     public static function sanitizarPrecioFiltro($precio): ?string
     {
         if ($precio === null || $precio === '') {
@@ -169,6 +239,24 @@ class PropiedadSanitizer
         }
 
         return trim((string) $cantidad);
+    }
+
+    public static function sanitizarIdsFiltro($ids): array
+    {
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        return array_map(
+            static function ($id) {
+                if ($id === null) {
+                    return null;
+                }
+
+                return trim((string) $id);
+            },
+            $ids
+        );
     }
 
     public static function sanitizarId($id): ?int

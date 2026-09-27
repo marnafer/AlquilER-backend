@@ -308,6 +308,104 @@ class PropiedadValidator
         return null;
     }
 
+    public static function validarIdsFiltro(
+        $ids,
+        string $nombreCampo
+    ): ?string {
+        if ($ids === null || $ids === []) {
+            return null;
+        }
+
+        if (!is_array($ids)) {
+            return "El campo {$nombreCampo} debe ser un arreglo";
+        }
+
+        foreach ($ids as $id) {
+            if (
+                filter_var(
+                    $id,
+                    FILTER_VALIDATE_INT
+                ) === false ||
+                (int) $id <= 0
+            ) {
+                return "El campo {$nombreCampo} contiene un ID inválido";
+            }
+        }
+
+        return null;
+    }
+
+    public static function validarFiltros(
+        array $data
+    ): array {
+        $errores = [];
+
+        $validaciones = [
+            'categoria_id' => self::validarIdsFiltro(
+                $data['categoria_id'] ?? null,
+                'categoria_id'
+            ),
+
+            'localidad_id' => self::validarIdsFiltro(
+                $data['localidad_id'] ?? null,
+                'localidad_id'
+            ),
+
+            'servicio_id' => self::validarIdsFiltro(
+                $data['servicio_id'] ?? null,
+                'servicio_id'
+            ),
+
+            'precio_min' => self::validarPrecioFiltro(
+                $data['precio_min'] ?? null
+            ),
+
+            'precio_max' => self::validarPrecioFiltro(
+                $data['precio_max'] ?? null
+            ),
+
+            'cantidad_ambientes' =>
+                self::validarCantidadFiltro(
+                    $data['cantidad_ambientes'] ?? null
+                ),
+
+            'cantidad_dormitorios' =>
+                self::validarCantidadFiltro(
+                    $data['cantidad_dormitorios'] ?? null
+                ),
+
+            'cantidad_banos' =>
+                self::validarCantidadFiltro(
+                    $data['cantidad_banos'] ?? null
+                ),
+
+            'capacidad' => self::validarCantidadFiltro(
+                $data['capacidad'] ?? null
+            ),
+
+            'rango_precio' => self::validarRangoPrecio(
+                $data['precio_min'] ?? null,
+                $data['precio_max'] ?? null
+            ),
+        ];
+
+        foreach ($validaciones as $campo => $error) {
+            if ($error !== null) {
+                $errores[$campo] = $error;
+            }
+        }
+
+        return [
+            'success' => empty($errores),
+            'message' => empty($errores)
+                ? 'Validación exitosa'
+                : 'Error de validación',
+            'errors' => empty($errores)
+                ? null
+                : $errores,
+        ];
+    }
+
     public static function validar(array $data): array
     {
         $errores = [];
@@ -384,7 +482,7 @@ class PropiedadValidator
                 : 'Error de validación',
             'errors' => empty($errores)
                 ? null
-                : $errores
+                : $errores,
         ];
     }
 
@@ -397,15 +495,15 @@ class PropiedadValidator
                 'success' => false,
                 'message' => 'ID inválido',
                 'errors' => [
-                    'id' => $error
-                ]
+                    'id' => $error,
+                ],
             ];
         }
 
         return [
             'success' => true,
             'message' => 'ID válido',
-            'errors' => null
+            'errors' => null,
         ];
     }
 }
