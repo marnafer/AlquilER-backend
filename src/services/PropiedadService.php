@@ -36,6 +36,12 @@ class PropiedadService
     {
         $filtrosLimpios = [];
 
+        /*
+        |--------------------------------------------------------------------------
+        | Categorías y localidades
+        |--------------------------------------------------------------------------
+        */
+
         foreach (
             ['categoria_id', 'localidad_id'] as $campo
         ) {
@@ -82,41 +88,97 @@ class PropiedadService
             );
         }
 
-        if (isset($filtrosLimpios['categoria_id'])) {
-            foreach (
-                $filtrosLimpios['categoria_id'] as $categoriaId
-            ) {
-                if (
-                    !$this->categoriaRepository->findById(
-                        $categoriaId
-                    )
-                ) {
-                    throw new ValidationException([
-                        'categoria_id' => [
-                            'La categoría seleccionada no existe'
-                        ],
-                    ]);
-                }
+        /*
+        |--------------------------------------------------------------------------
+        | Precios
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (
+            ['precio_min', 'precio_max'] as $campo
+        ) {
+            if (!array_key_exists($campo, $filtros)) {
+                continue;
+            }
+
+            $precio = PropiedadSanitizer::sanitizarPrecioFiltro(
+                $filtros[$campo]
+            );
+
+            $error = PropiedadValidator::validarPrecioFiltro(
+                $precio
+            );
+
+            if ($error !== null) {
+                throw new ValidationException([
+                    $campo => [$error],
+                ]);
+            }
+
+            if ($precio !== null) {
+                $filtrosLimpios[$campo] = (float) $precio;
             }
         }
 
-        if (isset($filtrosLimpios['localidad_id'])) {
-            foreach (
-                $filtrosLimpios['localidad_id'] as $localidadId
-            ) {
-                if (
-                    !$this->localidadRepository->findById(
-                        $localidadId
-                    )
-                ) {
-                    throw new ValidationException([
-                        'localidad_id' => [
-                            'La localidad seleccionada no existe'
-                        ],
-                    ]);
-                }
+        /*
+        |--------------------------------------------------------------------------
+        | Cantidades mínimas
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (
+            [
+                'cantidad_ambientes',
+                'cantidad_dormitorios',
+                'cantidad_banos',
+                'capacidad'
+            ] as $campo
+        ) {
+            if (!array_key_exists($campo, $filtros)) {
+                continue;
+            }
+
+            $cantidad = PropiedadSanitizer::sanitizarCantidadFiltro(
+                $filtros[$campo]
+            );
+
+            $error = PropiedadValidator::validarCantidadFiltro(
+                $cantidad
+            );
+
+            if ($error !== null) {
+                throw new ValidationException([
+                    $campo => [$error],
+                ]);
+            }
+
+            if ($cantidad !== null) {
+                $filtrosLimpios[$campo] = (int) $cantidad;
             }
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Rango de precios
+        |--------------------------------------------------------------------------
+        */
+
+        $error = PropiedadValidator::validarRangoPrecio(
+            $filtrosLimpios['precio_min'] ?? null,
+            $filtrosLimpios['precio_max'] ?? null
+        );
+
+        if ($error !== null) {
+            throw new ValidationException([
+                'precio_min' => [$error],
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Consulta
+        |--------------------------------------------------------------------------
+        */
 
         $propiedades = $this->repository->all(
             $filtrosLimpios

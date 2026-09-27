@@ -142,6 +142,35 @@ class PropiedadSanitizer
         return $sanitizado;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | FILTROS DE BÚSQUEDA
+    |--------------------------------------------------------------------------
+    */
+
+    public static function sanitizarPrecioFiltro($precio): ?string
+    {
+        if ($precio === null || $precio === '') {
+            return null;
+        }
+
+        return str_replace(
+            ',',
+            '.',
+            trim((string) $precio)
+        );
+    }
+
+    public static function sanitizarCantidadFiltro(
+        $cantidad
+    ): ?string {
+        if ($cantidad === null || $cantidad === '') {
+            return null;
+        }
+
+        return trim((string) $cantidad);
+    }
+
     public static function sanitizarId($id): ?int
     {
         if ($id === null || $id === '') {
@@ -168,6 +197,7 @@ class PropiedadSanitizer
         }
 
         $titulo = trim($titulo);
+
         $titulo = preg_replace(
             '/\s+/u',
             ' ',
@@ -189,6 +219,7 @@ class PropiedadSanitizer
         }
 
         $descripcion = trim($descripcion);
+
         $descripcion = preg_replace(
             '/\s+/u',
             ' ',
@@ -251,6 +282,7 @@ class PropiedadSanitizer
         }
 
         $direccion = trim($direccion);
+
         $direccion = preg_replace(
             '/\s+/u',
             ' ',

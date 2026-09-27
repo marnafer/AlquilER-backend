@@ -26,6 +26,54 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             );
         }
 
+        if (isset($filtros['precio_min'])) {
+            $query->where(
+                'precio',
+                '>=',
+                $filtros['precio_min']
+            );
+        }
+
+        if (isset($filtros['precio_max'])) {
+            $query->where(
+                'precio',
+                '<=',
+                $filtros['precio_max']
+            );
+        }
+
+        if (isset($filtros['cantidad_ambientes'])) {
+            $query->where(
+                'cantidad_ambientes',
+                '>=',
+                $filtros['cantidad_ambientes']
+            );
+        }
+
+        if (isset($filtros['cantidad_dormitorios'])) {
+            $query->where(
+                'cantidad_dormitorios',
+                '>=',
+                $filtros['cantidad_dormitorios']
+            );
+        }
+
+        if (isset($filtros['cantidad_banos'])) {
+            $query->where(
+                'cantidad_banos',
+                '>=',
+                $filtros['cantidad_banos']
+            );
+        }
+
+        if (isset($filtros['capacidad'])) {
+            $query->where(
+                'capacidad',
+                '>=',
+                $filtros['capacidad']
+            );
+        }
+
         if (isset($filtros['destacada'])) {
             $query->where(
                 'destacada',

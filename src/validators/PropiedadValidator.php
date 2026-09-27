@@ -239,6 +239,75 @@ class PropiedadValidator
         return null;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDACIONES DE FILTROS DE BÚSQUEDA
+    |--------------------------------------------------------------------------
+    */
+
+    public static function validarPrecioFiltro(
+        $precio
+    ): ?string {
+        if ($precio === null) {
+            return null;
+        }
+
+        if (!is_numeric($precio)) {
+            return 'El precio debe ser numérico';
+        }
+
+        if ((float) $precio < 0) {
+            return 'El precio no puede ser negativo';
+        }
+
+        return null;
+    }
+
+    public static function validarCantidadFiltro(
+        $cantidad
+    ): ?string {
+        if ($cantidad === null) {
+            return null;
+        }
+
+        if (
+            !is_numeric($cantidad) ||
+            filter_var(
+                $cantidad,
+                FILTER_VALIDATE_INT
+            ) === false
+        ) {
+            return 'La cantidad debe ser un entero mayor a 0';
+        }
+
+        if ((int) $cantidad < 1) {
+            return 'La cantidad debe ser un entero mayor a 0';
+        }
+
+        return null;
+    }
+
+    public static function validarRangoPrecio(
+        $precioMin,
+        $precioMax
+    ): ?string {
+        if (
+            $precioMin === null ||
+            $precioMax === null
+        ) {
+            return null;
+        }
+
+        if (
+            (float) $precioMin >
+            (float) $precioMax
+        ) {
+            return 'El precio mínimo no puede ser mayor que el precio máximo';
+        }
+
+        return null;
+    }
+
     public static function validar(array $data): array
     {
         $errores = [];
