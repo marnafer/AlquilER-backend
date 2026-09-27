@@ -26,6 +26,26 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             );
         }
 
+        if (!empty($filtros['servicio_id'])) {
+        foreach ($filtros['servicio_id'] as $servicioId) {
+            $query->whereExists(
+                function ($subquery) use ($servicioId) {
+                    $subquery
+                        ->selectRaw('1')
+                        ->from('propiedad_servicio')
+                        ->whereColumn(
+                            'propiedad_servicio.propiedad_id',
+                            'propiedades.id'
+                        )
+                        ->where(
+                            'propiedad_servicio.servicio_id',
+                            $servicioId
+                        );
+                }
+            );
+        }
+    }
+
         if (isset($filtros['precio_min'])) {
             $query->where(
                 'precio',
