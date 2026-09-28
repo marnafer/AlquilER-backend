@@ -17,11 +17,22 @@ final class RateLimitMiddleware
     {
         $resultado = self::evaluar();
 
+        header(
+            'X-RateLimit-Limit: ' .
+            self::MAX_REQUESTS
+        );
+
+        header(
+            'X-RateLimit-Remaining: ' .
+            $resultado['restantes']
+        );
+
         if ($resultado['permitido']) {
             return;
         }
 
-        $retryAfter = $resultado['retry_after'];
+        $retryAfter =
+            $resultado['retry_after'];
 
         http_response_code(429);
 
@@ -30,16 +41,8 @@ final class RateLimitMiddleware
         );
 
         header(
-            'Retry-After: ' . $retryAfter
-        );
-
-        header(
-            'X-RateLimit-Limit: ' .
-            self::MAX_REQUESTS
-        );
-
-        header(
-            'X-RateLimit-Remaining: 0'
+            'Retry-After: ' .
+            $retryAfter
         );
 
         echo json_encode(
@@ -47,7 +50,8 @@ final class RateLimitMiddleware
                 'success' => false,
                 'message' =>
                     'Demasiadas solicitudes. Intenta nuevamente más tarde.',
-                'retry_after' => $retryAfter,
+                'retry_after' =>
+                    $retryAfter,
             ],
             JSON_UNESCAPED_UNICODE
         );
@@ -57,7 +61,8 @@ final class RateLimitMiddleware
 
     public static function evaluar(
         ?string $ip = null,
-        ?int $ahora = null
+        ?int $ahora = null,
+        ?string $directorio = null
     ): array {
         $ip ??=
             $_SERVER['REMOTE_ADDR']
@@ -65,7 +70,7 @@ final class RateLimitMiddleware
 
         $ahora ??= time();
 
-        $directorio =
+        $directorio ??=
             self::obtenerDirectorioAlmacenamiento();
 
         self::crearDirectorioSiNoExiste(
@@ -81,13 +86,12 @@ final class RateLimitMiddleware
             ) .
             '.json';
 
-        $handle = fopen($archivo, 'c+');
+        $handle = fopen(
+            $archivo,
+            'c+'
+        );
 
         if ($handle === false) {
-            /*
-             * Si el almacenamiento falla,
-             * no bloqueamos la API.
-             */
             return [
                 'permitido' => true,
                 'restantes' =>
@@ -97,7 +101,12 @@ final class RateLimitMiddleware
         }
 
         try {
-            if (!flock($handle, LOCK_EX)) {
+            if (
+                !flock(
+                    $handle,
+                    LOCK_EX
+                )
+            ) {
                 return [
                     'permitido' => true,
                     'restantes' =>
@@ -109,7 +118,9 @@ final class RateLimitMiddleware
             rewind($handle);
 
             $contenido =
-                stream_get_contents($handle);
+                stream_get_contents(
+                    $handle
+                );
 
             $datos = [];
 
@@ -172,33 +183,43 @@ final class RateLimitMiddleware
             $datos = [
                 'window_start' =>
                     $inicioVentana,
-                'count' => $contador,
+                'count' =>
+                    $contador,
             ];
 
             rewind($handle);
 
-            ftruncate($handle, 0);
+            ftruncate(
+                $handle,
+                0
+            );
 
             fwrite(
                 $handle,
-                json_encode($datos)
+                json_encode(
+                    $datos,
+                    JSON_UNESCAPED_UNICODE
+                )
             );
 
             fflush($handle);
 
-            $restantes = max(
-                0,
-                self::MAX_REQUESTS -
-                $contador
-            );
-
             return [
                 'permitido' => true,
-                'restantes' => $restantes,
+                'restantes' =>
+                    max(
+                        0,
+                        self::MAX_REQUESTS -
+                        $contador
+                    ),
                 'retry_after' => 0,
             ];
         } finally {
-            flock($handle, LOCK_UN);
+            flock(
+                $handle,
+                LOCK_UN
+            );
+
             fclose($handle);
         }
     }
@@ -206,6 +227,23 @@ final class RateLimitMiddleware
     private static function
     obtenerDirectorioAlmacenamiento(): string
     {
+        $configurado =
+            $_ENV['RATE_LIMIT_STORAGE_PATH']
+            ?? $_SERVER['RATE_LIMIT_STORAGE_PATH']
+            ?? getenv(
+                'RATE_LIMIT_STORAGE_PATH'
+            );
+
+        if (
+            is_string($configurado) &&
+            trim($configurado) !== ''
+        ) {
+            return rtrim(
+                $configurado,
+                DIRECTORY_SEPARATOR
+            );
+        }
+
         return
             sys_get_temp_dir() .
             DIRECTORY_SEPARATOR .
@@ -216,9 +254,7 @@ final class RateLimitMiddleware
     crearDirectorioSiNoExiste(
         string $directorio
     ): void {
-        if (
-            is_dir($directorio)
-        ) {
+        if (is_dir($directorio)) {
             return;
         }
 
