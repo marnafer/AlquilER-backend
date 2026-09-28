@@ -17,6 +17,7 @@
 
     use App\Helpers\Response;
     use App\Routes\Router;
+    use App\Middlewares\RateLimitMiddleware;
     
     date_default_timezone_set('America/Argentina/Buenos_Aires');
     error_reporting(E_ALL);
@@ -117,6 +118,8 @@
     if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
         require_once SRC_PATH . 'routes/debug_router.php';
     }
+
+    RateLimitMiddleware::verificar();
 
     $router->dispatch($method, $path);
     exit;
