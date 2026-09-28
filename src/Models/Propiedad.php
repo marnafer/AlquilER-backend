@@ -24,6 +24,7 @@ class Propiedad extends Model
         'cantidad_banos',
         'capacidad',
         'disponible',
+        'destacada',
         'categoria_id',
         'localidad_id',
         'usuario_id'
@@ -37,6 +38,7 @@ class Propiedad extends Model
         'cantidad_dormitorios' => 'integer',
         'cantidad_banos' => 'integer',
         'capacidad' => 'integer',
+        'destacada' => 'boolean',
         'categoria_id' => 'integer',
         'localidad_id' => 'integer',
         'usuario_id' => 'integer'

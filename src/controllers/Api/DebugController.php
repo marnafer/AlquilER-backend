@@ -74,7 +74,7 @@ class DebugController
      */
     public function logs()
     {
-        $logFile = dirname(__DIR__, 2) . '/debug.log';
+        $logFile = Debugger::getLogFile();
         
         if (!file_exists($logFile)) {
             echo json_encode([
@@ -110,7 +110,7 @@ class DebugController
      */
     public function clearLog()
     {
-        $logFile = dirname(__DIR__, 2) . '/debug.log';
+        $logFile = Debugger::getLogFile();
         
         if (file_exists($logFile)) {
             file_put_contents($logFile, '');

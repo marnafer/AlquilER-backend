@@ -35,6 +35,20 @@ class ReservaController
             $filtros['propiedad_id'] = (int) $_GET['propiedad_id'];
         }
 
+        if (isset($_GET['solo_eliminados'])) {
+            $filtros['solo_eliminados'] = filter_var(
+                $_GET['solo_eliminados'],
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        if (isset($_GET['incluir_eliminados'])) {
+            $filtros['incluir_eliminados'] = filter_var(
+                $_GET['incluir_eliminados'],
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
         Response::success(
             $this->service->listar(
                 (int) $usuario->sub,
@@ -66,6 +80,22 @@ class ReservaController
         $id = $this->service->crear(
             Request::json(),
             (int) $usuario->sub
+        );
+
+        Response::created(
+            ['id' => $id],
+            'Reserva creada correctamente'
+        );
+    }
+
+    // POST /api/admin/reservas
+    public function storeAdmin()
+    {
+        $admin = AutenticadorMiddleware::soloAdmin();
+
+        $id = $this->service->crearDesdeAdmin(
+            Request::json(),
+            (int) $admin->sub
         );
 
         Response::created(

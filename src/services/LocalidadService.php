@@ -22,9 +22,9 @@ class LocalidadService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $localidades = $this->localidadRepository->all();
+        $localidades = $this->localidadRepository->all($filtros);
 
         return [
             'items' => $localidades,

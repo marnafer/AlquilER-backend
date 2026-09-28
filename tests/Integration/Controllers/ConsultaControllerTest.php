@@ -214,7 +214,7 @@ class ConsultaControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('obtenerAutorizada')
-            ->with(10, 5)
+            ->with(10, 5, 1)
             ->willReturn($consulta);
 
         $response = $this->captureJson(
@@ -305,6 +305,27 @@ class ConsultaControllerTest extends TestCase
         $this->assertTrue($response['success']);
         $this->assertSame(
             'Consulta eliminada exitosamente',
+            $response['message']
+        );
+    }
+
+    public function test_restore_restaura_una_consulta(): void
+    {
+        $this->actingAs(5, 2);
+
+        $this->service
+            ->expects($this->once())
+            ->method('restaurar')
+            ->with(10, 5)
+            ->willReturn(true);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->restore(10)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(
+            'Consulta restaurada exitosamente',
             $response['message']
         );
     }

@@ -18,6 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
+DROP DATABASE IF EXISTS sistema_alquiler_db_dev;
 CREATE DATABASE IF NOT EXISTS sistema_alquiler_db_dev;
 USE sistema_alquiler_db_dev;
 --
@@ -131,6 +132,36 @@ CREATE TABLE IF NOT EXISTS `mensajes_consultas` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `notificaciones`
+--
+
+CREATE TABLE IF NOT EXISTS `notificaciones` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `usuario_id` int(11) UNSIGNED NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `mensaje` text DEFAULT NULL,
+  `referencia_id` int(11) UNSIGNED DEFAULT NULL,
+  `leida` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_notificacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `password_resets`
+--
+
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `email` varchar(190) NOT NULL,
+  `token` varchar(100) NOT NULL,
+  `expiracion` datetime NOT NULL,
+  `usado` tinyint(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
 -- Estructura de tabla para la tabla `propiedades`
 --
 
@@ -146,6 +177,7 @@ CREATE TABLE IF NOT EXISTS `propiedades` (
   `cantidad_banos` tinyint(2) UNSIGNED NOT NULL,
   `capacidad` tinyint(3) UNSIGNED DEFAULT NULL,
   `disponible` tinyint(1) NOT NULL DEFAULT 1,
+  `destacada` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   `categoria_id` int(11) UNSIGNED NOT NULL,
   `usuario_id` int(11) UNSIGNED NOT NULL,
   `localidad_id` int(11) UNSIGNED NOT NULL,
@@ -156,11 +188,15 @@ CREATE TABLE IF NOT EXISTS `propiedades` (
 -- Volcado de datos para la tabla `propiedades`
 --
 
-INSERT INTO `propiedades` (`id`, `titulo`, `descripcion`, `precio`, `expensas`, `direccion`, `cantidad_ambientes`, `cantidad_dormitorios`, `cantidad_banos`, `capacidad`, `disponible`, `categoria_id`, `usuario_id`, `localidad_id`, `deleted_at`) VALUES
-(1, 'Casa prueba', 'Prueba', 150000.00, 0.00, 'Prueba', 2, 1, 1, 2, 0, 1, 2, 1, NULL),
-(4, 'Casa quinta actualizada', 'Descripción modificada', 200000.00, 7000.00, 'San Martin 456', 6, 4, 2, 8, 1, 1, 6, 1, NULL),
-(5, 'Casa', 'Casa grande', 150000.00, 0.00, 'Las Palmeras', 2, 1, 1, 2, 1, 1, 8, 1, NULL),
-(6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 1, 12, 1, '2026-08-20 01:23:17');
+INSERT INTO `propiedades` (`id`, `titulo`, `descripcion`, `precio`, `expensas`, `direccion`, `cantidad_ambientes`, `cantidad_dormitorios`, `cantidad_banos`, `capacidad`, `disponible`, `destacada`, `categoria_id`, `usuario_id`, `localidad_id`, `deleted_at`) VALUES
+(1, 'Casa prueba', 'Prueba', 150000.00, 0.00, 'Prueba', 2, 1, 1, 2, 0, 0, 1, 2, 1, NULL),
+(4, 'Casa quinta actualizada', 'Descripción modificada', 200000.00, 7000.00, 'San Martin 456', 6, 4, 2, 8, 1, 1, 1, 6, 1, NULL),
+(5, 'Casa', 'Casa grande', 150000.00, 0.00, 'Las Palmeras', 2, 1, 1, 2, 1, 1, 1, 8, 1, NULL),
+(6, 'Departamento actualizado', 'Excelente estado, al frente con balcón. Cuenta con cocina integrada y piso flotante. Ideal para una pareja.', 350000.50, 45000.00, 'San Martín 1234, Piso 4 Depto A', 2, 1, 1, 2, 1, 0, 1, 12, 1, '2026-08-20 01:23:17'),
+(9, 'Departamento moderno en Paraná', 'Luminoso, cerca del centro. Ideal para estudiante o pareja.', 180000.00, 1500.00, 'Corrientes 850', 2, 1, 1, 2, 1, 1, 2, 2, 2, NULL),
+(10, 'Cabaña en Crespo', 'Tranquilidad entre árboles. Parrilla, galería y mucha luz.', 320000.00, 0.00, 'Ruta 6 Km 15', 3, 2, 1, 4, 1, 1, 3, 6, 1, NULL),
+(11, 'Casa familiar en Crespo', 'Espaciosa, con patio y cochera. Listo para mudarse.', 280000.00, 0.00, 'Belgrano 420', 5, 3, 2, 5, 1, 1, 1, 8, 1, NULL),
+(12, 'Monoambiente céntrico Paraná', 'Eficiente, con balcón y muy luminoso. Excelente ubicación.', 150000.00, 1200.00, 'Gral. López 680', 1, 0, 1, 2, 1, 0, 2, 9, 2, NULL);
 
 -- --------------------------------------------------------
 
@@ -193,7 +229,50 @@ CREATE TABLE IF NOT EXISTS `propiedad_servicio` (
 --
 
 INSERT INTO `propiedad_servicio` (`id`, `propiedad_id`, `servicio_id`) VALUES
-(6, 1, 1);
+(6, 1, 1),
+(7, 4, 5),
+(8, 4, 6),
+(9, 4, 3),
+(10, 4, 15),
+(11, 4, 13),
+(12, 4, 20),
+(13, 5, 5),
+(14, 5, 1),
+(15, 5, 3),
+(16, 5, 9),
+(17, 5, 10),
+(18, 5, 14),
+(19, 5, 7),
+(20, 9, 4),
+(21, 9, 5),
+(22, 9, 3),
+(23, 9, 10),
+(24, 9, 9),
+(25, 9, 11),
+(26, 9, 19),
+(27, 10, 4),
+(28, 10, 5),
+(29, 10, 1),
+(30, 10, 6),
+(31, 10, 14),
+(32, 10, 16),
+(33, 10, 17),
+(34, 10, 8),
+(35, 11, 4),
+(36, 11, 5),
+(37, 11, 3),
+(38, 11, 12),
+(39, 11, 15),
+(40, 11, 16),
+(41, 11, 13),
+(42, 11, 8),
+(43, 12, 4),
+(44, 12, 5),
+(45, 12, 3),
+(46, 12, 10),
+(47, 12, 15),
+(48, 12, 23),
+(49, 12, 9);
 
 -- --------------------------------------------------------
 
@@ -336,7 +415,27 @@ CREATE TABLE IF NOT EXISTS `servicios` (
 
 INSERT INTO `servicios` (`id`, `nombre`, `deleted_at`) VALUES
 (1, 'Gas natural', NULL),
-(3, 'Wifi', NULL);
+(3, 'Wifi', NULL),
+(4, 'Agua', NULL),
+(5, 'Luz', NULL),
+(6, 'Aire Acondicionado', NULL),
+(7, 'Calefacción', NULL),
+(8, 'Agua caliente', NULL),
+(9, 'Heladera', NULL),
+(10, 'Cocina Equipada', NULL),
+(11, 'Lavadero', NULL),
+(12, 'TV Cable', NULL),
+(13, 'Estacionamiento', NULL),
+(14, 'Amueblado', NULL),
+(15, 'Balcón', NULL),
+(16, 'Patio', NULL),
+(17, 'Piscina', NULL),
+(18, 'Gimnasio', NULL),
+(19, 'Ascensor', NULL),
+(20, 'Seguridad', NULL),
+(21, 'Limpieza', NULL),
+(22, 'Mascotas', NULL),
+(23, 'Escritorio', NULL);
 
 -- --------------------------------------------------------
 
@@ -458,6 +557,22 @@ ALTER TABLE `mensajes_consultas`
   ADD KEY `fk_mensaje_usuario` (`usuario_id`);
 
 --
+-- Indices de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_notificacion_usuario` (`usuario_id`),
+  ADD KEY `idx_notificaciones_fecha` (`fecha_notificacion`);
+
+--
+-- Indices de la tabla `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_password_resets_token` (`token`),
+  ADD KEY `idx_password_resets_email` (`email`);
+
+--
 -- Indices de la tabla `propiedades`
 --
 ALTER TABLE `propiedades`
@@ -575,6 +690,18 @@ ALTER TABLE `mensajes_consultas`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `password_resets`
+--
+ALTER TABLE `password_resets`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `propiedades`
 --
 ALTER TABLE `propiedades`
@@ -671,6 +798,12 @@ ALTER TABLE `logs_actividad`
 ALTER TABLE `mensajes_consultas`
   ADD CONSTRAINT `fk_mensaje_consulta` FOREIGN KEY (`consulta_id`) REFERENCES `consultas` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_mensaje_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD CONSTRAINT `fk_notificacion_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Filtros para la tabla `propiedades`

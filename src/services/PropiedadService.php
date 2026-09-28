@@ -9,11 +9,13 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\ConflictException;
 use App\Models\Propiedad;
+use App\Models\Rol;
 use App\Policies\PropiedadPolicy;
 use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
 
@@ -25,13 +27,76 @@ class PropiedadService
         private readonly CategoriaRepositoryInterface $categoriaRepository,
         private readonly LocalidadRepositoryInterface $localidadRepository,
         private readonly ReservaRepositoryInterface $reservaRepository,
-        private readonly PropiedadPolicy $policy
+        private readonly PropiedadPolicy $policy,
+        private readonly UsuarioRepositoryInterface $usuarioRepository
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $propiedades = $this->repository->all();
+        $filtrosLimpios =
+            PropiedadSanitizer::sanitizarFiltros(
+                $filtros
+            );
+
+        $validacion =
+            PropiedadValidator::validarFiltros(
+                $filtrosLimpios
+            );
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        $propiedades = $this->repository->all(
+            $filtrosLimpios
+        );
+
+        return [
+            'items' => $propiedades,
+            'total' => $propiedades->count(),
+        ];
+    }
+
+    public function listarDestacadas(): array
+    {
+        $propiedades = $this->repository->all(
+            [
+                'destacada' => 1,
+                'disponible' => 1,
+            ]
+        );
+
+        return [
+            'items' => $propiedades,
+            'total' => $propiedades->count(),
+        ];
+    }
+
+    public function listarParaAdmin(array $filtros = []): array
+    {
+        $filtrosLimpios = [];
+
+        foreach (
+            ['incluir_eliminados', 'solo_eliminados'] as $flag
+        ) {
+            if (array_key_exists($flag, $filtros)) {
+                $filtrosLimpios[$flag] = filter_var(
+                    $filtros[$flag],
+                    FILTER_VALIDATE_BOOLEAN
+                );
+            }
+        }
+
+        $filtrosLimpios = array_filter(
+            $filtrosLimpios
+        );
+
+        $propiedades = $this->repository->allParaAdmin(
+            $filtrosLimpios
+        );
 
         return [
             'items' => $propiedades,
@@ -87,13 +152,48 @@ class PropiedadService
 
     public function crear(
         array $rawData,
-        int $usuarioId
+        int $usuarioId,
+        int $rolId = Rol::USUARIO,
+        ?int $propietarioId = null
     ): Propiedad {
         $data = PropiedadSanitizer::sanitizarCrear(
             $rawData
         );
 
         $data['usuario_id'] = $usuarioId;
+
+        if ($rolId !== Rol::ADMIN) {
+            $data['destacada'] = 0;
+        }
+
+        if (
+            $rolId === Rol::ADMIN
+            && $propietarioId !== null
+        ) {
+            $idPropietario = PropiedadSanitizer::sanitizarId(
+                $propietarioId
+            );
+
+            if ($idPropietario === null) {
+                throw new ValidationException([
+                    'propietario_id' => [
+                        'El ID del propietario no es válido',
+                    ],
+                ]);
+            }
+
+            if (
+                !$this->usuarioRepository->findById(
+                    $idPropietario
+                )
+            ) {
+                throw new NotFoundException(
+                    'El propietario no existe'
+                );
+            }
+
+            $data['usuario_id'] = $idPropietario;
+        }
 
         $validacion = PropiedadValidator::validar(
             $data
@@ -169,6 +269,10 @@ class PropiedadService
             $rawData['usuario_id']
         );
 
+        if ($rolId !== Rol::ADMIN) {
+            unset($rawData['destacada']);
+        }
+
         $camposPermitidos = [
             'titulo',
             'descripcion',
@@ -180,6 +284,7 @@ class PropiedadService
             'cantidad_banos',
             'capacidad',
             'disponible',
+            'destacada',
             'categoria_id',
             'localidad_id',
         ];
@@ -213,6 +318,7 @@ class PropiedadService
                 $propiedad->cantidad_banos,
             'capacidad' => $propiedad->capacidad,
             'disponible' => (int) $propiedad->disponible,
+            'destacada' => (int) $propiedad->destacada,
             'categoria_id' => $propiedad->categoria_id,
             'localidad_id' => $propiedad->localidad_id,
         ];

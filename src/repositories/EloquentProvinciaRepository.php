@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Collection;
 
 class EloquentProvinciaRepository implements ProvinciaRepositoryInterface
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Provincia::query()
+        $query = Provincia::query();
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query
             ->orderBy('nombre')
             ->get();
     }

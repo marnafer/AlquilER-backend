@@ -13,6 +13,7 @@ use App\Models\Reserva;
 use App\Policies\ResenaPolicy;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\ResenaService;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,6 +25,7 @@ final class ResenaServiceTest extends TestCase
     private $reservaRepository;
     private $resenaPolicy;
     private $logService;
+    private $usuarioRepository;
     private $resenaService;
 
     protected function setUp(): void
@@ -46,11 +48,16 @@ final class ResenaServiceTest extends TestCase
             LogActividadService::class
         );
 
+        $this->usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
         $this->resenaService = new ResenaService(
             $this->resenaRepository,
             $this->reservaRepository,
             $this->resenaPolicy,
-            $this->logService
+            $this->logService,
+            $this->usuarioRepository
         );
     }
 
@@ -247,11 +254,8 @@ final class ResenaServiceTest extends TestCase
         $this->resenaPolicy
             ->expects($this->once())
             ->method('crear')
-            ->with(
-                $reserva,
-                2,
-                'propiedad'
-            );
+            ->with($reserva, 2)
+            ->willReturn('propiedad');
 
         $this->resenaRepository
             ->expects($this->once())
@@ -319,11 +323,8 @@ final class ResenaServiceTest extends TestCase
         $this->resenaPolicy
             ->expects($this->once())
             ->method('crear')
-            ->with(
-                $reserva,
-                9,
-                'inquilino'
-            );
+            ->with($reserva, 9)
+            ->willReturn('inquilino');
 
         $this->resenaRepository
             ->expects($this->once())
@@ -434,11 +435,8 @@ final class ResenaServiceTest extends TestCase
         $this->resenaPolicy
             ->expects($this->once())
             ->method('crear')
-            ->with(
-                $reserva,
-                2,
-                'propiedad'
-            );
+            ->with($reserva, 2)
+            ->willReturn('propiedad');
 
         $this->resenaRepository
             ->expects($this->once())

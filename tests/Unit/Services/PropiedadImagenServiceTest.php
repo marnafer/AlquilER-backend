@@ -18,6 +18,7 @@ use App\Services\PropiedadService;
 use App\Validators\CargaImagenValidatorInterface;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\TestCase;
 
 final class PropiedadImagenServiceTest extends TestCase
@@ -36,7 +37,17 @@ final class PropiedadImagenServiceTest extends TestCase
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
     }
-    
+
+    protected function tearDown(): void
+    {
+        // El Capsule con SQLite :memory: queda instalado como global. Si
+        // se filtra, los tests de Integracion heredan una base sin tablas
+        // y fallan con "no such table".
+        Model::unsetConnectionResolver();
+
+        parent::tearDown();
+    }
+
     public function test_lista_todas_las_imagenes_y_devuelve_el_total(): void
     {
         $imagenes = new Collection([

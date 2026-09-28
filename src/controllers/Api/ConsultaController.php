@@ -93,7 +93,8 @@ class ConsultaController
 
         $consulta = $this->service->obtenerAutorizada(
             (int) $id,
-            (int) $user->sub
+            (int) $user->sub,
+            (int) $user->rol_id
         );
 
         Response::success($consulta);
@@ -144,6 +145,22 @@ class ConsultaController
             [],
             200,
             'Consulta eliminada exitosamente'
+        );
+    }
+
+    public function restore($id): void
+    {
+        $user = AutenticadorMiddleware::verificar();
+
+        $this->service->restaurar(
+            (int) $id,
+            (int) $user->sub
+        );
+
+        Response::success(
+            [],
+            200,
+            'Consulta restaurada exitosamente'
         );
     }
 }

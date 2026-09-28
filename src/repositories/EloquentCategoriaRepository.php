@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Collection;
 
 Class EloquentCategoriaRepository implements CategoriaRepositoryInterface   
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Categoria::query()
+        $query = Categoria::query();
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query
             ->orderByDesc('id')
             ->get();
     }

@@ -14,10 +14,6 @@ class ResenaSanitizer
                 $data['reserva_id'] ?? null
             ),
 
-            'tipo' => self::sanitizarTipo(
-                $data['tipo'] ?? null
-            ),
-
             'calificacion' => self::sanitizarCalificacion(
                 $data['calificacion'] ?? null
             ),
@@ -68,24 +64,6 @@ class ResenaSanitizer
         )
             ? $id
             : null;
-    }
-
-    /**
-     * Sanitizar tipo de reseña
-     */
-    public static function sanitizarTipo(
-        $tipo
-    ): ?string {
-        if (
-            $tipo === null ||
-            trim($tipo) === ''
-        ) {
-            return null;
-        }
-
-        return strtolower(
-            trim($tipo)
-        );
     }
 
     /**

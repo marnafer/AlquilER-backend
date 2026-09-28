@@ -37,12 +37,15 @@ class PropiedadSanitizer
             'disponible' => self::sanitizarDisponible(
                 $data['disponible'] ?? null
             ),
+            'destacada' => self::sanitizarDestacada(
+                $data['destacada'] ?? null
+            ),
             'categoria_id' => self::sanitizarEnteroPositivo(
                 $data['categoria_id'] ?? null
             ),
             'localidad_id' => self::sanitizarEnteroPositivo(
                 $data['localidad_id'] ?? null
-            )
+            ),
         ];
     }
 
@@ -115,6 +118,13 @@ class PropiedadSanitizer
                 );
         }
 
+        if (array_key_exists('destacada', $data)) {
+            $sanitizado['destacada'] =
+                self::sanitizarDestacada(
+                    $data['destacada']
+                );
+        }
+
         if (array_key_exists('categoria_id', $data)) {
             $sanitizado['categoria_id'] =
                 self::sanitizarEnteroPositivo(
@@ -130,6 +140,144 @@ class PropiedadSanitizer
         }
 
         return $sanitizado;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | FILTROS DE BÚSQUEDA
+    |--------------------------------------------------------------------------
+    */
+
+    public static function sanitizarFiltros(array $filtros): array
+    {
+        $sanitizado = [];
+
+        if (array_key_exists('categoria_id', $filtros)) {
+            $sanitizado['categoria_id'] =
+                self::sanitizarIdsFiltro(
+                    $filtros['categoria_id']
+                );
+        }
+
+        if (array_key_exists('localidad_id', $filtros)) {
+            $sanitizado['localidad_id'] =
+                self::sanitizarIdsFiltro(
+                    $filtros['localidad_id']
+                );
+        }
+
+        if (array_key_exists('servicio_id', $filtros)) {
+            $sanitizado['servicio_id'] =
+                self::sanitizarIdsFiltro(
+                    $filtros['servicio_id']
+                );
+        }
+
+        if (array_key_exists('precio_min', $filtros)) {
+            $sanitizado['precio_min'] =
+                self::sanitizarPrecioFiltro(
+                    $filtros['precio_min']
+                );
+        }
+
+        if (array_key_exists('precio_max', $filtros)) {
+            $sanitizado['precio_max'] =
+                self::sanitizarPrecioFiltro(
+                    $filtros['precio_max']
+                );
+        }
+
+        if (array_key_exists('cantidad_ambientes', $filtros)) {
+            $sanitizado['cantidad_ambientes'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['cantidad_ambientes']
+                );
+        }
+
+        if (array_key_exists('cantidad_dormitorios', $filtros)) {
+            $sanitizado['cantidad_dormitorios'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['cantidad_dormitorios']
+                );
+        }
+
+        if (array_key_exists('cantidad_banos', $filtros)) {
+            $sanitizado['cantidad_banos'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['cantidad_banos']
+                );
+        }
+
+        if (array_key_exists('capacidad', $filtros)) {
+            $sanitizado['capacidad'] =
+                self::sanitizarCantidadFiltro(
+                    $filtros['capacidad']
+                );
+        }
+
+        return $sanitizado;
+    }
+
+    public static function sanitizarPrecioFiltro($precio): ?string
+    {
+        if ($precio === null || $precio === '') {
+            return null;
+        }
+
+        return str_replace(
+            ',',
+            '.',
+            trim((string) $precio)
+        );
+    }
+
+    public static function sanitizarCantidadFiltro(
+        $cantidad
+    ): ?string {
+        if ($cantidad === null || $cantidad === '') {
+            return null;
+        }
+
+        return trim((string) $cantidad);
+    }
+
+    public static function sanitizarIdsFiltro($ids): array
+    {
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        $resultado = [];
+
+        foreach ($ids as $id) {
+            if ($id === null) {
+                $resultado[] = null;
+                continue;
+            }
+
+            $id = trim((string) $id);
+
+            if ($id === '') {
+                $resultado[] = '';
+                continue;
+            }
+
+            if (
+                ctype_digit($id) &&
+                (int) $id > 0
+            ) {
+                $resultado[] = (int) $id;
+            } else {
+                $resultado[] = $id;
+            }
+        }
+
+        return array_values(
+            array_unique(
+                $resultado,
+                SORT_REGULAR
+            )
+        );
     }
 
     public static function sanitizarId($id): ?int
@@ -158,6 +306,7 @@ class PropiedadSanitizer
         }
 
         $titulo = trim($titulo);
+
         $titulo = preg_replace(
             '/\s+/u',
             ' ',
@@ -179,6 +328,7 @@ class PropiedadSanitizer
         }
 
         $descripcion = trim($descripcion);
+
         $descripcion = preg_replace(
             '/\s+/u',
             ' ',
@@ -241,6 +391,7 @@ class PropiedadSanitizer
         }
 
         $direccion = trim($direccion);
+
         $direccion = preg_replace(
             '/\s+/u',
             ' ',
@@ -283,6 +434,24 @@ class PropiedadSanitizer
 
         $valor = filter_var(
             $disponible,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        return $valor === null
+            ? null
+            : ($valor ? 1 : 0);
+    }
+
+    public static function sanitizarDestacada(
+        $destacada
+    ): ?int {
+        if ($destacada === null || $destacada === '') {
+            return 0;
+        }
+
+        $valor = filter_var(
+            $destacada,
             FILTER_VALIDATE_BOOLEAN,
             FILTER_NULL_ON_FAILURE
         );

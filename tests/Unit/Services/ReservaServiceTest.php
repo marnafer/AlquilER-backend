@@ -14,7 +14,9 @@ use App\Models\Reserva;
 use App\Policies\ReservaPolicy;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Services\NotificacionService;
 use App\Services\ReservaService;
 use Illuminate\Database\Eloquent\Collection;
 use Tests\TestCase;
@@ -25,6 +27,8 @@ final class ReservaServiceTest extends TestCase
     private $propiedadRepository;
     private $reservaPolicy;
     private $logService;
+    private $notificacionService;
+    private $usuarioRepository;
     private $reservaService;
 
     protected function setUp(): void
@@ -47,11 +51,21 @@ final class ReservaServiceTest extends TestCase
             LogActividadService::class
         );
 
+        $this->notificacionService = $this->createMock(
+            NotificacionService::class
+        );
+
+        $this->usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
         $this->reservaService = new ReservaService(
             $this->reservaRepository,
             $this->propiedadRepository,
             $this->reservaPolicy,
-            $this->logService
+            $this->logService,
+            $this->notificacionService,
+            $this->usuarioRepository
         );
     }
 
@@ -329,6 +343,17 @@ final class ReservaServiceTest extends TestCase
                 'reserva_creada'
             );
 
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                5,
+                'reserva_nueva',
+                'Nueva solicitud de reserva',
+                $this->isType('string'),
+                20
+            );
+
         $result = $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
@@ -508,6 +533,17 @@ final class ReservaServiceTest extends TestCase
                 'reserva_confirmada'
             );
 
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                1,
+                'reserva_confirmada',
+                'Reserva confirmada',
+                $this->isType('string'),
+                1
+            );
+
         $result = $this->reservaService->confirmar(
             1,
             5,
@@ -569,6 +605,17 @@ final class ReservaServiceTest extends TestCase
                 'reserva_confirmada'
             );
 
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                1,
+                'reserva_confirmada',
+                'Reserva confirmada',
+                $this->isType('string'),
+                1
+            );
+
         $result = $this->reservaService->confirmar(
             1,
             99,
@@ -622,6 +669,7 @@ final class ReservaServiceTest extends TestCase
         $reserva = new Reserva([
             'id' => 1,
             'estado' => 'pendiente',
+            'usuario_id' => 8,
         ]);
 
         $reserva->setAttribute('id', 1);
@@ -661,6 +709,17 @@ final class ReservaServiceTest extends TestCase
             ->with(
                 5,
                 'reserva_rechazada'
+            );
+
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                8,
+                'reserva_rechazada',
+                'Reserva rechazada',
+                $this->isType('string'),
+                1
             );
 
         $result = $this->reservaService->rechazar(

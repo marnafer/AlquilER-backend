@@ -20,9 +20,9 @@ class ProvinciaService
     ) {
     }
 
-    public function listar(): array
+    public function listar(array $filtros = []): array
     {
-        $provincias = $this->repository->all();
+        $provincias = $this->repository->all($filtros);
 
         return [
             'items' => $provincias,

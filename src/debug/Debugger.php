@@ -8,8 +8,21 @@ namespace App\Debug;
 class Debugger {
     
     private static $enabled = true;
-    private static $logFile = 'debug.log';
+    private static $logFile;
     
+    /**
+     * Ruta absoluta al archivo de log (raíz del proyecto).
+     * Punto único de verdad para el archivo de debug.
+     */
+    public static function getLogFile(): string {
+        if (self::$logFile === null) {
+            self::$logFile = dirname(__DIR__, 2)
+                . DIRECTORY_SEPARATOR
+                . 'debug.log';
+        }
+        return self::$logFile;
+    }
+
     /**
      * Habilitar/deshabilitar debug
      */
@@ -31,7 +44,7 @@ class Debugger {
         ];
         
         $logLine = json_encode($logEntry, JSON_UNESCAPED_UNICODE) . PHP_EOL;
-        file_put_contents(self::$logFile, $logLine, FILE_APPEND);
+        file_put_contents(self::getLogFile(), $logLine, FILE_APPEND);
     }
     
     /**
@@ -118,7 +131,7 @@ class Debugger {
      * Obtener estadísticas de debug
      */
     public static function getStats() {
-        $logContent = file_exists(self::$logFile) ? file_get_contents(self::$logFile) : '';
+        $logContent = file_exists(self::getLogFile()) ? file_get_contents(self::getLogFile()) : '';
         $logLines = explode(PHP_EOL, trim($logContent));
         $logs = [];
         
@@ -130,7 +143,7 @@ class Debugger {
         
         return [
             'total_logs' => count($logs),
-            'log_file' => self::$logFile,
+            'log_file' => self::getLogFile(),
             'enabled' => self::$enabled
         ];
     }
@@ -139,8 +152,8 @@ class Debugger {
      * Limpiar archivo de log
      */
     public static function clearLog() {
-        if (file_exists(self::$logFile)) {
-            unlink(self::$logFile);
+        if (file_exists(self::getLogFile())) {
+            unlink(self::getLogFile());
         }
     }
 }

@@ -55,6 +55,21 @@ final class ConsultaPolicyTest extends TestCase
     }
 
     
+    public function test_permite_participar_al_administrador(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->usuario_id = 9;
+
+        $consulta = new Consulta();
+        $consulta->usuario_id = 5;
+        $consulta->setRelation('propiedad', $propiedad);
+
+        $this->assertTrue($this->policy->puedeParticipar(14, $consulta, 2));
+        // Sin rol informado (usuario normal) sigue denegado
+        $this->assertFalse($this->policy->puedeParticipar(14, $consulta));
+    }
+
+    
     public function test_permite_actualizar_al_administrador_o_al_creador(): void
     {
         $consulta = new Consulta();

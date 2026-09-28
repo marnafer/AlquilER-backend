@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Collection;
 
 class EloquentLocalidadRepository implements LocalidadRepositoryInterface
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Localidad::query()
+        $query = Localidad::query();
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query
             ->orderByDesc('id')
             ->get();
     }

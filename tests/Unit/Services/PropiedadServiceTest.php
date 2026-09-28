@@ -17,6 +17,7 @@ use App\Repositories\CategoriaRepositoryInterface;
 use App\Repositories\LocalidadRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\PropiedadService;
 use Illuminate\Database\Eloquent\Collection;
@@ -29,7 +30,8 @@ class PropiedadServiceTest extends TestCase
         ?LogActividadService $logService = null,
         ?CategoriaRepositoryInterface $categoriaRepository = null,
         ?LocalidadRepositoryInterface $localidadRepository = null,
-        ?ReservaRepositoryInterface $reservaRepository = null
+        ?ReservaRepositoryInterface $reservaRepository = null,
+        ?UsuarioRepositoryInterface $usuarioRepository = null
     ): PropiedadService {
         return new PropiedadService(
             $repository
@@ -52,7 +54,11 @@ class PropiedadServiceTest extends TestCase
                 ?? $this->createMock(
                     ReservaRepositoryInterface::class
                 ),
-            new PropiedadPolicy()
+            new PropiedadPolicy(),
+            $usuarioRepository
+                ?? $this->createMock(
+                    UsuarioRepositoryInterface::class
+                )
         );
     }
 
@@ -117,6 +123,12 @@ class PropiedadServiceTest extends TestCase
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Listar
+    |--------------------------------------------------------------------------
+    */
+
     public function test_listar_devuelve_propiedades_y_total(): void
     {
         $propiedades = new Collection([
@@ -130,6 +142,7 @@ class PropiedadServiceTest extends TestCase
 
         $repository->expects($this->once())
             ->method('all')
+            ->with([])
             ->willReturn($propiedades);
 
         $service = $this->crearServicio(
@@ -141,6 +154,599 @@ class PropiedadServiceTest extends TestCase
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(2, $resultado['total']);
     }
+
+    public function test_listar_destacadas_filtra_por_destacada_y_disponible(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'destacada' => 1,
+                'disponible' => 1,
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarDestacadas();
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_categoria(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => '2',
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_localidad(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'localidad_id' => [3],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'localidad_id' => '3',
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_categoria_y_localidad(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [2],
+                'localidad_id' => [3],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => '2',
+            'localidad_id' => '3',
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_multiples_categorias(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => ['1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_multiples_localidades(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'localidad_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'localidad_id' => ['1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_filtra_por_multiples_categorias_y_localidades(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [1, 2],
+                'localidad_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => ['1', '2'],
+            'localidad_id' => ['1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_elimina_ids_duplicados(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'categoria_id' => [1, 2],
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'categoria_id' => ['1', '1', '2'],
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_id_de_categoria_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'categoria_id' => ['1', 'abc'],
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_id_de_localidad_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'localidad_id' => ['1', 'abc'],
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filtros avanzados
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_listar_aplica_filtros_avanzados(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'precio_min' => '100000.50',
+                'precio_max' => '200000',
+                'cantidad_ambientes' => 3,
+                'cantidad_dormitorios' => 2,
+                'cantidad_banos' => 1,
+                'capacidad' => 4,
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'precio_min' => '100000,50',
+            'precio_max' => '200000',
+            'cantidad_ambientes' => '3',
+            'cantidad_dormitorios' => '2',
+            'cantidad_banos' => '1',
+            'capacidad' => '4',
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_acepta_precio_minimo_igual_al_maximo(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('all')
+            ->with([
+                'precio_min' => '125000',
+                'precio_max' => '125000',
+            ])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listar([
+            'precio_min' => '125000',
+            'precio_max' => '125000',
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_precio_minimo_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'precio_min' => 'abc',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_precio_maximo_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'precio_max' => 'abc',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_precio_minimo_es_negativo(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'precio_min' => '-100',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_precio_maximo_es_negativo(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'precio_max' => '-100',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_el_precio_minimo_es_mayor_al_maximo(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'precio_min' => '200000',
+            'precio_max' => '100000',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_la_cantidad_de_ambientes_es_invalida(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'cantidad_ambientes' => '2.5',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_la_cantidad_de_dormitorios_es_invalida(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'cantidad_dormitorios' => 'abc',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_la_cantidad_de_banos_es_invalida(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'cantidad_banos' => '0',
+        ]);
+    }
+
+    public function test_listar_lanza_excepcion_si_la_capacidad_es_invalida(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('all');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'capacidad' => '-1',
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Listar para admin
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_listar_para_admin_devuelve_propiedades_y_total(): void
+    {
+        $propiedades = new Collection([
+            $this->propiedad(),
+        ]);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('allParaAdmin')
+            ->with([])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarParaAdmin([]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(1, $resultado['total']);
+    }
+
+    public function test_listar_para_admin_convierte_bandera_solo_eliminados(): void
+    {
+        $propiedades = new Collection();
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('allParaAdmin')
+            ->with(['solo_eliminados' => true])
+            ->willReturn($propiedades);
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarParaAdmin(
+            ['solo_eliminados' => 'true']
+        );
+
+        $this->assertCount(0, $resultado['items']);
+    }
+
+    public function test_listar_para_admin_descarta_bandera_false(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('allParaAdmin')
+            ->with([])
+            ->willReturn(new Collection());
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $resultado = $service->listarParaAdmin(
+            ['solo_eliminados' => '0']
+        );
+
+        $this->assertCount(0, $resultado['items']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mis propiedades / obtener
+    |--------------------------------------------------------------------------
+    */
 
     public function test_mis_propiedades_devuelve_propiedades_y_total(): void
     {
@@ -221,6 +827,116 @@ class PropiedadServiceTest extends TestCase
         $this->crearServicio(
             repository: $repository
         )->obtener(999);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Crear
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_crear_fuerza_destacada_cero_si_no_es_admin(): void
+    {
+        $datos = $this->datosPropiedad();
+        $datos['destacada'] = 1;
+
+        $categoria = new Categoria();
+        $categoria->id = 2;
+
+        $localidad = new Localidad();
+        $localidad->id = 3;
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoriaRepository->method('findById')
+            ->willReturn($categoria);
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $localidadRepository->method('findById')
+            ->willReturn($localidad);
+
+        $capturado = null;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('create')
+            ->willReturnCallback(
+                function (array $data) use (&$capturado) {
+                    $capturado = $data;
+
+                    return $this->propiedad();
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository,
+            localidadRepository: $localidadRepository
+        );
+
+        $service->crear($datos, 7, 1);
+
+        $this->assertSame(0, $capturado['destacada']);
+    }
+
+    public function test_crear_permite_destacada_si_es_admin(): void
+    {
+        $datos = $this->datosPropiedad();
+        $datos['destacada'] = 1;
+
+        $categoria = new Categoria();
+        $categoria->id = 2;
+
+        $localidad = new Localidad();
+        $localidad->id = 3;
+
+        $categoriaRepository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $categoriaRepository->method('findById')
+            ->willReturn($categoria);
+
+        $localidadRepository = $this->createMock(
+            LocalidadRepositoryInterface::class
+        );
+
+        $localidadRepository->method('findById')
+            ->willReturn($localidad);
+
+        $capturado = null;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('create')
+            ->willReturnCallback(
+                function (array $data) use (&$capturado) {
+                    $capturado = $data;
+
+                    return $this->propiedad();
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository,
+            categoriaRepository: $categoriaRepository,
+            localidadRepository: $localidadRepository
+        );
+
+        $service->crear($datos, 7, 2);
+
+        $this->assertSame(1, $capturado['destacada']);
     }
 
     public function test_crear_una_propiedad_y_registra_la_actividad(): void
@@ -406,6 +1122,110 @@ class PropiedadServiceTest extends TestCase
                 ]
             ),
             7
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Actualizar
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_actualizar_ignora_destacada_si_no_es_admin(): void
+    {
+        $propiedad = $this->propiedad();
+        $propiedad->destacada = 0;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->method('findById')
+            ->willReturn($propiedad);
+
+        $capturado = null;
+
+        $repository->expects($this->once())
+            ->method('update')
+            ->willReturnCallback(
+                function (
+                    Propiedad $p,
+                    array $data
+                ) use (&$capturado) {
+                    $capturado = $data;
+
+                    return true;
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $service->actualizar(
+            7,
+            1,
+            1,
+            [
+                'titulo' => 'Nuevo titulo',
+                'destacada' => 1,
+            ]
+        );
+
+        $this->assertArrayNotHasKey(
+            'destacada',
+            $capturado
+        );
+
+        $this->assertSame(
+            'Nuevo titulo',
+            $capturado['titulo']
+        );
+    }
+
+    public function test_actualizar_permite_destacada_si_es_admin(): void
+    {
+        $propiedad = $this->propiedad();
+        $propiedad->destacada = 0;
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->method('findById')
+            ->willReturn($propiedad);
+
+        $capturado = null;
+
+        $repository->expects($this->once())
+            ->method('update')
+            ->willReturnCallback(
+                function (
+                    Propiedad $p,
+                    array $data
+                ) use (&$capturado) {
+                    $capturado = $data;
+
+                    return true;
+                }
+            );
+
+        $service = $this->crearServicio(
+            repository: $repository
+        );
+
+        $service->actualizar(
+            7,
+            2,
+            1,
+            [
+                'destacada' => 1,
+            ]
+        );
+
+        $this->assertSame(
+            1,
+            $capturado['destacada']
         );
     }
 
@@ -700,6 +1520,12 @@ class PropiedadServiceTest extends TestCase
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Eliminar
+    |--------------------------------------------------------------------------
+    */
+
     public function test_eliminar_una_propiedad_y_registra_la_actividad(): void
     {
         $propiedad = $this->propiedad();
@@ -832,6 +1658,12 @@ class PropiedadServiceTest extends TestCase
             1
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Restaurar
+    |--------------------------------------------------------------------------
+    */
 
     public function test_restaurar_una_propiedad_y_registra_la_actividad(): void
     {

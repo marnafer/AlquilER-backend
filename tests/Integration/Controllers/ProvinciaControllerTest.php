@@ -29,6 +29,15 @@ class ProvinciaControllerTest extends TestCase
         );
     }
 
+    protected function tearDown(): void
+    {
+        // $_SERVER es global: sin esto el header de un test se filtra al
+        // siguiente y los que esperan "Token requerido" fallan.
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        parent::tearDown();
+    }
+
     // =========================================================
     // INDEX
     // =========================================================
@@ -176,6 +185,11 @@ class ProvinciaControllerTest extends TestCase
 
     public function test_store_requiere_autenticacion(): void
     {
+        // Header presente pero token que el provider no valida, para
+        // ejercitar el caso "token invalido" y no "token requerido".
+        // El provider por defecto de TestCase devuelve null al validar.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_invalido';
+
         $this->service
             ->expects($this->never())
             ->method('crear');
@@ -309,6 +323,11 @@ class ProvinciaControllerTest extends TestCase
 
     public function test_update_requiere_autenticacion(): void
     {
+        // Header presente pero token que el provider no valida, para
+        // ejercitar el caso "token invalido" y no "token requerido".
+        // El provider por defecto de TestCase devuelve null al validar.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_invalido';
+
         $this->service
             ->expects($this->never())
             ->method('actualizar');
@@ -460,6 +479,11 @@ class ProvinciaControllerTest extends TestCase
 
     public function test_delete_requiere_autenticacion(): void
     {
+        // Header presente pero token que el provider no valida, para
+        // ejercitar el caso "token invalido" y no "token requerido".
+        // El provider por defecto de TestCase devuelve null al validar.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_invalido';
+
         $this->service
             ->expects($this->never())
             ->method('eliminar');
@@ -570,6 +594,11 @@ class ProvinciaControllerTest extends TestCase
 
     public function test_restore_requiere_autenticacion(): void
     {
+        // Header presente pero token que el provider no valida, para
+        // ejercitar el caso "token invalido" y no "token requerido".
+        // El provider por defecto de TestCase devuelve null al validar.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_invalido';
+
         $this->service
             ->expects($this->never())
             ->method('restaurar');

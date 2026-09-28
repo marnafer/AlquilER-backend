@@ -19,6 +19,9 @@ use App\Controllers\Api\LogActividadController;
 use App\Controllers\Api\PropiedadController;
 use App\Controllers\Api\FavoritoController;
 use App\Controllers\Api\MensajeConsultaController;
+use App\Controllers\Api\NotificacionController;
+use App\Controllers\Api\RecuperarContrasenaController;
+use App\Controllers\Api\ContactoController;
 
 // HELPERS - MIDDLEWARES
 use App\Helpers\JwtProvider;
@@ -41,6 +44,8 @@ use App\Repositories\EloquentResenaRepository;
 use App\Repositories\EloquentPropiedadServicioRepository;
 use App\Repositories\EloquentRefreshTokenRepository;
 use App\Repositories\EloquentMensajeConsultaRepository;
+use App\Repositories\EloquentNotificacionRepository;
+use App\Repositories\EloquentPasswordResetRepository;
 
 // SERVICES
 use App\Services\AutenticadorService;
@@ -60,6 +65,10 @@ use App\Services\ResenaService;
 use App\Services\PropiedadServicioService;
 use App\Services\GestorArchivosLocales;
 use App\Services\MensajeConsultaService;
+use App\Services\NotificacionService;
+use App\Services\MailService;
+use App\Services\RecuperarContrasenaService;
+use App\Services\ContactoService;
 
 //VALIDATORS
 use App\Validators\CargaImagenValidator;
@@ -93,6 +102,8 @@ $resenaRepository = new EloquentResenaRepository();
 $propiedadServicioRepository = new EloquentPropiedadServicioRepository();
 $refreshTokenRepository = new EloquentRefreshTokenRepository();
 $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
+$notificacionRepository = new EloquentNotificacionRepository();
+$passwordResetRepository = new EloquentPasswordResetRepository();
 
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
@@ -103,6 +114,10 @@ $resenaPolicy = new ResenaPolicy();
 $reservaPolicy = new ReservaPolicy();
 
 // INSTANCIAR SERVICES
+$notificacionService = new NotificacionService(
+    $notificacionRepository
+);
+
 $logActividadService = new LogActividadService(
     $logActividadRepository
 );
@@ -146,7 +161,8 @@ $propiedadService = new PropiedadService(
     $categoriaRepository,
     $localidadRepository,
     $reservaRepository,
-    $propiedadPolicy
+    $propiedadPolicy,
+    $usuarioRepository
 );
 
 $gestorArchivos = new GestorArchivosLocales();
@@ -172,7 +188,9 @@ $reservaService = new ReservaService(
     $reservaRepository,
     $propiedadRepository,
     $reservaPolicy,
-    $logActividadService
+    $logActividadService,
+    $notificacionService,
+    $usuarioRepository
 );
 
 $consultaService = new ConsultaService(
@@ -181,14 +199,16 @@ $consultaService = new ConsultaService(
     $usuarioRepository,
     $mensajeConsultaRepository,
     $logActividadService,
-    $consultaPolicy
+    $consultaPolicy,
+    $notificacionService
 );
 
 $resenaService = new ResenaService(
     $resenaRepository,
     $reservaRepository,
     $resenaPolicy,
-    $logActividadService
+    $logActividadService,
+    $usuarioRepository
 );
 
 $propiedadServicioService = new PropiedadServicioService(
@@ -202,7 +222,23 @@ $propiedadServicioService = new PropiedadServicioService(
 $mensajeConsultaService = new MensajeConsultaService(
     $mensajeConsultaRepository,
     $consultaService,
-    $logActividadService
+    $logActividadService,
+    $notificacionService
+);
+
+$mailService = MailService::desdeEntorno();
+
+$recuperarContrasenaService = new RecuperarContrasenaService(
+    $usuarioRepository,
+    $passwordResetRepository,
+    $mailService,
+    $logActividadService,
+    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
+);
+
+$contactoService = new ContactoService(
+    $mailService,
+    trim((string) ($_ENV['MAIL_TO'] ?? ''))
 );
 
 // CONTROLLERS & EXPORT
@@ -222,5 +258,8 @@ return [
     'consultaController' => new ConsultaController($consultaService),
     'resenaController' => new ResenaController($resenaService),
     'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService),
+    'notificacionController' => new NotificacionController($notificacionService),
     'propiedadServicioController' => new PropiedadServicioController($propiedadServicioService),
+    'recuperarContrasenaController' => new RecuperarContrasenaController($recuperarContrasenaService),
+    'contactoController' => new ContactoController($contactoService),
 ];

@@ -26,8 +26,29 @@ class UsuarioController
         AutenticadorMiddleware::soloAdmin();
 
         Response::success(
-            $this->service->listar()
+            $this->service->listar($this->filtrosPapelera())
         );
+    }
+
+    private function filtrosPapelera(): array
+    {
+        $filtros = [];
+
+        if (isset($_GET['solo_eliminados'])) {
+            $filtros['solo_eliminados'] = filter_var(
+                $_GET['solo_eliminados'],
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        if (isset($_GET['incluir_eliminados'])) {
+            $filtros['incluir_eliminados'] = filter_var(
+                $_GET['incluir_eliminados'],
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        return $filtros;
     }
 
     /**
@@ -51,6 +72,24 @@ class UsuarioController
 
         Response::success(
             $this->service->obtenerConRol((int) $user->sub)
+        );
+    }
+
+    /**
+     * POST /api/admin/usuarios
+     */
+    public function storeAdmin(): void
+    {
+        $admin = AutenticadorMiddleware::soloAdmin();
+
+        $usuario = $this->service->crearDesdeAdmin(
+            Request::json(),
+            (int) $admin->sub
+        );
+
+        Response::created(
+            $usuario,
+            'Usuario creado correctamente'
         );
     }
 

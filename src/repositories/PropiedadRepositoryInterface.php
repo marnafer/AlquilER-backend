@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface PropiedadRepositoryInterface
 {
-    public function all(): Collection;
+    public function all(array $filtros = []): Collection;
+
+    public function allParaAdmin(array $filtros = []): Collection;
 
     public function porUsuario(int $usuarioId): Collection;
 
@@ -17,7 +19,10 @@ interface PropiedadRepositoryInterface
 
     public function create(array $data): Propiedad;
 
-    public function update(Propiedad $propiedad, array $data): bool;
+    public function update(
+        Propiedad $propiedad,
+        array $data
+    ): bool;
 
     public function delete(Propiedad $propiedad): bool;
 

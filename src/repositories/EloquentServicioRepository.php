@@ -7,9 +7,17 @@ use Illuminate\Support\Collection;
 
 class EloquentServicioRepository implements ServicioRepositoryInterface
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Servicio::query()
+        $query = Servicio::query();
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query
             ->orderBy('id', 'asc')
             ->get();
     }

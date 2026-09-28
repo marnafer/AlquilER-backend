@@ -170,38 +170,6 @@ class ResenaValidator
     }
 
     /**
-     * Valida tipo de reseña
-     */
-    public static function validarTipo($tipo)
-    {
-        if ($tipo === null || $tipo === '') {
-            return [
-                'success' => false,
-                'error' => 'El tipo de reseña es requerido'
-            ];
-        }
-
-        if (!is_string($tipo)) {
-            return [
-                'success' => false,
-                'error' => 'El tipo de reseña debe ser texto'
-            ];
-        }
-
-        if (!in_array($tipo, ['propiedad', 'inquilino'], true)) {
-            return [
-                'success' => false,
-                'error' => 'El tipo de reseña debe ser propiedad o inquilino'
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => null
-        ];
-    }
-
-    /**
      * Valida calificación
      */
     public static function validarCalificacion($calificacion)
@@ -278,10 +246,6 @@ class ResenaValidator
         if (!$resultado['success']) {
             $errores['reserva_id'] = $resultado['error'];
         }
-
-        $resultado = self::validarTipo(
-            $data['tipo'] ?? null
-        );
 
         if (!$resultado['success']) {
             $errores['tipo'] = $resultado['error'];

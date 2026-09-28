@@ -10,8 +10,10 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
+use App\Models\Rol;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\UsuarioRepositoryInterface;
 use App\Policies\ResenaPolicy;
 use App\Sanitizers\ResenaSanitizer;
 use App\Validators\ResenaValidator;
@@ -23,7 +25,8 @@ class ResenaService
         private readonly ResenaRepositoryInterface $repository,
         private readonly ReservaRepositoryInterface $reservaRepository,
         private readonly ResenaPolicy $policy,
-        private readonly LogActividadService $logActividadService
+        private readonly LogActividadService $logActividadService,
+        private readonly UsuarioRepositoryInterface $usuarioRepository
     ) {
     }
 
@@ -192,16 +195,15 @@ class ResenaService
             );
         }
 
-        $this->policy->crear(
+        $tipo = $this->policy->crear(
             $reserva,
-            $usuarioId,
-            $data['tipo']
+            $usuarioId
         );
 
         if (
             $this->repository->existePorReservaYTipo(
                 (int) $data['reserva_id'],
-                $data['tipo']
+                $tipo
             )
         ) {
             throw new ConflictException(
@@ -209,6 +211,7 @@ class ResenaService
             );
         }
 
+        $data['tipo'] = $tipo;
         $data['calificador_id'] = $usuarioId;
 
         $resena = $this->repository->create(
@@ -218,6 +221,94 @@ class ResenaService
         $this->logActividadService->registrar(
             $usuarioId,
             'Creación de reseña'
+        );
+
+        return $resena;
+    }
+
+    public function crearDesdeAdmin(
+        array $rawData,
+        int $adminId
+    ): Resena {
+        $data = ResenaSanitizer::sanitizarCrear($rawData);
+
+        $calificadorId = ResenaSanitizer::sanitizarId(
+            $rawData['calificador_id'] ?? null
+        );
+
+        $validacion = ResenaValidator::validarCrear($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        if ($calificadorId === null) {
+            throw new ValidationException([
+                'calificador_id' => 'El ID del calificador es requerido',
+            ]);
+        }
+
+        $reserva = $this->reservaRepository->findById(
+            (int) $data['reserva_id']
+        );
+
+        if (!$reserva) {
+            throw new NotFoundException(
+                'Reserva no encontrada'
+            );
+        }
+
+        if ($reserva->estado !== 'finalizada') {
+            throw new BadRequestException(
+                'Solo se puede crear una reseña para una reserva finalizada'
+            );
+        }
+
+        if (
+            !$this->usuarioRepository->findById(
+                (int) $calificadorId
+            )
+        ) {
+            throw new NotFoundException(
+                'El usuario calificador no existe'
+            );
+        }
+
+        if ((int) $calificadorId === (int) $reserva->usuario_id) {
+            $tipo = 'propiedad';
+        } elseif (
+            $reserva->propiedad
+            && (int) $calificadorId
+                === (int) $reserva->propiedad->usuario_id
+        ) {
+            $tipo = 'inquilino';
+        } else {
+            throw new BadRequestException(
+                'El calificador debe ser el inquilino o el propietario de la reserva'
+            );
+        }
+
+        if (
+            $this->repository->existePorReservaYTipo(
+                (int) $data['reserva_id'],
+                $tipo
+            )
+        ) {
+            throw new ConflictException(
+                'Ya existe una reseña de este tipo para la reserva'
+            );
+        }
+
+        $data['tipo'] = $tipo;
+        $data['calificador_id'] = (int) $calificadorId;
+
+        $resena = $this->repository->create($data);
+
+        $this->logActividadService->registrar(
+            $adminId,
+            'Creación de reseña desde administración'
         );
 
         return $resena;
@@ -251,7 +342,7 @@ class ResenaService
             );
         }
 
-        if ($rolId !== 2 && (int) $resena->calificador_id !== $usuarioId) {
+        if ($rolId !== Rol::ADMIN && (int) $resena->calificador_id !== $usuarioId) {
             throw new ForbiddenException(
                 'No tienes permiso para editar esta reseña'
             );

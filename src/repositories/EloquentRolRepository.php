@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\Collection;
 
 class EloquentRolRepository implements RolRepositoryInterface
 {
-    public function all(): Collection
+    public function all(array $filtros = []): Collection
     {
-        return Rol::query()
+        $query = Rol::query();
+
+        if (!empty($filtros['solo_eliminados'])) {
+            $query->onlyTrashed();
+        } elseif (!empty($filtros['incluir_eliminados'])) {
+            $query->withTrashed();
+        }
+
+        return $query
             ->orderByDesc('id')
             ->get();
     }

@@ -50,8 +50,10 @@ class PropiedadControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_can_list_properties(): void
+        public function test_it_can_list_properties(): void
     {
+        $_GET = [];
+
         $data = [
             'items' => [
                 ['id' => 1, 'titulo' => 'Casa 1'],
@@ -63,6 +65,7 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('listar')
+            ->with([])
             ->willReturn($data);
 
         $response = $this->captureJson(
@@ -71,6 +74,75 @@ class PropiedadControllerTest extends TestCase
 
         $this->assertTrue($response['success']);
         $this->assertSame($data, $response['data']);
+
+        $_GET = [];
+    }
+
+    public function test_adminIndex_devuelve_el_listado_global_de_propiedades(): void
+    {
+        $this->actingAs(5, 2);
+
+        $_GET = [];
+
+        $propiedades = [
+            'items' => [
+                ['id' => 1, 'titulo' => 'Casa 1'],
+            ],
+            'total' => 1,
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarParaAdmin')
+            ->with([])
+            ->willReturn($propiedades);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->adminIndex()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($propiedades, $response['data']);
+    }
+
+    public function test_adminIndex_pasa_los_filtros_al_service(): void
+    {
+        $this->actingAs(5, 2);
+
+        $_GET = ['solo_eliminados' => 'true'];
+
+        $propiedades = [
+            'items' => [],
+            'total' => 0,
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarParaAdmin')
+            ->with($_GET)
+            ->willReturn($propiedades);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->adminIndex()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($propiedades, $response['data']);
+
+        $_GET = [];
+    }
+
+    public function test_adminIndex_rechaza_a_usuario_no_admin(): void
+    {
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->never())
+            ->method('listarParaAdmin');
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->controller->adminIndex();
     }
 
     public function test_it_can_list_my_properties(): void
@@ -825,5 +897,35 @@ class PropiedadControllerTest extends TestCase
             'validation_errors',
             $response
         );
+    }
+
+    public function test_index_pasa_los_filtros_al_service(): void
+    {
+        $_GET = [
+            'categoria_id' => ['1', '2'],
+            'localidad_id' => ['1', '3'],
+        ];
+
+        $data = [
+            'items' => [
+                ['id' => 1, 'titulo' => 'Casa filtrada'],
+            ],
+            'total' => 1,
+        ];
+
+        $this->service
+            ->expects($this->once())
+            ->method('listar')
+            ->with($_GET)
+            ->willReturn($data);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->index()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($data, $response['data']);
+
+        $_GET = [];
     }
 }

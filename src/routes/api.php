@@ -20,6 +20,18 @@ $router->post('/api/autenticador/logout', [$autenticadorController, 'logout']);
 
 $router->post('/api/autenticador/refresh', [$autenticadorController, 'refresh']);
 
+$router->post('/api/autenticador/recuperar', [$recuperarContrasenaController, 'solicitar']);
+
+$router->post('/api/autenticador/restablecer', [$recuperarContrasenaController, 'restablecer']);
+
+/*
+|--------------------------------------------------------------------------
+| CONTACTO
+|--------------------------------------------------------------------------
+*/
+
+$router->post('/api/contacto', [$contactoController, 'store']);
+
 /*
 |--------------------------------------------------------------------------
 | USUARIOS
@@ -174,6 +186,14 @@ $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
 
 $router->get('/api/admin/consultas', [$consultaController, 'adminIndex']);
 
+$router->get('/api/admin/propiedades', [$propiedadController, 'adminIndex']);
+
+$router->post('/api/admin/usuarios', [$usuarioController, 'storeAdmin']);
+
+$router->post('/api/admin/reservas', [$reservaController, 'storeAdmin']);
+
+$router->post('/api/admin/resenas', [$resenaController, 'storeAdmin']);
+
 $router->get('/api/consultas', [$consultaController, 'index']);
 
 $router->get('/api/consultas/{id}', [$consultaController, 'show']);
@@ -187,6 +207,8 @@ $router->post('/api/consultas', [$consultaController, 'store']);
 $router->put('/api/consultas/{id}', [$consultaController, 'update']);
 
 $router->delete('/api/consultas/{id}', [$consultaController, 'delete']);
+
+$router->post('/api/consultas/{id}/restaurar', [$consultaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -211,6 +233,8 @@ $router->post('/api/resenas', [$resenaController, 'store']);
 $router->put('/api/resenas/{id}', [$resenaController, 'update']);
 
 $router->delete('/api/resenas/{id}', [$resenaController, 'delete']);
+
+$router->post('/api/resenas/{id}/restaurar', [$resenaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
@@ -268,6 +292,8 @@ $router->get('/api/propiedades', [$propiedadController, 'index']);
 
 $router->get('/api/propiedades/mis-propiedades', [$propiedadController, 'misPropiedades']);
 
+$router->get('/api/propiedades/destacadas', [$propiedadController, 'destacadas']);
+
 $router->post('/api/propiedades', [$propiedadController, 'store']);
 
 $router->get('/api/propiedades/{id}', [$propiedadController, 'show']);
@@ -277,6 +303,20 @@ $router->put('/api/propiedades/{id}', [$propiedadController, 'update']);
 $router->delete('/api/propiedades/{id}', [$propiedadController, 'delete']);
 
 $router->post('/api/propiedades/{id}/restaurar', [$propiedadController, 'restore']);
+
+/*
+|--------------------------------------------------------------------------
+| NOTIFICACIONES
+|--------------------------------------------------------------------------
+*/
+
+$router->get('/api/notificaciones', [$notificacionController, 'index']);
+
+$router->get('/api/notificaciones/no-leidas', [$notificacionController, 'noLeidas']);
+
+$router->put('/api/notificaciones/{id}/leer', [$notificacionController, 'marcarLeida']);
+
+$router->put('/api/notificaciones/leer-todas', [$notificacionController, 'marcarTodasLeidas']);
 
 /*
 |--------------------------------------------------------------------------

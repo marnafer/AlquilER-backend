@@ -9,5 +9,14 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
+        <!--
+            La suite Integration usa la base de datos real (ver .env), por lo
+            que MySQL tiene que estar corriendo para correrla.
+            Suite rapida sin base de datos: composer test:unit
+            Solo integration: composer test:integration
+        -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
 </phpunit>
