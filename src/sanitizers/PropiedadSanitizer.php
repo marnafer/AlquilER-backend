@@ -247,15 +247,36 @@ class PropiedadSanitizer
             $ids = [$ids];
         }
 
-        return array_map(
-            static function ($id) {
-                if ($id === null) {
-                    return null;
-                }
+        $resultado = [];
 
-                return trim((string) $id);
-            },
-            $ids
+        foreach ($ids as $id) {
+            if ($id === null) {
+                $resultado[] = null;
+                continue;
+            }
+
+            $id = trim((string) $id);
+
+            if ($id === '') {
+                $resultado[] = '';
+                continue;
+            }
+
+            if (
+                ctype_digit($id) &&
+                (int) $id > 0
+            ) {
+                $resultado[] = (int) $id;
+            } else {
+                $resultado[] = $id;
+            }
+        }
+
+        return array_values(
+            array_unique(
+                $resultado,
+                SORT_REGULAR
+            )
         );
     }
 
