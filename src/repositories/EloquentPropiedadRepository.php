@@ -137,8 +137,10 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
     public function porUsuario(int $usuarioId): Collection
     {
+        // servicios viene eager para que el panel del propietario no tenga que
+        // pedir /propiedades/{id}/servicios una vez por cada propiedad (N+1).
         return Propiedad::query()
-            ->with(['imagenes', 'imagenPrincipal'])
+            ->with(['imagenes', 'imagenPrincipal', 'servicios'])
             ->where('usuario_id', $usuarioId)
             ->orderBy('id', 'asc')
             ->get();
