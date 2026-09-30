@@ -71,21 +71,10 @@ class PropiedadController
     {
         $user = AutenticadorMiddleware::verificar();
 
-        $rolId = (int) $user->rol_id;
-
-        $data = Request::json();
-
-        $propietarioId = null;
-
-        if ($rolId === 2 && isset($data['propietario_id'])) {
-            $propietarioId = $data['propietario_id'];
-        }
-
         $propiedad = $this->service->crear(
-            $data,
+            Request::json(),
             (int) $user->sub,
-            $rolId,
-            $propietarioId
+            (int) $user->rol_id
         );
 
         Response::created(

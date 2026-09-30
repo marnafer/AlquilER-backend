@@ -162,7 +162,9 @@ $propiedadService = new PropiedadService(
     $localidadRepository,
     $reservaRepository,
     $propiedadPolicy,
-    $usuarioRepository
+    $usuarioRepository,
+    $servicioRepository,
+    $propiedadServicioRepository
 );
 
 $gestorArchivos = new GestorArchivosLocales();

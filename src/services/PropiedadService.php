@@ -16,8 +16,11 @@ use App\Repositories\LocalidadRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
+use App\Repositories\PropiedadServicioRepositoryInterface;
+use App\Repositories\ServicioRepositoryInterface;
 use App\Sanitizers\PropiedadSanitizer;
 use App\Validators\PropiedadValidator;
+use App\Validators\ServicioValidator;
 
 class PropiedadService
 {
@@ -28,7 +31,9 @@ class PropiedadService
         private readonly LocalidadRepositoryInterface $localidadRepository,
         private readonly ReservaRepositoryInterface $reservaRepository,
         private readonly PropiedadPolicy $policy,
-        private readonly UsuarioRepositoryInterface $usuarioRepository
+        private readonly UsuarioRepositoryInterface $usuarioRepository,
+        private readonly ServicioRepositoryInterface $servicioRepository,
+        private readonly PropiedadServicioRepositoryInterface $propiedadServicioRepository
     ) {
     }
 
@@ -156,9 +161,48 @@ class PropiedadService
         int $rolId = Rol::USUARIO,
         ?int $propietarioId = null
     ): Propiedad {
-        $data = PropiedadSanitizer::sanitizarCrear(
-            $rawData
+        $servicioIds = $rawData['servicios'] ?? [];
+        $propietarioId = $rawData['propietario_id'] ?? null;
+
+        if (!is_array($servicioIds)) {
+            throw new ValidationException([
+                'servicios' => [
+                    'Los servicios deben enviarse como un arreglo'
+                ],
+            ]);
+        }
+
+        $servicioIds = array_values(
+            array_unique($servicioIds)
         );
+
+        foreach ($servicioIds as $servicioId) {
+            $error = ServicioValidator::validarId($servicioId);
+
+            if ($error !== null) {
+                throw new ValidationException([
+                    'servicios' => [$error],
+                ]);
+            }
+        }
+
+        $servicioIds = array_map('intval', $servicioIds);
+
+        if ($servicioIds !== []) {
+            $servicios = $this->servicioRepository->findByIds(
+                $servicioIds
+            );
+
+            if ($servicios->count() !== count($servicioIds)) {
+                throw new ValidationException([
+                    'servicios' => [
+                        'Uno o más servicios seleccionados no existen'
+                    ],
+                ]);
+            }
+        }
+
+        $data = PropiedadSanitizer::sanitizarCrear($rawData);
 
         $data['usuario_id'] = $usuarioId;
 
@@ -195,9 +239,7 @@ class PropiedadService
             $data['usuario_id'] = $idPropietario;
         }
 
-        $validacion = PropiedadValidator::validar(
-            $data
-        );
+        $validacion = PropiedadValidator::validar($data);
 
         if (!$validacion['success']) {
             throw new ValidationException(
@@ -229,9 +271,14 @@ class PropiedadService
             ]);
         }
 
-        $propiedad = $this->repository->create(
-            $data
-        );
+        $propiedad = $this->repository->create($data);
+
+        if ($servicioIds !== []) {
+            $this->propiedadServicioRepository->attachMultiple(
+                $propiedad->id,
+                $servicioIds
+            );
+        }
 
         $this->logActividadService->registrar(
             $usuarioId,
