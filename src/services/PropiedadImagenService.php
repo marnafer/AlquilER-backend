@@ -26,6 +26,8 @@ class PropiedadImagenService
     ) {
     }
 
+    private const MAX_IMAGENES_POR_PROPIEDAD = 10;
+
     public function listar(): array
     {
         $imagenes = $this->repository->all();
@@ -107,34 +109,53 @@ class PropiedadImagenService
         $uploadDir = dirname(__DIR__, 2)
             . '/public/uploads/propiedades';
 
-        $nombreArchivo = $this->gestorArchivos->upload(
-            $file,
-            $uploadDir
-        );
+        $ruta = null;
 
-        $ruta = '/uploads/propiedades/' . $nombreArchivo;
+        try {
+            $imagen = DB::transaction(
+                function () use (
+                    $propiedadId,
+                    $data,
+                    $file,
+                    $uploadDir,
+                    &$ruta
+                ): PropiedadImagen {
+                    $this->propiedadService
+                        ->obtenerParaActualizar($propiedadId);
 
-        $imagen = DB::transaction(
-            function () use (
-                $propiedadId,
-                $data,
-                $ruta
-            ): PropiedadImagen {
-                // Bloqueamos la propiedad durante toda la operación.
-                $this->propiedadService
-                    ->obtenerParaActualizar($propiedadId);
+                    $cantidadImagenes = $this->repository
+                        ->countByPropiedadId($propiedadId);
 
-                $cantidadImagenes = $this->repository
-                    ->countByPropiedadId($propiedadId);
+                    if ($cantidadImagenes >= self::MAX_IMAGENES_POR_PROPIEDAD) {
+                        throw new ValidationException([
+                            'imagen' => 'La propiedad no puede tener más de '
+                                . self::MAX_IMAGENES_POR_PROPIEDAD
+                                . ' imágenes.'
+                        ]);
+                    }
 
-                return $this->repository->create([
-                    'propiedad_id' => $propiedadId,
-                    'ruta' => $ruta,
-                    'descripcion' => $data['descripcion'],
-                    'es_principal' => $cantidadImagenes === 0 ? 1 : 0,
-                ]);
+                    $nombreArchivo = $this->gestorArchivos->upload(
+                        $file,
+                        $uploadDir
+                    );
+
+                    $ruta = '/uploads/propiedades/' . $nombreArchivo;
+
+                    return $this->repository->create([
+                        'propiedad_id' => $propiedadId,
+                        'ruta' => $ruta,
+                        'descripcion' => $data['descripcion'],
+                        'es_principal' => $cantidadImagenes === 0 ? 1 : 0,
+                    ]);
+                }
+            );
+        } catch (\Throwable $e) {
+            if ($ruta !== null) {
+                $this->gestorArchivos->delete($ruta);
             }
-        );
+
+            throw $e;
+        }
 
         $this->logService->registrar(
             $usuarioId,
@@ -143,7 +164,6 @@ class PropiedadImagenService
 
         return $imagen;
     }
-
     public function establecerPrincipal(
         $rawId,
         int $usuarioId,
