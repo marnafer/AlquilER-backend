@@ -23,6 +23,13 @@ use Tests\TestCase;
 
 final class ReservaServiceTest extends TestCase
 {
+    /**
+     * Fecha de inicio utilizable para crear reservas. El validador rechaza
+     * fechas en el pasado, asi que se calcula relativa a hoy en vez de fija,
+     * para que estos casos no se rompan al correr el suite otro dia.
+     */
+    private const FECHA_INICIO = '+30 days';
+
     private $reservaRepository;
     private $propiedadRepository;
     private $reservaPolicy;
@@ -357,12 +364,141 @@ final class ReservaServiceTest extends TestCase
         $result = $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
-                'fecha_inicio_alquiler' => '2026-10-01',
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
             ],
             1
         );
 
         $this->assertSame(20, $result);
+    }
+
+    public function test_it_rejects_creating_reserva_overlapping_a_confirmed_one(): void
+    {
+        $propiedad = new Propiedad([
+            'id' => 10,
+            'usuario_id' => 5,
+            'disponible' => true,
+        ]);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($propiedad);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCrear')
+            ->with(1, 5)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('hayReservaConfirmadaSolapada')
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La propiedad ya tiene una reserva confirmada en esas fechas'
+        );
+
+        $this->reservaService->crear(
+            [
+                'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+            ],
+            1
+        );
+    }
+
+    public function test_it_rejects_confirming_reserva_overlapping_a_confirmed_one(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 1,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+        $reserva->setAttribute(
+            'fecha_inicio_alquiler',
+            date('Y-m-d', strtotime(self::FECHA_INICIO))
+        );
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeConfirmar')
+            ->willReturn(true);
+
+        // La reserva se excluye a si misma del chequeo de solapamiento.
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('hayReservaConfirmadaSolapada')
+            ->with(
+                10,
+                date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                null,
+                1
+            )
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La propiedad ya tiene una reserva confirmada en esas fechas'
+        );
+
+        $this->reservaService->confirmar(
+            1,
+            5,
+            1
+        );
+    }
+
+    public function test_it_rejects_reserva_whose_end_is_not_after_start(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crear(
+            [
+                'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+            ],
+            1
+        );
+    }
+
+    public function test_it_rejects_reserva_starting_in_the_past(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crear(
+            [
+                'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime('-10 days')),
+            ],
+            1
+        );
     }
 
     public function test_it_throws_exception_when_creating_reserva_with_non_existent_property(): void
@@ -385,7 +521,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->crear(
             [
                 'propiedad_id' => 999,
-                'fecha_inicio_alquiler' => '2026-10-01',
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
             ],
             1
         );
@@ -423,7 +559,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
-                'fecha_inicio_alquiler' => '2026-10-01',
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
             ],
             1
         );
@@ -461,7 +597,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->crear(
             [
                 'propiedad_id' => 10,
-                'fecha_inicio_alquiler' => '2026-10-01',
+                'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
             ],
             1
         );
