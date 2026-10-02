@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Middlewares\PapeleraMiddleware;
 use App\Services\ProvinciaService;
 
 class ProvinciaController
@@ -19,6 +20,8 @@ class ProvinciaController
     // GET /api/provincias
     public function index()
     {
+        PapeleraMiddleware::verificarSiPidePapelera();
+
         Response::success(
             $this->service->listar($this->filtrosPapelera())
         );

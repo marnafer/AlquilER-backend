@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Middlewares\PapeleraMiddleware;
 use App\Services\ResenaService;
 
 class ResenaController
@@ -19,6 +20,8 @@ class ResenaController
     // GET /api/resenas
     public function index()
     {
+        PapeleraMiddleware::verificarSiPidePapelera();
+
         $filtros = [];
 
         if (isset($_GET['tipo'])) {

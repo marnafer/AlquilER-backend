@@ -6,6 +6,7 @@ use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Services\CategoriaService;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Middlewares\PapeleraMiddleware;
 
 class CategoriaController
 {
@@ -20,6 +21,8 @@ class CategoriaController
     // GET /api/categorias
     public function index()
     {
+        PapeleraMiddleware::verificarSiPidePapelera();
+
         Response::success(
             $this->service->listar($this->filtrosPapelera())
         );

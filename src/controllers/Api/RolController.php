@@ -6,6 +6,7 @@ use App\Helpers\Response;
 use App\Helpers\Request;
 use App\Services\RolService;
 use App\Middlewares\AutenticadorMiddleware;
+use App\Middlewares\PapeleraMiddleware;
 
 class RolController
 {
@@ -19,6 +20,8 @@ class RolController
     // GET /api/roles
     public function index()
     {
+        PapeleraMiddleware::verificarSiPidePapelera();
+
         Response::success(
             $this->service->listar($this->filtrosPapelera())
         );
