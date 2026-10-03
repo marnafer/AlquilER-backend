@@ -369,6 +369,51 @@ final class AutenticadorServiceTest extends TestCase
         ]);
     }
 
+    public function test_login_lanza_excepcion_si_el_email_no_es_string(): void
+    {
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $refreshTokenRepository = $this->createMock(
+            RefreshTokenRepositoryInterface::class
+        );
+
+        $tokenProvider = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $logActividadService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $usuarioRepository
+            ->expects($this->never())
+            ->method('findByEmail');
+
+        $service = new AutenticadorService(
+            $usuarioRepository,
+            $refreshTokenRepository,
+            $tokenProvider,
+            $logActividadService
+        );
+
+        try {
+            $service->login([
+                'email' => 123456,
+                'contrasena' => 'secreto',
+            ]);
+
+            $this->fail('Se esperaba una ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertSame([
+                'email' => [
+                    'El email debe ser una cadena de texto',
+                ],
+            ], $e->errors());
+        }
+    }
+
     /*
     |--------------------------------------------------------------------------
     | REGISTRO
@@ -846,6 +891,50 @@ final class AutenticadorServiceTest extends TestCase
         $this->expectException(ValidationException::class);
 
         $service->refresh([]);
+    }
+
+    public function test_refresh_lanza_excepcion_si_el_token_no_es_string(): void
+    {
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $refreshTokenRepository = $this->createMock(
+            RefreshTokenRepositoryInterface::class
+        );
+
+        $tokenProvider = $this->createMock(
+            TokenProviderInterface::class
+        );
+
+        $logActividadService = $this->createMock(
+            LogActividadService::class
+        );
+
+        $refreshTokenRepository
+            ->expects($this->never())
+            ->method('findValidByToken');
+
+        $service = new AutenticadorService(
+            $usuarioRepository,
+            $refreshTokenRepository,
+            $tokenProvider,
+            $logActividadService
+        );
+
+        try {
+            $service->refresh([
+                'refresh_token' => 123456,
+            ]);
+
+            $this->fail('Se esperaba una ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertSame([
+                'refresh_token' => [
+                    'El refresh token debe ser una cadena de texto',
+                ],
+            ], $e->errors());
+        }
     }
 
     public function test_refresh_lanza_excepcion_si_el_token_es_invalido_o_expiro(): void
