@@ -365,6 +365,12 @@ final class PropiedadImagenServiceTest extends TestCase
             ->with(1)
             ->willReturn($propiedad);
 
+        $propiedadService
+            ->expects($this->once())
+            ->method('obtenerParaActualizar')
+            ->with(1)
+            ->willReturn($propiedad);
+
         $cargaImagenValidator
             ->expects($this->once())
             ->method('validate')
@@ -420,6 +426,103 @@ final class PropiedadImagenServiceTest extends TestCase
         );
 
         $this->assertSame($imagen, $resultado);
+    }
+
+    public function test_crear_lanza_excepcion_si_la_propiedad_ya_tiene_10_imagenes(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 1;
+        $propiedad->usuario_id = 7;
+
+        $usuarioId = 7;
+        $rolId = 1;
+
+        $repository = $this->createMock(
+            PropiedadImagenRepositoryInterface::class
+        );
+        $propiedadService = $this->createMock(PropiedadService::class);
+        $logService = $this->createMock(LogActividadService::class);
+        $gestorArchivos = $this->createMock(
+            GestorArchivosInterface::class
+        );
+        $cargaImagenValidator = $this->createMock(
+            CargaImagenValidatorInterface::class
+        );
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+
+        $propiedadService
+            ->expects($this->once())
+            ->method('obtener')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $cargaImagenValidator
+            ->expects($this->once())
+            ->method('validate')
+            ->willReturn(null);
+
+        $policy
+            ->expects($this->once())
+            ->method('gestionarPropiedad')
+            ->with($usuarioId, $rolId, $propiedad);
+
+        $propiedadService
+            ->expects($this->once())
+            ->method('obtenerParaActualizar')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository
+            ->expects($this->once())
+            ->method('countByPropiedadId')
+            ->with(1)
+            ->willReturn(10);
+
+        $gestorArchivos
+            ->expects($this->never())
+            ->method('upload');
+
+        $repository
+            ->expects($this->never())
+            ->method('create');
+
+        $logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $service = new PropiedadImagenService(
+            $repository,
+            $propiedadService,
+            $logService,
+            $gestorArchivos,
+            $cargaImagenValidator,
+            $policy
+        );
+
+        try {
+        $service->crear(
+            ['propiedad_id' => 1],
+            [
+                'tmp_name' => '/tmp/php123',
+                'size' => 1024,
+            ],
+            $usuarioId,
+            $rolId
+        );
+
+        $this->fail(
+            'Se esperaba una ValidationException.'
+        );
+    } catch (ValidationException $e) {
+       $this->assertSame(
+                [
+                    'imagen' => [
+                        'La propiedad no puede tener más de 10 imágenes.'
+                    ]
+                ],
+                $e->errors()
+            );
+        }
     }
 
     public function test_establece_una_imagen_como_principal(): void

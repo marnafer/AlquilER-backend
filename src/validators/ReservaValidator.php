@@ -154,21 +154,42 @@ class ReservaValidator
         }
 
         $fechaInicio = $data['fecha_inicio_alquiler'] ?? null;
+        $fechaFin = $data['fecha_fin_alquiler'] ?? null;
+
+        $inicioValido = false;
 
         if ($fechaInicio === null || $fechaInicio === '') {
             $errores['fecha_inicio_alquiler'] = 'La fecha de inicio del alquiler es requerida';
         } elseif (!self::esFechaValida((string) $fechaInicio)) {
             $errores['fecha_inicio_alquiler'] = 'La fecha de inicio del alquiler no es válida';
+        } else {
+            $inicioValido = true;
+
+            if ((string) $fechaInicio < date('Y-m-d')) {
+                $errores['fecha_inicio_alquiler'] = 'La fecha de inicio no puede ser anterior a hoy';
+            }
         }
+
+        $finValido = false;
 
         if (
             isset($data['fecha_fin_alquiler']) &&
             $data['fecha_fin_alquiler'] !== null &&
             $data['fecha_fin_alquiler'] !== ''
         ) {
-            if (!self::esFechaValida((string) $data['fecha_fin_alquiler'])) {
+            if (!self::esFechaValida((string) $fechaFin)) {
                 $errores['fecha_fin_alquiler'] = 'La fecha de fin del alquiler no es válida';
+            } else {
+                $finValido = true;
             }
+        }
+
+        if (
+            $inicioValido &&
+            $finValido &&
+            (string) $fechaFin <= (string) $fechaInicio
+        ) {
+            $errores['fecha_fin_alquiler'] = 'La fecha de fin debe ser posterior a la fecha de inicio';
         }
 
         if (!empty($errores)) {

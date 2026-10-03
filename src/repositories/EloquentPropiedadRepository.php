@@ -10,7 +10,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function all(array $filtros = []): Collection
     {
         $query = Propiedad::query()
-            ->with(['imagenes', 'imagenPrincipal']);
+            ->with(['imagenes', 'imagenPrincipal', 'servicios']);
 
         if (isset($filtros['categoria_id'])) {
             $query->whereIn(
@@ -149,7 +149,13 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function findById(int $id): ?Propiedad
     {
         return Propiedad::query()
-            ->with(['imagenes', 'imagenPrincipal'])
+            ->with([
+                'categoria',
+                'localidad',
+                'servicios',
+                'imagenes',
+                'imagenPrincipal',
+            ])
             ->whereKey($id)
             ->first();
     }

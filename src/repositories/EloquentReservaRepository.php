@@ -152,4 +152,43 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
             })
             ->exists();
     }
+
+    public function hayReservaConfirmadaSolapada(
+        int $propiedadId,
+        string $fechaInicio,
+        ?string $fechaFin = null,
+        ?int $excluirId = null
+    ): bool {
+        return Reserva::query()
+            ->where('propiedad_id', $propiedadId)
+            ->where('estado', 'confirmada')
+            ->when(
+                $excluirId !== null,
+                fn ($query) => $query->where('id', '!=', $excluirId)
+            )
+            ->where(function ($query) use ($fechaInicio, $fechaFin) {
+                if ($fechaFin === null) {
+                    // Rango abierto: choca con toda reserva que empiece
+                    // despues de nuestro inicio.
+                    $query->where('fecha_inicio_alquiler', '>=', $fechaInicio);
+
+                    return;
+                }
+
+                // Solape inclusivo: la otra reserva arranca antes de que
+                // termine nuestro rango y termina despues de que empiece.
+                $query
+                    ->where('fecha_inicio_alquiler', '<=', $fechaFin)
+                    ->where(function ($query) use ($fechaInicio) {
+                        $query
+                            ->whereNull('fecha_fin_alquiler')
+                            ->orWhere(
+                                'fecha_fin_alquiler',
+                                '>=',
+                                $fechaInicio
+                            );
+                    });
+            })
+            ->exists();
+    }
 }

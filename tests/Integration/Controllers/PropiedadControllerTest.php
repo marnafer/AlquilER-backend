@@ -303,7 +303,7 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('crear')
-            ->with($data, 5)
+            ->with($data, 5, 1)
             ->willReturn($propiedad);
 
         $response = $this->captureJsonWithBody(
@@ -357,7 +357,7 @@ class PropiedadControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('crear')
-            ->with($data, 5)
+            ->with($data, 5, 1)
             ->willThrowException(
                 new ValidationException([
                     'titulo' => [

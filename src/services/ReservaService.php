@@ -142,6 +142,12 @@ class ReservaService
             );
         }
 
+        $this->asegurarSinSolapamiento(
+            $propiedadId,
+            (string) $data['fecha_inicio_alquiler'],
+            $data['fecha_fin_alquiler'] ?? null
+        );
+
         $data['usuario_id'] = $usuarioId;
         $data['estado'] = 'pendiente';
 
@@ -234,6 +240,12 @@ class ReservaService
 
         $propietarioId = (int) $propiedad->usuario_id;
 
+        $this->asegurarSinSolapamiento(
+            $propiedadId,
+            (string) $data['fecha_inicio_alquiler'],
+            $data['fecha_fin_alquiler'] ?? null
+        );
+
         $payload = [
             'usuario_id' => (int) $usuarioId,
             'estado' => $estado,
@@ -299,6 +311,15 @@ class ReservaService
                 'Solo se puede confirmar una reserva pendiente'
             );
         }
+
+        // Solo las confirmadas bloquean, asi que este es el punto donde una
+        // reserva pendiente puede chocar con otra que ya se confirmó antes.
+        $this->asegurarSinSolapamiento(
+            (int) $reserva->propiedad_id,
+            (string) $reserva->fecha_inicio_alquiler,
+            $reserva->fecha_fin_alquiler ?? null,
+            (int) $reserva->id
+        );
 
         $resultado = $this->reservaRepository->update(
             $reserva->id,
@@ -629,5 +650,32 @@ class ReservaService
         );
 
         return true;
+    }
+
+    /**
+     * Impide que dos reservas confirmadas ocupen los mismos días.
+     *
+     * Solo las confirmadas bloquean: las pendientes pueden solaparse a
+     * propósito porque son solicitudes y el propietario elige una. Por eso
+     * el control se repite al confirmar, no solo al crear.
+     */
+    private function asegurarSinSolapamiento(
+        int $propiedadId,
+        string $fechaInicio,
+        ?string $fechaFin,
+        ?int $excluirId = null
+    ): void {
+        $solapada = $this->reservaRepository->hayReservaConfirmadaSolapada(
+            $propiedadId,
+            $fechaInicio,
+            $fechaFin,
+            $excluirId
+        );
+
+        if ($solapada) {
+            throw new ConflictException(
+                'La propiedad ya tiene una reserva confirmada en esas fechas'
+            );
+        }
     }
 }
