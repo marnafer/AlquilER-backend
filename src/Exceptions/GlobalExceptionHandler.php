@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
+use App\Helpers\ErrorLog;
 use App\Helpers\Response;
 use Throwable;
 
@@ -11,11 +12,6 @@ class GlobalExceptionHandler
 {
     public static function handle(Throwable $exception): void
     {
-        $debug = filter_var(
-            $_ENV['APP_DEBUG'] ?? false,
-            FILTER_VALIDATE_BOOLEAN
-        );
-
         $esExcepcionControlada =
             $exception instanceof BadRequestException
             || $exception instanceof UnauthorizedException
@@ -32,24 +28,21 @@ class GlobalExceptionHandler
                 $status = 500;
             }
 
+            // Solo las excepciones controladas llevan texto pensado para el
+            // usuario final (validaciones, "credenciales invalidas", etc.).
             $mensaje = $exception->getMessage();
         } else {
             $status = 500;
 
-            $mensaje = $debug
-                ? $exception->getMessage()
-                : 'Error interno del servidor';
+            // Cualquier otra excepcion puede arrastar datos tecnicos sensibles
+            // (SQLSTATE, nombres de tabla, rutas, credenciales). Al cliente
+            // solo se le manda un mensaje generico, sin importar el entorno:
+            // el detalle va al log del servidor.
+            $mensaje = 'Error interno del servidor';
 
-            if ($debug) {
-                error_log($exception->__toString());
-            } else {
-                error_log(sprintf(
-                    'Error interno: %s en %s:%d',
-                    get_class($exception),
-                    $exception->getFile(),
-                    $exception->getLine()
-                ));
-            }
+            // Registrar el error tanto en produccion como en desarrollo, con el detalle
+            // tecnico completo (SQLSTATE, consulta, traza) en storage/errores.log
+            ErrorLog::registrar($exception);
         }
 
         $response = [
