@@ -4,10 +4,10 @@
  * Router de Debug
  */
 
-require_once SRC_PATH . 'controllers/Api/DebugController.php';
+require_once SRC_PATH . 'Controllers/Api/DebugController.php';
 
-use App\Controllers\DebugController;
 
+use App\Controllers\Api\DebugController;
 // Defensa en profundidad: aunque este archivo sea incluido por algún otro
 // camino, las rutas de debug solo responden en entorno de desarrollo.
 if (($_ENV['APP_ENV'] ?? 'production') !== 'development') {
