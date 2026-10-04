@@ -39,14 +39,6 @@ class AutenticadorController
     }
 
     /**
-     * Alias para register() para compatibilidad con tests
-     */
-    public function registrar(): void
-    {
-        $this->register();
-    }
-
-    /**
      * Refresca el access token usando un refresh token válido
      * POST /api/autenticador/refresh
      * Body: { "refresh_token": "..." }

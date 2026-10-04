@@ -40,7 +40,8 @@ class GlobalExceptionHandler
             // el detalle va al log del servidor.
             $mensaje = 'Error interno del servidor';
 
-            // Registrar el error tanto en producción como en desarrollo, actualmente se guarda en \xampp\php\logs\php_error_log
+            // Registrar el error tanto en produccion como en desarrollo, con el detalle
+            // tecnico completo (SQLSTATE, consulta, traza) en storage/errores.log
             ErrorLog::registrar($exception);
         }
 
