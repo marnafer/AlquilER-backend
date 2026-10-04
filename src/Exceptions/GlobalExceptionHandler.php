@@ -35,12 +35,21 @@ class GlobalExceptionHandler
             $mensaje = $exception->getMessage();
         } else {
             $status = 500;
+
             $mensaje = $debug
                 ? $exception->getMessage()
                 : 'Error interno del servidor';
 
-            // Registrar el error tanto en producción como en desarrollo, actualmente se guarda en \xampp\php\logs\php_error_log
-            error_log($exception->__toString());
+            if ($debug) {
+                error_log($exception->__toString());
+            } else {
+                error_log(sprintf(
+                    'Error interno: %s en %s:%d',
+                    get_class($exception),
+                    $exception->getFile(),
+                    $exception->getLine()
+                ));
+            }
         }
 
         $response = [
