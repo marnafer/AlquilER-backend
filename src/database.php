@@ -22,5 +22,3 @@ $capsule->addConnection([
 $capsule->setAsGlobal();
 
 $capsule->bootEloquent();
-
-Capsule::connection()->getPdo()->exec("SET NAMES utf8mb4");

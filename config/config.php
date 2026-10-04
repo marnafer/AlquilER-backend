@@ -13,12 +13,17 @@ if (APP_ENV === 'development') {
     error_reporting(E_ALL);
     ini_set('display_errors', $debug ? '1' : '0');
 } else {
-    error_reporting(0);
+    error_reporting(E_ALL);
     ini_set('display_errors', '0');
 }
 
 $requiredEnv = [
+    'DB_HOST',
+    'DB_DATABASE',
+    'DB_USERNAME',
+    'DB_PASSWORD',
     'JWT_KEY',
+    'APP_URL',
 ];
 
 foreach ($requiredEnv as $variable) {
@@ -57,6 +62,7 @@ if (APP_ENV === 'production' && $debug) {
     );
 }
 
+define('APP_URL', rtrim((string) $_ENV['APP_URL'], '/'));
 define('JWT_KEY', $jwtKey);
 define('JWT_EXPIRATION', $jwtExpiration);
 define('JWT_ALGORITHM', 'HS256');

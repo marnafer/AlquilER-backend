@@ -1,9 +1,17 @@
 # No subir configuraciones locales de XAMPP o IDEs
 .vs/
+.idea/
+.vscode/
+
 vendor/
 node_modules/
+
+# Variables de entorno y secretos
 .env
-.idea/
+.env.*
+!.env.example
+
+# Logs
 *.log
 
 # Archivos subidos por los usuarios
@@ -13,6 +21,5 @@ node_modules/
 Cambios.txt
 PLAN-SWAGGER.txt
 
-# Archivos temporales 
+# Archivos temporales
 .phpunit.result.cache
-.vscode/

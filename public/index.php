@@ -3,12 +3,13 @@
     require_once __DIR__ . '/../vendor/autoload.php';
 
     use App\Exceptions\GlobalExceptionHandler;
+    use Dotenv\Dotenv;
 
     set_exception_handler(
         [GlobalExceptionHandler::class, 'handle']
     );
 
-    $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+    $dotenv = Dotenv::createImmutable(dirname(__DIR__));
     $dotenv->load();
 
     require_once __DIR__ . '/../src/database.php';
@@ -20,27 +21,22 @@
     use App\Middlewares\RateLimitMiddleware;
     
     date_default_timezone_set('America/Argentina/Buenos_Aires');
-    error_reporting(E_ALL);
 
     define('SRC_PATH', dirname(__DIR__) . '/src/');
 
     define('BASE_URL', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/')); // Esto es útil para generar URLs relativas a la raíz del proyecto, 
                                                                     // especialmente si no está en la raíz del servidor web.  
-    ini_set(
-        'display_errors',
-        ($_ENV['APP_ENV'] ?? 'development') === 'development' ? '1' : '0'
-    );
 
     // ============================================
     // CORS
     // ============================================
 
-    $allowedOrigins = [
-        'http://localhost',
-        'http://127.0.0.1',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000'
-    ];
+    $allowedOrigins = array_filter(
+        array_map(
+            'trim',
+            explode(',', (string) ($_ENV['CORS_ALLOWED_ORIGINS'] ?? ''))
+        )
+    );
 
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
@@ -103,8 +99,7 @@
     if ($method === 'GET' && $path === '/api/health') {
         Response::success([
             'status' => 'ok',
-            'timestamp' => date('Y-m-d H:i:s'),
-            'php' => phpversion()
+            'timestamp' => date('Y-m-d H:i:s')
         ], 200, 'API funcionando correctamente');
         exit;
     }
