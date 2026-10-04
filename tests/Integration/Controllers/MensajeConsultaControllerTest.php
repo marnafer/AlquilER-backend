@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Controllers;
+namespace Tests\Integration\Controllers;
 
 use App\Controllers\Api\MensajeConsultaController;
 use App\Models\MensajeConsulta;

@@ -3,7 +3,7 @@
  * Controlador de debug para API
  */
 
-namespace App\Controllers;
+namespace App\Controllers\Api;
 
 use App\Models\Categoria;
 use App\Models\Consulta;
