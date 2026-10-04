@@ -11,6 +11,8 @@ use App\Repositories\UsuarioRepositoryInterface;
 use App\Repositories\RefreshTokenRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
+use App\Sanitizers\AutenticadorSanitizer;
+use App\Validators\AutenticadorValidator;
 use App\Models\Usuario;
 use App\Models\Rol; 
 
@@ -27,20 +29,21 @@ class AutenticadorService
 
     public function login(array $rawData): array
     {
-        $email = $rawData['email'] ?? null;
-        $contrasena = $rawData['contrasena'] ?? null;
+        $data = AutenticadorSanitizer::sanitizarLogin($rawData);
 
-        if (!$email || !$contrasena) {
-            throw new ValidationException([
-                'credenciales' => [
-                    'Email y contraseña son obligatorios',
-                ],
-            ]);
+        $validacion = AutenticadorValidator::validarLogin($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
         }
 
-        $email = UsuarioSanitizer::sanitizarSoloEmail($email);
+        $email = UsuarioSanitizer::sanitizarSoloEmail(
+            $data['email']
+        );
 
-        $validacion = UsuarioValidator::validarEmailLoginUsuario($email);
+        $validacion = UsuarioValidator::validarEmailLoginUsuario(
+            $email
+        );
 
         if (!$validacion['success']) {
             throw new ValidationException($validacion['errors']);
@@ -50,7 +53,10 @@ class AutenticadorService
 
         if (
             !$usuario
-            || !password_verify($contrasena, $usuario->contrasena)
+            || !password_verify(
+                $data['contrasena'],
+                $usuario->contrasena
+            )
         ) {
             throw new UnauthorizedException('Credenciales inválidas');
         }
@@ -64,7 +70,10 @@ class AutenticadorService
         $this->refreshTokenRepository->create([
             'usuario_id' => $usuario->id,
             'token' => $refreshToken,
-            'expires_at' => date('Y-m-d H:i:s', strtotime('+15 days')),
+            'expires_at' => date(
+                'Y-m-d H:i:s',
+                strtotime('+15 days')
+            ),
         ]);
 
         $this->logActividadService->registrar(
@@ -78,7 +87,6 @@ class AutenticadorService
             'rol_id' => $usuario->rol_id,
         ];
     }
-
     public function registrar(array $rawData): Usuario
     {
         $data = UsuarioSanitizer::sanitizarUsuario($rawData);
@@ -117,18 +125,16 @@ class AutenticadorService
 
     public function refresh(array $rawData): array
     {
-        $tokenRecibido = $rawData['refresh_token'] ?? null;
+        $data = AutenticadorSanitizer::sanitizarRefresh($rawData);
 
-        if (!$tokenRecibido) {
-            throw new ValidationException([
-                'refresh_token' => [
-                    'El refresh token es obligatorio',
-                ],
-            ]);
+        $validacion = AutenticadorValidator::validarRefresh($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
         }
 
         $userToken = $this->refreshTokenRepository
-            ->findValidByToken($tokenRecibido);
+            ->findValidByToken($data['refresh_token']);
 
         if (!$userToken) {
             throw new UnauthorizedException(
@@ -153,7 +159,10 @@ class AutenticadorService
         $this->refreshTokenRepository->create([
             'usuario_id' => $usuario->id,
             'token' => $nuevoRefreshToken,
-            'expires_at' => date('Y-m-d H:i:s', strtotime('+15 days')),
+            'expires_at' => date(
+                'Y-m-d H:i:s',
+                strtotime('+15 days')
+            ),
         ]);
 
         return [

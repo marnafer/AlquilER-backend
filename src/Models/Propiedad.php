@@ -41,7 +41,8 @@ class Propiedad extends Model
         'destacada' => 'boolean',
         'categoria_id' => 'integer',
         'localidad_id' => 'integer',
-        'usuario_id' => 'integer'
+        'usuario_id' => 'integer',
+        'fecha_publicacion' => 'datetime',
     ];
 
     protected $hidden = [
