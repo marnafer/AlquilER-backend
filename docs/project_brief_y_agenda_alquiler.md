@@ -1,8 +1,29 @@
 # Project Brief: Sistema AlquilER
 
-## 1. Resumen Ejecutivo
+## 1. Resumen
 
-**AlquilER** es una plataforma integral (Web y Mobile) diseñada para modernizar y formalizar la búsqueda y gestión de alquileres residenciales. El sistema busca desplazar la informalidad de las redes sociales ofreciendo un entorno seguro y centralizado. Su principal valor agregado es un **sistema de calificaciones (scoring)** bidireccional que permite a los buenos inquilinos acceder a futuras propiedades con menores barreras y requisitos de ingreso, generando un ecosistema de confianza.
+AlquilER: Para alquilar de forma segura y ahorrar dolores de cabeza
+
+El problema de alquilar hoy:
+
+Buscar una propiedad o encontrar al inquilino ideal es un proceso frustrante, agotador y, muchas veces, riesgoso. Entre la informalidad de los grupos en redes sociales, la desconfianza mutua, el miedo a las estafas y los requisitos de ingreso que suelen ser casi imposibles de cumplir, el mercado de alquileres es hostil incluso para quienes hacen las cosas bien, y no se reconoce la honestidad y responsabilidad.
+
+Nuestra propuesta:
+
+Hacer un nuevo punto de encuentro seguro para la oferta y demanda de alquileres. Dejamos atrás el caos y la incertidumbre de las redes sociales para ofrecerte una plataforma centralizada donde propietarios e inquilinos pueden conectarse con total tranquilidad, reglas claras y perfiles verificados.
+
+Centralizacion:
+
+Toda la oferta y demanda de alquileres residenciales en un solo lugar, dejamos atras estar buscando entre publicaciones de autos, articulos varios o alquileres comerciales en las plataformas de las redes sociales.
+Accede a toda tu informacion, consultas, reservas, mensajes, publicaciones, en un mismo lugar. 
+
+Tu confianza tiene premio:
+
+Nuestro principal diferencial es un sistema de reputación (scoring) bidireccional que transforma la manera en que se alquila:
+
+Si buscás alquilar: Tu buen comportamiento y cumplimiento te construyen un historial positivo. A mejor puntaje en la plataforma, menores serán las barreras, requisitos y exigencias de ingreso para tu próximo hogar. Ademas, vas a poder verificar la calidad del servicio que ofrece la propiedad de ante mano.
+
+Si sos propietario: Podés elegir a tu próximo inquilino basándote en calificaciones reales y comprobables de sus experiencias anteriores, reduciendo el riesgo y alquilando con total tranquilidad. Ofrecer un buen servicio te va a recompensar, la demanda por tus propiedades va a crecer conforme crezcan su calificaciones.
 
 ## 2. Equipo de Trabajo y Roles
 

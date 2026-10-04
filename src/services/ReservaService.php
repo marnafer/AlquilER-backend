@@ -444,6 +444,11 @@ class ReservaService
         return $resultado;
     }
 
+    public function finalizarVencidas(): int
+    {
+        return $this->reservaRepository->finalizarVencidas();
+    }
+
     public function cancelar(
         $rawId,
         int $usuarioId,

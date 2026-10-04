@@ -38,4 +38,6 @@ interface ReservaRepositoryInterface
         ?string $fechaFin = null,
         ?int $excluirId = null
     ): bool;
+
+    public function finalizarVencidas(): int;
 }
