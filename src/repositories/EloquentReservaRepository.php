@@ -191,4 +191,23 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
             })
             ->exists();
     }
+
+    public function finalizarVencidas(): int
+    {
+        return Reserva::query()
+            ->whereIn('estado', [
+                'pendiente',
+                'confirmada'
+            ])
+            ->whereNotNull('fecha_fin_alquiler')
+            ->whereDate(
+                'fecha_fin_alquiler',
+                '<',
+                date('Y-m-d')
+            )
+            ->whereNull('deleted_at')
+            ->update([
+                'estado' => 'finalizada'
+            ]);
+    }
 }

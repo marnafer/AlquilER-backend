@@ -257,6 +257,7 @@ return [
     'logActividadController' => new LogActividadController($logActividadService),
     'favoritoController' => new FavoritoController($favoritoService),
     'reservaController' => new ReservaController($reservaService),
+    'reservaService' => $reservaService,
     'consultaController' => new ConsultaController($consultaService),
     'resenaController' => new ResenaController($resenaService),
     'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService),
