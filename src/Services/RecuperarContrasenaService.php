@@ -47,11 +47,12 @@ class RecuperarContrasenaService
             return;
         }
 
-        $token = bin2hex(random_bytes(32));
+       $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
 
         $this->passwordResetRepository->create([
             'email' => $email,
-            'token' => $token,
+            'token' => $tokenHash,
             'expiracion' => date(
                 'Y-m-d H:i:s',
                 strtotime('+' . self::MINUTOS_VIGENCIA . ' minutes')

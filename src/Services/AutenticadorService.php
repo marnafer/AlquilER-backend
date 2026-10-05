@@ -69,7 +69,7 @@ class AutenticadorService
 
         $this->refreshTokenRepository->create([
             'usuario_id' => $usuario->id,
-            'token' => $refreshToken,
+            'token' => hash('sha256', $refreshToken),
             'expires_at' => date(
                 'Y-m-d H:i:s',
                 strtotime('+15 days')
@@ -158,7 +158,7 @@ class AutenticadorService
 
         $this->refreshTokenRepository->create([
             'usuario_id' => $usuario->id,
-            'token' => $nuevoRefreshToken,
+            'token' => hash('sha256', $nuevoRefreshToken),
             'expires_at' => date(
                 'Y-m-d H:i:s',
                 strtotime('+15 days')

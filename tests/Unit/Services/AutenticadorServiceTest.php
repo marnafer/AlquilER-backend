@@ -76,7 +76,10 @@ final class AutenticadorServiceTest extends TestCase
             ->method('create')
             ->with($this->callback(function (array $data): bool {
                 return $data['usuario_id'] === 7
-                    && $data['token'] === 'refresh-token-de-prueba'
+                    && $data['token'] === hash(
+                            'sha256',
+                            'refresh-token-de-prueba'
+                        )
                     && isset($data['expires_at']);
             }));
 
@@ -837,7 +840,10 @@ final class AutenticadorServiceTest extends TestCase
             ->method('create')
             ->with($this->callback(function (array $data): bool {
                 return $data['usuario_id'] === 7
-                    && $data['token'] === 'nuevo-refresh-token'
+                    && $data['token'] === hash(
+                        'sha256',
+                        'nuevo-refresh-token'
+                    )
                     && isset($data['expires_at']);
             }));
 

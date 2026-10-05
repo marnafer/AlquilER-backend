@@ -17,8 +17,10 @@ class EloquentPasswordResetRepository implements PasswordResetRepositoryInterfac
         string $token,
         string $email
     ): ?PasswordReset {
+        $tokenHash = hash('sha256', $token);
+
         return PasswordReset::query()
-            ->where('token', $token)
+            ->where('token', $tokenHash)
             ->where('email', $email)
             ->first();
     }
