@@ -13,14 +13,18 @@ class EloquentRefreshTokenRepository implements RefreshTokenRepositoryInterface
 
     public function findValidByToken(string $token): ?RefreshToken
     {
-        return RefreshToken::where('token', $token)
+        $tokenHash = hash('sha256', $token);
+
+        return RefreshToken::where('token', $tokenHash)
             ->where('expires_at', '>', date('Y-m-d H:i:s'))
             ->first();
     }
 
     public function deleteByToken(string $token): void
     {
-        RefreshToken::where('token', $token)->delete();
+        $tokenHash = hash('sha256', $token);
+
+        RefreshToken::where('token', $tokenHash)->delete();
     }
 
     public function deleteById(int $id): void

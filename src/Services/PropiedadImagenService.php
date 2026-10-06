@@ -12,6 +12,7 @@ use App\Repositories\PropiedadImagenRepositoryInterface;
 use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\CargaImagenValidatorInterface;
 use App\Validators\PropiedadImagenValidator;
+use App\Repositories\GestorArchivosInterface;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class PropiedadImagenService

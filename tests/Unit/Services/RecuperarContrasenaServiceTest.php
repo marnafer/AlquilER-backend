@@ -65,59 +65,91 @@ final class RecuperarContrasenaServiceTest extends TestCase
         $usuario = new Usuario();
         $usuario->id = 10;
 
-        $usuarioRepository = $this->createMock(
-            UsuarioRepositoryInterface::class
-        );
-
-        $usuarioRepository->expects($this->once())
+        $usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
+        $usuarioRepository
+            ->expects($this->once())
             ->method('findByEmail')
             ->with('usuario@test.com')
             ->willReturn($usuario);
+
+        $tokenOriginal = null;
+        $tokenHashGuardado = null;
 
         $passwordResetRepository = $this->createMock(
             PasswordResetRepositoryInterface::class
         );
 
-        $passwordResetRepository->expects($this->once())
+        $passwordResetRepository
+            ->expects($this->once())
             ->method('create')
-            ->with($this->callback(function (array $data): bool {
-                return $data['email'] === 'usuario@test.com'
-                    && preg_match('/^[a-f0-9]{64}$/', $data['token']) === 1
-                    && $data['usado'] === 0
-                    && strtotime((string) $data['expiracion']) > time();
-            }));
+            ->with($this->callback(
+                function (array $data) use (&$tokenHashGuardado): bool {
+                    $tokenHashGuardado = $data['token'];
+
+                    return $data['email'] === 'usuario@test.com'
+                        && preg_match('/^[a-f0-9]{64}$/', $data['token']) === 1
+                        && $data['usado'] === 0
+                        && strtotime((string) $data['expiracion']) > time();
+                }
+            ));
 
         $mailService = $this->createMock(MailService::class);
 
-        $mailService->expects($this->once())
+        $mailService
+            ->expects($this->once())
             ->method('enviar')
             ->with(
                 'usuario@test.com',
                 'Recuperación de contraseña',
                 $this->callback(
-                    fn (string $html): bool =>
-                        str_contains($html, 'restablecer-contrasena?token=')
-                        && str_contains($html, 'usuario%40test.com')
+                    function (string $html) use (&$tokenOriginal): bool {
+                        if (
+                            preg_match(
+                                '/[?&]token=([^&"]+)/',
+                                $html,
+                                $matches
+                            ) !== 1
+                        ) {
+                            return false;
+                        }
+
+                        $tokenOriginal = urldecode($matches[1]);
+
+                        return true;
+                    }
                 ),
                 $this->anything(),
                 null
             );
 
-        $logService = $this->createMock(LogActividadService::class);
-
-        $logService->expects($this->never())
+        $logActividadService = $this->createMock(LogActividadService::class);
+        $logActividadService
+            ->expects($this->never())
             ->method('registrar');
 
-        $servicio = $this->crearServicio(
+        $service = $this->crearServicio(
             $usuarioRepository,
             $passwordResetRepository,
             $mailService,
-            $logService
+            $logActividadService
         );
 
-        $servicio->solicitar([
+        $service->solicitar([
             'email' => 'Usuario@Test.com',
         ]);
+
+        $this->assertNotNull($tokenOriginal);
+        $this->assertNotNull($tokenHashGuardado);
+
+        $this->assertNotSame(
+            $tokenOriginal,
+            $tokenHashGuardado
+        );
+
+        $this->assertSame(
+            hash('sha256', $tokenOriginal),
+            $tokenHashGuardado
+        );
     }
 
     public function test_solicitar_no_revela_si_el_email_no_existe(): void

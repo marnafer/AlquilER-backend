@@ -46,6 +46,7 @@ use App\Repositories\EloquentRefreshTokenRepository;
 use App\Repositories\EloquentMensajeConsultaRepository;
 use App\Repositories\EloquentNotificacionRepository;
 use App\Repositories\EloquentPasswordResetRepository;
+use App\Repositories\GestorArchivosLocales;
 
 // SERVICES
 use App\Services\AutenticadorService;
@@ -63,7 +64,6 @@ use App\Services\ReservaService;
 use App\Services\ConsultaService;
 use App\Services\ResenaService;
 use App\Services\PropiedadServicioService;
-use App\Services\GestorArchivosLocales;
 use App\Services\MensajeConsultaService;
 use App\Services\NotificacionService;
 use App\Services\MailService;
