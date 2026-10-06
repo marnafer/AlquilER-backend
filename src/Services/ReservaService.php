@@ -37,33 +37,17 @@ class ReservaService
             return $this->reservaRepository->getAll($filtros);
         }
 
-        $reservasUsuario = $this->reservaRepository
-            ->getByUsuario($usuarioId);
-
-        $propiedades = $this->propiedadRepository
-            ->porUsuario($usuarioId);
-
-        $reservasPropiedades = [];
-
-        foreach ($propiedades as $propiedad) {
-            $reservasPropiedades = array_merge(
-                $reservasPropiedades,
-                $this->reservaRepository->getByPropiedad(
-                    (int) $propiedad->id
-                )
-            );
-        }
-
-        return collect(
-            array_merge(
-                $reservasUsuario,
-                $reservasPropiedades
-            )
-        )
-            ->unique('id')
-            ->sortByDesc('fecha_reserva')
+        $propiedadIds = $this->propiedadRepository
+            ->porUsuario($usuarioId)
+            ->map(static fn ($propiedad): int => (int) $propiedad->id)
             ->values()
             ->all();
+
+        return $this->reservaRepository->listarPorAlcance(
+            $usuarioId,
+            $propiedadIds,
+            $filtros
+        );
     }
 
     public function obtener(

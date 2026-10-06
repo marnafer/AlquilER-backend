@@ -104,65 +104,7 @@ final class ReservaServiceTest extends TestCase
         $this->assertSame($reservas, $result);
     }
 
-    public function test_it_can_list_own_reservas_and_reservas_of_owned_properties(): void
-    {
-        $reservasUsuario = [
-            [
-                'id' => 1,
-                'usuario_id' => 1,
-                'propiedad_id' => 10,
-                'fecha_reserva' => '2026-09-15 10:00:00',
-            ],
-        ];
-
-        $reservasPropiedad = [
-            [
-                'id' => 2,
-                'usuario_id' => 5,
-                'propiedad_id' => 20,
-                'fecha_reserva' => '2026-09-16 10:00:00',
-            ],
-        ];
-
-        $propiedad = new Propiedad([
-            'usuario_id' => 1,
-        ]);
-
-        $propiedad->setAttribute('id', 20);
-
-        $propiedades = new Collection([
-            $propiedad,
-        ]);
-
-        $this->reservaRepository
-            ->expects($this->once())
-            ->method('getByUsuario')
-            ->with(1)
-            ->willReturn($reservasUsuario);
-
-        $this->propiedadRepository
-            ->expects($this->once())
-            ->method('porUsuario')
-            ->with(1)
-            ->willReturn($propiedades);
-
-        $this->reservaRepository
-            ->expects($this->once())
-            ->method('getByPropiedad')
-            ->with(20)
-            ->willReturn($reservasPropiedad);
-
-        $result = $this->reservaService->listar(
-            1,
-            1
-        );
-
-        $this->assertCount(2, $result);
-        $this->assertSame(2, $result[0]['id']);
-        $this->assertSame(1, $result[1]['id']);
-    }
-
-    public function test_it_removes_duplicate_reservas_when_listing(): void
+    public function test_it_lists_reservas_within_user_scope(): void
     {
         $reservas = [
             [
@@ -173,17 +115,11 @@ final class ReservaServiceTest extends TestCase
             ],
         ];
 
-        $this->reservaRepository
-            ->expects($this->once())
-            ->method('getByUsuario')
-            ->with(1)
-            ->willReturn($reservas);
-
         $propiedad = new Propiedad([
             'usuario_id' => 1,
         ]);
 
-        $propiedad->setAttribute('id', 10);
+        $propiedad->setAttribute('id', 20);
 
         $this->propiedadRepository
             ->expects($this->once())
@@ -195,8 +131,8 @@ final class ReservaServiceTest extends TestCase
 
         $this->reservaRepository
             ->expects($this->once())
-            ->method('getByPropiedad')
-            ->with(10)
+            ->method('listarPorAlcance')
+            ->with(1, [20], [])
             ->willReturn($reservas);
 
         $result = $this->reservaService->listar(
@@ -204,8 +140,43 @@ final class ReservaServiceTest extends TestCase
             1
         );
 
-        $this->assertCount(1, $result);
-        $this->assertSame(1, $result[0]['id']);
+        $this->assertSame($reservas, $result);
+    }
+
+    public function test_it_applies_filters_when_listing_reservas_within_scope(): void
+    {
+        $filtros = [
+            'estado' => 'pendiente',
+            'propiedad_id' => 20,
+        ];
+
+        $propiedad = new Propiedad([
+            'usuario_id' => 1,
+        ]);
+
+        $propiedad->setAttribute('id', 20);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('porUsuario')
+            ->with(1)
+            ->willReturn(
+                new Collection([$propiedad])
+            );
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('listarPorAlcance')
+            ->with(1, [20], $filtros)
+            ->willReturn([]);
+
+        $result = $this->reservaService->listar(
+            1,
+            1,
+            $filtros
+        );
+
+        $this->assertSame([], $result);
     }
 
     public function test_it_can_get_reserva_by_id(): void
