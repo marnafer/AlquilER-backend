@@ -11,7 +11,7 @@ use App\Models\Propiedad;
 use App\Models\PropiedadImagen;
 use App\Policies\PropiedadImagenPolicy;
 use App\Repositories\PropiedadImagenRepositoryInterface;
-use App\Services\GestorArchivosInterface;
+use App\Repositories\GestorArchivosInterface;
 use App\Services\LogActividadService;
 use App\Services\PropiedadImagenService;
 use App\Services\PropiedadService;
