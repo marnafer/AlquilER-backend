@@ -330,6 +330,8 @@ class PropiedadService
             'cantidad_dormitorios',
             'cantidad_banos',
             'capacidad',
+            'acepta_mascotas',
+            'acepta_hijos',
             'disponible',
             'destacada',
             'categoria_id',
@@ -364,6 +366,10 @@ class PropiedadService
             'cantidad_banos' =>
                 $propiedad->cantidad_banos,
             'capacidad' => $propiedad->capacidad,
+            'acepta_mascotas' =>
+                (int) $propiedad->acepta_mascotas,
+            'acepta_hijos' =>
+                (int) $propiedad->acepta_hijos,
             'disponible' => (int) $propiedad->disponible,
             'destacada' => (int) $propiedad->destacada,
             'categoria_id' => $propiedad->categoria_id,
