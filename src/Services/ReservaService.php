@@ -15,6 +15,7 @@ use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\ReservaSanitizer;
 use App\Validators\ReservaValidator;
+use App\Models\Rol;
 
 class ReservaService
 {
@@ -33,37 +34,21 @@ class ReservaService
         int $rolId,
         array $filtros = []
     ): array {
-        if ($rolId === 2) {
+        if ($rolId === Rol::ADMIN) {
             return $this->reservaRepository->getAll($filtros);
         }
 
-        $reservasUsuario = $this->reservaRepository
-            ->getByUsuario($usuarioId);
-
-        $propiedades = $this->propiedadRepository
-            ->porUsuario($usuarioId);
-
-        $reservasPropiedades = [];
-
-        foreach ($propiedades as $propiedad) {
-            $reservasPropiedades = array_merge(
-                $reservasPropiedades,
-                $this->reservaRepository->getByPropiedad(
-                    (int) $propiedad->id
-                )
-            );
-        }
-
-        return collect(
-            array_merge(
-                $reservasUsuario,
-                $reservasPropiedades
-            )
-        )
-            ->unique('id')
-            ->sortByDesc('fecha_reserva')
+        $propiedadIds = $this->propiedadRepository
+            ->porUsuario($usuarioId)
+            ->map(static fn ($propiedad): int => (int) $propiedad->id)
             ->values()
             ->all();
+
+        return $this->reservaRepository->listarPorAlcance(
+            $usuarioId,
+            $propiedadIds,
+            $filtros
+        );
     }
 
     public function obtener(

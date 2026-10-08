@@ -22,6 +22,20 @@ interface ReservaRepositoryInterface
 
     public function getByPropiedad(int $propiedadId): array;
 
+    /**
+     * Lista las reservas que están dentro del alcance de un usuario: las
+     * que él mismo hizo, más las que otros hicieron sobre sus propiedades.
+     *
+     * Los filtros solo acotan ese alcance, nunca lo amplían: filtrar por una
+     * propiedad ajena devuelve las reservas propias sobre esa propiedad, no
+     * las reservas que otros hicieron en ella.
+     */
+    public function listarPorAlcance(
+        int $usuarioId,
+        array $propiedadIds,
+        array $filtros = []
+    ): array;
+
     public function tieneReservaActiva(int $propiedadId): bool;
 
     /**

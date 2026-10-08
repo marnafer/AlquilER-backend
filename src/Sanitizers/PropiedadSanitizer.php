@@ -34,6 +34,14 @@ class PropiedadSanitizer
             'capacidad' => self::sanitizarEnteroPositivo(
                 $data['capacidad'] ?? null
             ),
+            'acepta_mascotas' => self::sanitizarBooleano(
+                $data['acepta_mascotas'] ?? null,
+                false
+            ),
+            'acepta_hijos' => self::sanitizarBooleano(
+                $data['acepta_hijos'] ?? null,
+                false
+            ),
             'disponible' => self::sanitizarDisponible(
                 $data['disponible'] ?? null
             ),
@@ -111,6 +119,22 @@ class PropiedadSanitizer
                 );
         }
 
+        if (array_key_exists('acepta_mascotas', $data)) {
+            $sanitizado['acepta_mascotas'] =
+                self::sanitizarBooleano(
+                    $data['acepta_mascotas'],
+                    false
+                );
+        }
+
+        if (array_key_exists('acepta_hijos', $data)) {
+            $sanitizado['acepta_hijos'] =
+                self::sanitizarBooleano(
+                    $data['acepta_hijos'],
+                    false
+                );
+        }
+
         if (array_key_exists('disponible', $data)) {
             $sanitizado['disponible'] =
                 self::sanitizarDisponible(
@@ -170,6 +194,22 @@ class PropiedadSanitizer
             $sanitizado['servicio_id'] =
                 self::sanitizarIdsFiltro(
                     $filtros['servicio_id']
+                );
+        }
+
+        if (array_key_exists('acepta_mascotas', $filtros)) {
+            $sanitizado['acepta_mascotas'] =
+                self::sanitizarBooleano(
+                    $filtros['acepta_mascotas'],
+                    false
+                );
+        }
+
+        if (array_key_exists('acepta_hijos', $filtros)) {
+            $sanitizado['acepta_hijos'] =
+                self::sanitizarBooleano(
+                    $filtros['acepta_hijos'],
+                    false
                 );
         }
 
@@ -441,6 +481,27 @@ class PropiedadSanitizer
         return $valor === null
             ? null
             : ($valor ? 1 : 0);
+    }
+
+    public static function sanitizarBooleano(
+        $valor,
+        ?bool $default = null
+    ): ?int {
+        if ($valor === null || $valor === '') {
+            return $default === null
+                ? null
+                : ($default ? 1 : 0);
+        }
+
+        $resultado = filter_var(
+            $valor,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        return $resultado === null
+            ? null
+            : ($resultado ? 1 : 0);
     }
 
     public static function sanitizarDestacada(

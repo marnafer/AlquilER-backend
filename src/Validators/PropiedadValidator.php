@@ -197,6 +197,21 @@ class PropiedadValidator
         return null;
     }
 
+    public static function validarBooleano(
+        $valor,
+        string $campo
+    ): ?string {
+        if ($valor === null) {
+            return null;
+        }
+
+        if (!in_array($valor, [0, 1], true)) {
+            return "El campo {$campo} es inválido";
+        }
+
+        return null;
+    }
+
     public static function validarDestacada(
         $destacada
     ): ?string {
@@ -356,6 +371,16 @@ class PropiedadValidator
                 'servicio_id'
             ),
 
+            'acepta_mascotas' => self::validarBooleano(
+                $data['acepta_mascotas'] ?? null,
+                'acepta_mascotas'
+            ),
+
+            'acepta_hijos' => self::validarBooleano(
+                $data['acepta_hijos'] ?? null,
+                'acepta_hijos'
+            ),
+
             'precio_min' => self::validarPrecioFiltro(
                 $data['precio_min'] ?? null
             ),
@@ -450,6 +475,16 @@ class PropiedadValidator
 
             'capacidad' => self::validarCapacidad(
                 $data['capacidad'] ?? null
+            ),
+
+            'acepta_mascotas' => self::validarBooleano(
+                $data['acepta_mascotas'] ?? null,
+                'acepta_mascotas'
+            ),
+
+            'acepta_hijos' => self::validarBooleano(
+                $data['acepta_hijos'] ?? null,
+                'acepta_hijos'
             ),
 
             'disponible' => self::validarDisponible(

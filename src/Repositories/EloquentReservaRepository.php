@@ -133,6 +133,87 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
             ->toArray();
     }
 
+    /**
+     * Todas las reservas dentro del alcance del usuario, en una sola consulta.
+     *
+     * El alcance es "las que él mismo hizo, más las que otros hicieron sobre
+     * sus propiedades", y los filtros solo lo acotan. Nunca lo amplían: pedir
+     * una propiedad ajena devuelve solo las reservas propias sobre esa
+     * propiedad, jamás las de otros.
+     */
+    public function listarPorAlcance(
+        int $usuarioId,
+        array $propiedadIds,
+        array $filtros = []
+    ): array {
+        $propiedadIds = array_values(
+            array_filter(
+                array_map('intval', $propiedadIds),
+                static fn (int $id): bool => $id > 0
+            )
+        );
+
+        // Superset de lo que cargaban getByUsuario() y getByPropiedad() por
+        // separado: esas cargaban propiedad.imagenes en un caso y usuario en el
+        // otro, dejando cada reserva con un shape distinto.
+        $query = Reserva::with([
+            'propiedad',
+            'propiedad.imagenes',
+            'usuario',
+        ]);
+
+        $query->where(function ($q) use ($usuarioId, $propiedadIds) {
+            $q->where('usuario_id', $usuarioId);
+
+            if (!empty($propiedadIds)) {
+                $q->orWhereIn('propiedad_id', $propiedadIds);
+            }
+        });
+
+        // El filtro de propiedad es un where aparte, no una acotacion de
+        // $propiedadIds. Acotar no alcanza: la rama usuario_id del alcance
+        // seguiria metiendo reservas de otras propiedades.
+        if (!empty($filtros['propiedad_id'])) {
+            $query->where(
+                'propiedad_id',
+                (int) $filtros['propiedad_id']
+            );
+        }
+
+        if (!empty($filtros['usuario_id'])) {
+            $query->where(
+                'usuario_id',
+                (int) $filtros['usuario_id']
+            );
+        }
+
+        if (!empty($filtros['estado'])) {
+            $query->where(
+                'estado',
+                $filtros['estado']
+            );
+        }
+
+        if (
+            !empty($filtros['incluir_eliminados']) &&
+            $filtros['incluir_eliminados'] === true
+        ) {
+            $query->withTrashed();
+        }
+
+        if (
+            !empty($filtros['solo_eliminados']) &&
+            $filtros['solo_eliminados'] === true
+        ) {
+            $query->onlyTrashed();
+        }
+
+        return $query
+            ->orderBy('fecha_reserva', 'desc')
+            ->get()
+            ->toArray();
+    }
+
     public function tieneReservaActiva(int $propiedadId): bool
     {
         return Reserva::query()
