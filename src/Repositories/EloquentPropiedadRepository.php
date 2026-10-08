@@ -101,6 +101,20 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             );
         }
 
+        if (isset($filtros['acepta_mascotas'])) {
+            $query->where(
+                'acepta_mascotas',
+                (int) $filtros['acepta_mascotas']
+            );
+        }
+
+        if (isset($filtros['acepta_hijos'])) {
+            $query->where(
+                'acepta_hijos',
+                (int) $filtros['acepta_hijos']
+            );
+        }
+
         if (isset($filtros['disponible'])) {
             $query->where(
                 'disponible',
