@@ -11,6 +11,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Propiedad;
 use App\Models\Reserva;
+use App\Models\Rol;
 use App\Policies\ReservaPolicy;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
@@ -95,9 +96,17 @@ final class ReservaServiceTest extends TestCase
             ->with($filtros)
             ->willReturn($reservas);
 
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('porUsuario');
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('listarPorAlcance');
+
         $result = $this->reservaService->listar(
             99,
-            2,
+            Rol::ADMIN,
             $filtros
         );
 
@@ -135,6 +144,46 @@ final class ReservaServiceTest extends TestCase
             ->with(1, [20], [])
             ->willReturn($reservas);
 
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('getAll');
+
+        $result = $this->reservaService->listar(
+            1,
+            1
+        );
+
+        $this->assertSame($reservas, $result);
+    }
+
+    public function test_it_lists_only_user_reservas_when_user_has_no_properties(): void
+    {
+        $reservas = [
+            [
+                'id' => 1,
+                'usuario_id' => 1,
+                'propiedad_id' => 10,
+            ],
+        ];
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('porUsuario')
+            ->with(1)
+            ->willReturn(
+                new Collection()
+            );
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('listarPorAlcance')
+            ->with(1, [], [])
+            ->willReturn($reservas);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('getAll');
+
         $result = $this->reservaService->listar(
             1,
             1
@@ -169,6 +218,10 @@ final class ReservaServiceTest extends TestCase
             ->method('listarPorAlcance')
             ->with(1, [20], $filtros)
             ->willReturn([]);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('getAll');
 
         $result = $this->reservaService->listar(
             1,
@@ -726,7 +779,7 @@ final class ReservaServiceTest extends TestCase
         $result = $this->reservaService->confirmar(
             1,
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->assertTrue($result);
@@ -887,7 +940,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeModificar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -925,7 +978,7 @@ final class ReservaServiceTest extends TestCase
                 'estado' => 'confirmada',
             ],
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->assertTrue($result);
@@ -941,7 +994,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeModificar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -976,7 +1029,7 @@ final class ReservaServiceTest extends TestCase
                 'estado' => 'rechazada',
             ],
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->assertTrue($result);
@@ -1014,7 +1067,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeModificar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -1029,7 +1082,7 @@ final class ReservaServiceTest extends TestCase
                 'estado' => 'invalido',
             ],
             99,
-            2
+            Rol::ADMIN
         );
     }
 
@@ -1038,7 +1091,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeModificar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -1058,7 +1111,7 @@ final class ReservaServiceTest extends TestCase
                 'estado' => 'confirmada',
             ],
             99,
-            2
+            Rol::ADMIN
         );
     }
 
@@ -1072,7 +1125,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeEliminar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -1098,7 +1151,7 @@ final class ReservaServiceTest extends TestCase
         $result = $this->reservaService->eliminar(
             1,
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->assertTrue($result);
@@ -1133,7 +1186,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeEliminar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -1154,7 +1207,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->eliminar(
             999,
             99,
-            2
+            Rol::ADMIN
         );
     }
 
@@ -1163,7 +1216,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeRestaurar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $reservaEliminada = new Reserva();
@@ -1192,7 +1245,7 @@ final class ReservaServiceTest extends TestCase
         $result = $this->reservaService->restaurar(
             1,
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->assertTrue($result);
@@ -1227,7 +1280,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeRestaurar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -1254,7 +1307,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->restaurar(
             999,
             99,
-            2
+            Rol::ADMIN
         );
     }
 
@@ -1263,7 +1316,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaPolicy
             ->expects($this->once())
             ->method('puedeRestaurar')
-            ->with(2)
+            ->with(Rol::ADMIN)
             ->willReturn(true);
 
         $reservaActiva = new Reserva();
@@ -1293,7 +1346,7 @@ final class ReservaServiceTest extends TestCase
         $this->reservaService->restaurar(
             1,
             99,
-            2
+            Rol::ADMIN
         );
     }
 }

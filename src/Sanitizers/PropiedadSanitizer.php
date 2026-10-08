@@ -485,7 +485,7 @@ class PropiedadSanitizer
 
     public static function sanitizarBooleano(
         $valor,
-        bool $default = null
+        ?bool $default = null
     ): ?int {
         if ($valor === null || $valor === '') {
             return $default === null

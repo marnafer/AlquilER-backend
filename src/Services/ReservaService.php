@@ -15,6 +15,7 @@ use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\ReservaSanitizer;
 use App\Validators\ReservaValidator;
+use App\Models\Rol;
 
 class ReservaService
 {
@@ -33,7 +34,7 @@ class ReservaService
         int $rolId,
         array $filtros = []
     ): array {
-        if ($rolId === 2) {
+        if ($rolId === Rol::ADMIN) {
             return $this->reservaRepository->getAll($filtros);
         }
 
