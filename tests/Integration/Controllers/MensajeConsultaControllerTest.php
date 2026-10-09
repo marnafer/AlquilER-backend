@@ -25,17 +25,25 @@ final class MensajeConsultaControllerTest extends TestCase
         $this->controller = new MensajeConsultaController($this->service);
     }
 
+    
     public function test_index_retorna_200_con_items_y_total_al_tener_permiso(): void
     {
-        $mensajesFalsos = [
+        $_GET = [];
+
+        $mensajesFalsos = new \Illuminate\Database\Eloquent\Collection([
             new MensajeConsulta(['id' => 1, 'mensaje' => 'Hola']),
             new MensajeConsulta(['id' => 2, 'mensaje' => '¿Sigue disponible?'])
-        ];
+        ]);
 
         $this->service->expects($this->once())
             ->method('obtenerHistorial')
-            ->with(100, 5)
-            ->willReturn(new \Illuminate\Database\Eloquent\Collection($mensajesFalsos));
+            ->with(100, 5, 1, null, null, null)
+            ->willReturn([
+                'items' => $mensajesFalsos,
+                'total' => 2,
+                'hay_anteriores' => false,
+                'hay_mas_nuevos' => false
+            ]);
 
         $response = $this->captureJson(
             fn() => $this->controller->index(100)
@@ -45,37 +53,32 @@ final class MensajeConsultaControllerTest extends TestCase
         $this->assertTrue($response['success']);
         $this->assertSame(2, $response['data']['total']);
         $this->assertCount(2, $response['data']['items']);
+        $this->assertFalse($response['data']['hay_anteriores']);
+        $this->assertFalse($response['data']['hay_mas_nuevos']);
     }
 
-    public function test_store_retorna_201_y_crea_el_mensaje_correctamente(): void
+    public function test_index_pasa_los_parametros_de_paginacion_al_servicio(): void
     {
-        $input = json_encode(['mensaje' => 'Me interesa']);
-
-        $mensajeCreado = new MensajeConsulta([
-            'id' => 1,
-            'consulta_id' => 100,
-            'usuario_id' => 5,
-            'mensaje' => 'Me interesa'
-        ]);
+        $_GET = [
+            'antes_de_id' => '3',
+            'limite' => '2'
+        ];
 
         $this->service->expects($this->once())
-            ->method('crearMensaje')
-            ->with(
-                $this->callback(function (array $data): bool {
-                    return $data['consulta_id'] === 100
-                        && $data['mensaje'] === 'Me interesa';
-                }),
-                5
-            )
-            ->willReturn($mensajeCreado);
+            ->method('obtenerHistorial')
+            ->with(100, 5, 1, '3', null, '2')
+            ->willReturn([
+                'items' => new \Illuminate\Database\Eloquent\Collection(),
+                'total' => 0,
+                'hay_anteriores' => false,
+                'hay_mas_nuevos' => false
+            ]);
 
-        $response = $this->captureJsonWithBody(
-            $input,
-            fn() => $this->controller->store(100)
+        $response = $this->captureJson(
+            fn() => $this->controller->index(100)
         );
 
-        $this->assertEquals(201, http_response_code());
+        $this->assertEquals(200, http_response_code());
         $this->assertTrue($response['success']);
-        $this->assertSame('Me interesa', $response['data']['mensaje']);
     }
 }

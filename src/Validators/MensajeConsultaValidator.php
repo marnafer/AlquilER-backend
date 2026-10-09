@@ -146,4 +146,56 @@ class MensajeConsultaValidator
             'errors' => null
         ];
     }
+
+    /**
+     * Validar parámetros de paginación del historial de mensajes.
+     */
+    public static function validarPaginacion(array $data): array
+    {
+        $errores = [];
+
+        $limite = $data['limite'] ?? 10;
+
+        if (
+            !is_scalar($limite)
+            || filter_var($limite, FILTER_VALIDATE_INT) === false
+            || (int) $limite < 1
+            || (int) $limite > 50
+        ) {
+            $errores['limite'] =
+                'El límite debe ser un entero entre 1 y 50';
+        }
+
+        foreach (['antes_de_id', 'despues_de_id'] as $campo) {
+            if (!array_key_exists($campo, $data)) {
+                continue;
+            }
+
+            $valor = $data[$campo];
+
+            if (
+                !is_scalar($valor)
+                || filter_var($valor, FILTER_VALIDATE_INT) === false
+                || (int) $valor <= 0
+            ) {
+                $errores[$campo] = 'El ID debe ser un entero positivo';
+            }
+        }
+
+        if (
+            array_key_exists('antes_de_id', $data)
+            && array_key_exists('despues_de_id', $data)
+        ) {
+            $errores['cursor'] =
+                'No se pueden utilizar antes_de_id y despues_de_id juntos.';
+        }
+
+        return [
+            'success' => empty($errores),
+            'message' => empty($errores)
+                ? 'Validación exitosa'
+                : 'Error de validación',
+            'errors' => empty($errores) ? null : $errores,
+        ];
+    }
 }

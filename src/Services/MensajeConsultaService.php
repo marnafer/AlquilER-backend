@@ -83,14 +83,102 @@ class MensajeConsultaService
     public function obtenerHistorial(
         int $consultaId,
         int $usuarioLogueadoId,
-        ?int $rolId = null
-    ) {
+        ?int $rolId = null,
+        $antesDeId = null,
+        $despuesDeId = null,
+        $limite = 10
+    ): array {
+
+         // Establecer el límite predeterminado.
+        if ($limite === null) {
+            $limite = 10;
+        }
+        
+        $parametros = [
+            'limite' => $limite,
+        ];
+
+        if ($antesDeId !== null) {
+            $parametros['antes_de_id'] = $antesDeId;
+        }
+
+        if ($despuesDeId !== null) {
+            $parametros['despues_de_id'] = $despuesDeId;
+        }
+
+        $validacion = MensajeConsultaValidator::validarPaginacion(
+            $parametros
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException($validacion['errors']);
+        }
+
+        // A partir de aquí, los parámetros ya fueron validados.
+        $limite = (int) $limite;
+        $antesDeId = $antesDeId !== null
+            ? (int) $antesDeId
+            : null;
+        $despuesDeId = $despuesDeId !== null
+            ? (int) $despuesDeId
+            : null;
+
+        // Autorizar antes de consultar los mensajes.
         $this->consultaService->obtenerConsultaAutorizada(
             $consultaId,
             $usuarioLogueadoId,
             $rolId
         );
 
-        return $this->mensajeRepository->findByConsultaId($consultaId);
+        if ($despuesDeId !== null) {
+            // Pedimos un registro adicional para detectar si quedan más.
+            $mensajes = $this->mensajeRepository->findNewerByConsultaId(
+                $consultaId,
+                $despuesDeId,
+                $limite + 1
+            );
+
+            $hayMasNuevos = $mensajes->count() > $limite;
+
+            $mensajes = $mensajes
+                ->take($limite)
+                ->values();
+
+            return [
+                'items' => $mensajes,
+                'total' => $mensajes->count(),
+                'hay_anteriores' => false,
+                'hay_mas_nuevos' => $hayMasNuevos,
+            ];
+        }
+
+        if ($antesDeId !== null) {
+            $mensajes = $this->mensajeRepository->findOlderByConsultaId(
+                $consultaId,
+                $antesDeId,
+                $limite + 1
+            );
+        } else {
+            $mensajes = $this->mensajeRepository->findLatestByConsultaId(
+                $consultaId,
+                $limite + 1
+            );
+        }
+
+        $hayAnteriores = $mensajes->count() > $limite;
+
+        // El repositorio entrega los más recientes primero en estas consultas.
+        // Para la interfaz, los mensajes deben quedar en orden ascendente.
+        $mensajes = $mensajes
+            ->take($limite)
+            ->reverse()
+            ->values();
+
+        return [
+            'items' => $mensajes,
+            'total' => $mensajes->count(),
+            'hay_anteriores' => $hayAnteriores,
+            'hay_mas_nuevos' => false,
+        ];
     }
 }

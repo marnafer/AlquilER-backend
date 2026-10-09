@@ -16,20 +16,22 @@ class MensajeConsultaController
         $this->service = $service;
     }
 
-    public function index($consultaId)
+    public function index($consultaId): void
     {
         $user = AutenticadorMiddleware::verificar();
-        
-        $mensajes = $this->service->obtenerHistorial(
+
+        $parametros = $_GET ?? [];
+
+        $resultado = $this->service->obtenerHistorial(
             (int) $consultaId,
             (int) $user->sub,
-            (int) $user->rol_id
+            (int) $user->rol_id,
+            $parametros['antes_de_id'] ?? null,
+            $parametros['despues_de_id'] ?? null,
+            $parametros['limite'] ?? null
         );
 
-        Response::success([
-            'items' => $mensajes,
-            'total' => count($mensajes)
-        ]);
+        Response::success($resultado);
     }
 
     public function store($consultaId)
