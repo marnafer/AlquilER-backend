@@ -35,7 +35,13 @@ class ReservaService
         array $filtros = []
     ): array {
         if ($rolId === Rol::ADMIN) {
-            return $this->reservaRepository->getAll($filtros);
+            $todas = $this->reservaRepository->getAll($filtros);
+
+            return [
+                'mis_reservas' => [],
+                'reservas_de_mis_propiedades' => [],
+                'todas' => $todas,
+            ];
         }
 
         $propiedadIds = $this->propiedadRepository
@@ -44,11 +50,36 @@ class ReservaService
             ->values()
             ->all();
 
-        return $this->reservaRepository->listarPorAlcance(
+        $reservas = $this->reservaRepository->listarPorAlcance(
             $usuarioId,
             $propiedadIds,
             $filtros
         );
+
+        $misReservas = [];
+        $reservasDeMisPropiedades = [];
+
+        foreach ($reservas as $reserva) {
+            $reservaUsuarioId = null;
+
+            if (is_array($reserva) && array_key_exists('usuario_id', $reserva)) {
+                $reservaUsuarioId = (int) $reserva['usuario_id'];
+            } elseif (is_object($reserva) && isset($reserva->usuario_id)) {
+                $reservaUsuarioId = (int) $reserva->usuario_id;
+            }
+
+            if ($reservaUsuarioId === $usuarioId) {
+                $misReservas[] = $reserva;
+                continue;
+            }
+
+            $reservasDeMisPropiedades[] = $reserva;
+        }
+
+        return [
+            'mis_reservas' => $misReservas,
+            'reservas_de_mis_propiedades' => $reservasDeMisPropiedades,
+        ];
     }
 
     public function obtener(
