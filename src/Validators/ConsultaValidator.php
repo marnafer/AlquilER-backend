@@ -104,16 +104,12 @@ class ConsultaValidator
         $campo = ''
     ): array {
 
-        if ($id === null || $id === '') {
-
-            return [
-                'success' => false,
-                'error' => "El ID de $campo es requerido. Debe ser un entero positivo."
-            ];
-        }
-
-        if (!is_numeric($id) || $id <= 0) {
-
+            if (
+            $id === null
+            || $id === ''
+            || filter_var($id, FILTER_VALIDATE_INT) === false
+            || (int) $id <= 0
+        ) {
             return [
                 'success' => false,
                 'error' => "El ID de $campo debe ser positivo"
@@ -133,16 +129,12 @@ class ConsultaValidator
         $id
     ): array {
 
-        if ($id === null || $id === '') {
-
-            return [
-                'success' => false,
-                'error' => 'El ID de propiedad es requerido. Debe ser un entero positivo.'
-            ];
-        }
-
-        if (!is_numeric($id) || $id <= 0) {
-
+            if (
+            $id === null
+            || $id === ''
+            || filter_var($id, FILTER_VALIDATE_INT) === false
+            || (int) $id <= 0
+        ) {
             return [
                 'success' => false,
                 'error' => 'El ID de propiedad debe ser positivo'
@@ -158,23 +150,17 @@ class ConsultaValidator
     /**
      * Validar usuario_id
      */
-    public static function validarUsuarioId(
-        $id
-    ): array {
-
-        if ($id === null || $id === '') {
-
+    public static function validarUsuarioId($id): array
+    {
+        if (
+            $id === null
+            || $id === ''
+            || filter_var($id, FILTER_VALIDATE_INT) === false
+            || (int) $id <= 0
+        ) {
             return [
                 'success' => false,
-                'error' => 'El ID de usuario es requerido. Debe ser un entero positivo.'
-            ];
-        }
-
-        if (!is_numeric($id) || $id <= 0) {
-
-            return [
-                'success' => false,
-                'error' => 'El ID de usuario debe ser positivo'
+                'error' => 'El ID de usuario debe ser un entero positivo'
             ];
         }
 

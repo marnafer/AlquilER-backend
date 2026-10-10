@@ -120,4 +120,31 @@ class EloquentConsultaRepository implements ConsultaRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    /**
+     * Buscar una consulta activa por propiedad e interesado.
+     */
+    public function findByPropiedadYUsuario(int $propiedadId, int $usuarioId): ?Consulta {
+        return Consulta::where('propiedad_id', $propiedadId)
+            ->where('usuario_id', $usuarioId)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Obtener todas las consultas recibidas en propiedades del usuario.
+     */
+    public function getRecibidasPorPropietario(int $usuarioId): array
+    {
+        return Consulta::whereHas(
+            'propiedad',
+            function ($query) use ($usuarioId) {
+                $query->where('usuario_id', $usuarioId);
+            }
+        )
+            ->with(['propiedad', 'usuario'])
+            ->orderByDesc('fecha_consulta')
+            ->get()
+            ->toArray();
+    }
 }

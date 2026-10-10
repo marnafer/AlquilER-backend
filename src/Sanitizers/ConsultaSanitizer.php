@@ -37,13 +37,8 @@ class ConsultaSanitizer
         $mensaje = trim($mensaje);
         $mensaje = preg_replace('/\s+/', ' ', $mensaje);
         $mensaje = strip_tags($mensaje);
-        $mensaje = htmlspecialchars(
-            $mensaje,
-            ENT_QUOTES,
-            'UTF-8'
-        );
 
-        return substr($mensaje, 0, 5000);
+        return mb_substr($mensaje, 0, 5000, 'UTF-8');
     }
 
     public static function sanitizarFecha($fecha)

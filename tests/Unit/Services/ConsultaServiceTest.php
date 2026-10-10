@@ -283,6 +283,12 @@ class ConsultaServiceTest extends TestCase
 
         $this->consultaRepository
             ->expects($this->once())
+            ->method('findByPropiedadYUsuario')
+            ->with(20, 5)
+            ->willReturn(null);
+
+        $this->consultaRepository
+            ->expects($this->once())
             ->method('create')
             ->with($this->callback(
                 function (array $data): bool {
@@ -335,7 +341,20 @@ class ConsultaServiceTest extends TestCase
 
         $this->consultaRepository
             ->expects($this->once())
+            ->method('findByPropiedadYUsuario')
+            ->with(20, 5)
+            ->willReturn(null);
+
+        $this->consultaRepository
+            ->expects($this->once())
             ->method('create')
+            ->with($this->callback(
+                function (array $data): bool {
+                    return $data['propiedad_id'] === 20
+                        && $data['usuario_id'] === 5
+                        && isset($data['fecha_consulta']);
+                }
+            ))
             ->willReturn(10);
 
         $this->mensajeConsultaRepository
@@ -978,4 +997,81 @@ class ConsultaServiceTest extends TestCase
             99
         );
     }
+
+    public function test_listarRecibidasPorPropietario_devuelve_consultas(): void
+    {
+        $consultas = [
+            ['id' => 10, 'propiedad_id' => 3, 'usuario_id' => 8],
+            ['id' => 11, 'propiedad_id' => 4, 'usuario_id' => 9],
+        ];
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('getRecibidasPorPropietario')
+            ->with(5)
+            ->willReturn($consultas);
+
+        $resultado = $this->service
+            ->listarRecibidasPorPropietario(5);
+
+        $this->assertSame($consultas, $resultado);
+    }
+
+    public function test_listarRecibidasPorPropietario_rechaza_id_invalido(): void
+    {
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('getRecibidasPorPropietario');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->listarRecibidasPorPropietario(0);
+    }
+
+    public function test_crear_reutiliza_la_consulta_existente(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 7;
+
+        $consultaExistente = new Consulta();
+        $consultaExistente->id = 10;
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findByPropiedadYUsuario')
+            ->with(20, 5)
+            ->willReturn($consultaExistente);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->mensajeConsultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->notificacionService
+            ->expects($this->never())
+            ->method('crear');
+
+        $resultado = $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+            'mensaje' => 'Estoy interesado'
+        ]);
+
+        $this->assertSame(10, $resultado);
+    }
+    
 }

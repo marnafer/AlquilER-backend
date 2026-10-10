@@ -181,39 +181,54 @@ class ConsultaService
 
         $propietarioId = (int) $propiedad->usuario_id;
 
+       $usuarioId = (int) $data['usuario_id'];
+
         return DB::transaction(
             function () use (
                 $data,
                 $propiedadId,
-                $propietarioId
+                $propietarioId,
+                $usuarioId
             ): int {
+                // Reutilizar la conversación si ya existe.
+                $consultaExistente =
+                    $this->consultaRepository->findByPropiedadYUsuario(
+                        $propiedadId,
+                        $usuarioId
+                    );
+
+                if ($consultaExistente !== null) {
+                    return (int) $consultaExistente->id;
+                }
+
+                // Crear la consulta únicamente si no existe.
                 $consultaId = $this->consultaRepository->create([
                     'propiedad_id' => $propiedadId,
-                    'usuario_id' => $data['usuario_id'],
+                    'usuario_id' => $usuarioId,
                     'fecha_consulta' => date('Y-m-d H:i:s'),
                 ]);
 
                 if (!empty($data['mensaje'])) {
                     $this->mensajeConsultaRepository->create([
                         'consulta_id' => $consultaId,
-                        'usuario_id' => $data['usuario_id'],
+                        'usuario_id' => $usuarioId,
                         'mensaje' => $data['mensaje'],
-                        'fecha_mensaje' => date('Y-m-d H:i:s')
+                        'fecha_mensaje' => date('Y-m-d H:i:s'),
                     ]);
                 }
 
-                if ((int) $data['usuario_id'] !== $propietarioId) {
+                if ($usuarioId !== $propietarioId) {
                     $this->notificacionService->crear(
                         $propietarioId,
                         'consulta_nueva',
                         'Nueva consulta',
                         'Un interesado realizó una consulta sobre tu propiedad.',
-                        (int) $consultaId
+                        $consultaId
                     );
                 }
 
                 $this->logService->registrar(
-                    (int) $data['usuario_id'],
+                    $usuarioId,
                     'consulta_creada'
                 );
 
@@ -418,10 +433,7 @@ class ConsultaService
             $rawUsuarioConsultadoId
         );
 
-        if (
-            !$usuarioConsultadoId
-            || $usuarioConsultadoId <= 0
-        ) {
+        if ($usuarioConsultadoId === null || $usuarioConsultadoId <= 0) {
             throw new ValidationException([
                 'usuario_id' => ['ID de usuario inválido']
             ]);
@@ -490,5 +502,28 @@ class ConsultaService
         return $this->consultaRepository->getByPropiedad(
             $propiedadId
         );
+    }
+
+   public function listarRecibidasPorPropietario(
+        $rawUsuarioId
+    ): array {
+        $usuarioId = ConsultaSanitizer::sanitizarId(
+            $rawUsuarioId
+        );
+
+        $validacion = ConsultaValidator::validarUsuarioId(
+            $usuarioId
+        );
+
+        if (!$validacion['success']) {
+            throw new ValidationException([
+                'usuario_id' => [
+                    $validacion['error']
+                ]
+            ]);
+        }
+
+        return $this->consultaRepository
+            ->getRecibidasPorPropietario($usuarioId);
     }
 }

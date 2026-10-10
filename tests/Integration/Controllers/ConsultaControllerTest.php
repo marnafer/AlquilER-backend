@@ -329,4 +329,83 @@ class ConsultaControllerTest extends TestCase
             $response['message']
         );
     }
+
+    public function test_indexRecibidas_devuelve_consultas_del_usuario_autenticado(): void
+    {
+        $consultas = [
+            ['id' => 10],
+            ['id' => 11],
+        ];
+
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarRecibidasPorPropietario')
+            ->with(5)
+            ->willReturn($consultas);
+
+        $respuesta = $this->captureJson(
+            fn() => $this->controller->indexRecibidas()
+        );
+
+        // Adaptar estas aserciones al formato que devuelve captureJson().
+        $this->assertSame(2, $respuesta['data']['total']);
+        $this->assertSame($consultas, $respuesta['data']['items']);
+    }
+
+    
+    public function test_indexRecibidas_devuelve_consultas_del_propietario(): void
+    {
+        $consultas = [
+            [
+                'id' => 10,
+                'propiedad_id' => 20,
+                'usuario_id' => 8,
+            ],
+            [
+                'id' => 11,
+                'propiedad_id' => 21,
+                'usuario_id' => 9,
+            ],
+        ];
+
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarRecibidasPorPropietario')
+            ->with(5)
+            ->willReturn($consultas);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->indexRecibidas()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(2, $response['data']['total']);
+        $this->assertSame($consultas, $response['data']['items']);
+    }
+
+    
+    public function test_indexRecibidas_devuelve_lista_vacia_si_no_hay_consultas(): void
+    {
+        $this->actingAs(5, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('listarRecibidasPorPropietario')
+            ->with(5)
+            ->willReturn([]);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->indexRecibidas()
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame(0, $response['data']['total']);
+        $this->assertSame([], $response['data']['items']);
+    }
+
+
 }

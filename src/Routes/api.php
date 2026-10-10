@@ -202,6 +202,8 @@ $router->get('/api/consultas/propiedad/{propiedadId}', [$consultaController, 'in
 
 $router->get('/api/consultas/usuario/{usuarioId}', [$consultaController, 'indexByUsuario']);
 
+$router->get('/api/consultas/recibidas',[$consultaController, 'indexRecibidas']);
+
 $router->post('/api/consultas', [$consultaController, 'store']);
 
 $router->put('/api/consultas/{id}', [$consultaController, 'update']);
