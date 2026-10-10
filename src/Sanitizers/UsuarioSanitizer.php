@@ -35,38 +35,43 @@ class UsuarioSanitizer
     public static function sanitizarNombre($nombre) {
         if (!$nombre) return null;
         $nombre = trim($nombre);
-        $nombre = preg_replace('/\s+/', ' ', $nombre);
-        $nombre = ucwords(strtolower($nombre));
-        $nombre = preg_replace('/[^a-zA-ZáéíóúñÑÁÉÍÓÚ\s]/u', '', $nombre);
-        return substr(htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'), 0, 50);
+        $nombre = preg_replace('/\s+/u', ' ', $nombre);
+        $nombre = ucwords(mb_strtolower($nombre, 'UTF-8'));
+        $nombre = preg_replace(
+            '/[^a-zA-ZáéíóúñÑÁÉÍÓÚ\s]/u',
+            '',
+            $nombre
+        );
+
+        return mb_substr($nombre, 0, 50, 'UTF-8');
     }
 
     public static function sanitizarApellido($apellido) {
         if (!$apellido) return null;
         $apellido = trim($apellido);
         $apellido = preg_replace('/\s+/', ' ', $apellido);
-        $apellido = ucwords(strtolower($apellido));
+        $apellido = ucwords(mb_strtolower($apellido, 'UTF-8'));
         $apellido = preg_replace('/[^a-zA-ZáéíóúñÑÁÉÍÓÚ\s]/u', '', $apellido);
-        return substr(htmlspecialchars($apellido, ENT_QUOTES, 'UTF-8'), 0, 50);
+        return mb_substr($apellido, 0, 50, 'UTF-8');
     }
 
     public static function sanitizarEmail($email) {
         if (!$email) return null;
         $email = strtolower(trim($email));
         $email = filter_var($email, FILTER_SANITIZE_EMAIL);
-        return substr(htmlspecialchars($email, ENT_QUOTES, 'UTF-8'), 0, 100);
+        return mb_substr(htmlspecialchars($email, ENT_QUOTES, 'UTF-8'), 0, 100, 'UTF-8');
     }
 
     public static function sanitizarTelefono($telefono) {
         if (!$telefono) return null;
         $telefono = preg_replace('/[^0-9+\-\s\(\)]/', '', $telefono);
-        return substr(htmlspecialchars(trim($telefono), ENT_QUOTES, 'UTF-8'), 0, 25);
+        return mb_substr(trim($telefono), 0, 25, 'UTF-8');
     }
 
     public static function sanitizarDomicilio($domicilio) {
         if (!$domicilio) return null;
         $domicilio = preg_replace('/\s+/', ' ', trim($domicilio));
-        return substr(htmlspecialchars($domicilio, ENT_QUOTES, 'UTF-8'), 0, 100);
+        return mb_substr($domicilio, 0, 100, 'UTF-8');
     }
 
     public static function sanitizarRolId($rolId) {

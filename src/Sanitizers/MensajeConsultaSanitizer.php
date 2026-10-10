@@ -41,11 +41,6 @@ class MensajeConsultaSanitizer
 
         $mensaje = trim($mensaje);
         $mensaje = strip_tags($mensaje);
-        $mensaje = htmlspecialchars(
-            $mensaje,
-            ENT_QUOTES,
-            'UTF-8'
-        );
 
         return $mensaje;
     }

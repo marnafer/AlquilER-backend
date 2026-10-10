@@ -44,17 +44,8 @@ class ServicioSanitizer
         }
 
         $nombre = trim($nombre);
-        $nombre = preg_replace(
-            '/\s+/u',
-            ' ',
-            $nombre
-        );
+        $nombre = preg_replace('/\s+/u', ' ', $nombre);
         $nombre = strip_tags($nombre);
-        $nombre = htmlspecialchars(
-            $nombre,
-            ENT_QUOTES,
-            'UTF-8'
-        );
 
         return $nombre;
     }

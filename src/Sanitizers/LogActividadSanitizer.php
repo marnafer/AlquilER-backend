@@ -44,17 +44,7 @@ class LogActividadSanitizer
         $accion = preg_replace('/\s+/u', ' ', $accion);
         $accion = strip_tags($accion);
 
-        $accion = htmlspecialchars(
-            $accion,
-            ENT_QUOTES | ENT_SUBSTITUTE,
-            'UTF-8'
-        );
-
-        if (mb_strlen($accion) > 255) {
-            $accion = mb_substr($accion, 0, 255);
-        }
-
-        return $accion;
+        return mb_substr($accion, 0, 255, 'UTF-8');
     }
 
     /**
