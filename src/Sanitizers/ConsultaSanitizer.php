@@ -11,8 +11,69 @@ class ConsultaSanitizer
             'propiedad_id' => self::sanitizarId($data['propiedad_id'] ?? null),
             'usuario_id' => self::sanitizarId($data['usuario_id'] ?? null),
             'mensaje' => self::sanitizarMensaje($data['mensaje'] ?? null),
-            'fecha_consulta' => self::sanitizarFecha($data['fecha_consulta'] ?? null)
+            'fecha_consulta' => self::sanitizarFecha($data['fecha_consulta'] ?? null),
+            'perfil_interesado' => self::sanitizarPerfilInteresado(
+                $data['perfil_interesado'] ?? null
+            ),
         ];
+    }
+
+    public static function sanitizarPerfilInteresado($perfil): ?array
+    {
+        if (!is_array($perfil)) {
+            return null;
+        }
+
+        $garantiasPermitidas = [
+            'recibo_sueldo',
+            'garantia_propietaria',
+            'seguro_caucion',
+            'garante',
+        ];
+        $mascotas = filter_var(
+            $perfil['tiene_mascotas'] ?? null,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        return [
+            'fecha_mudanza' => self::sanitizarFechaDia(
+                $perfil['fecha_mudanza'] ?? null
+            ),
+            'cantidad_ocupantes' => self::sanitizarEntero(
+                $perfil['cantidad_ocupantes'] ?? null
+            ),
+            'tiene_mascotas' => $mascotas,
+            'cantidad_mascotas' => self::sanitizarEntero(
+                $perfil['cantidad_mascotas'] ?? null
+            ),
+            'garantias' => array_values(array_unique(array_filter(
+                is_array($perfil['garantias'] ?? null)
+                    ? $perfil['garantias']
+                    : [],
+                fn($garantia) => in_array($garantia, $garantiasPermitidas, true)
+            ))),
+        ];
+    }
+
+    private static function sanitizarFechaDia($fecha): ?string
+    {
+        if (!is_string($fecha)) {
+            return null;
+        }
+
+        $fecha = trim($fecha);
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
+
+        return $date && $date->format('Y-m-d') === $fecha
+            ? $fecha
+            : null;
+    }
+
+    private static function sanitizarEntero($valor): ?int
+    {
+        $entero = filter_var($valor, FILTER_VALIDATE_INT);
+        return $entero === false ? null : $entero;
     }
 
     public static function sanitizarId($id)

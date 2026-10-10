@@ -261,10 +261,94 @@ class ConsultaValidator
         $data
     ): array {
 
-        return self::validarConsulta(
+        $resultado = self::validarConsulta(
             $data,
             false
         );
+
+        $erroresPerfil = self::validarPerfilInteresado(
+            $data['perfil_interesado'] ?? null
+        );
+
+        if ($erroresPerfil !== []) {
+            $resultado['success'] = false;
+            $resultado['message'] = 'Error de validación';
+            $resultado['errors'] = array_merge(
+                $resultado['errors'] ?? [],
+                ['perfil_interesado' => $erroresPerfil]
+            );
+        }
+
+        return $resultado;
+    }
+
+    public static function validarPerfilInteresado($perfil): array
+    {
+        if ($perfil === null) {
+            return [];
+        }
+
+        if (!is_array($perfil)) {
+            return ['Los datos del interesado deben enviarse como un objeto'];
+        }
+
+        $errores = [];
+        $fecha = $perfil['fecha_mudanza'] ?? null;
+        $date = is_string($fecha)
+            ? \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha)
+            : false;
+        if (!$date || $date->format('Y-m-d') !== $fecha) {
+            $errores[] = 'Indicá una fecha de mudanza válida';
+        }
+
+        $ocupantes = $perfil['cantidad_ocupantes'] ?? null;
+        if (
+            filter_var($ocupantes, FILTER_VALIDATE_INT) === false
+            || (int) $ocupantes < 1
+            || (int) $ocupantes > 50
+        ) {
+            $errores[] = 'La cantidad de ocupantes debe ser un entero entre 1 y 50';
+        }
+
+        $mascotas = filter_var(
+            $perfil['tiene_mascotas'] ?? null,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+        if ($mascotas === null) {
+            $errores[] = 'Indicá si tenés mascotas';
+        }
+
+        $cantidadMascotas = $perfil['cantidad_mascotas'] ?? null;
+        if (
+            filter_var($cantidadMascotas, FILTER_VALIDATE_INT) === false
+            || (int) $cantidadMascotas < 0
+            || (int) $cantidadMascotas > 20
+            || ($mascotas && (int) $cantidadMascotas < 1)
+            || (!$mascotas && (int) $cantidadMascotas !== 0)
+        ) {
+            $errores[] = 'La cantidad de mascotas no coincide con la respuesta indicada';
+        }
+
+        $garantias = $perfil['garantias'] ?? null;
+        $garantiasPermitidas = [
+            'recibo_sueldo',
+            'garantia_propietaria',
+            'seguro_caucion',
+            'garante',
+        ];
+        if (!is_array($garantias)) {
+            $errores[] = 'Las garantías disponibles deben enviarse como una lista';
+        } else {
+            foreach ($garantias as $garantia) {
+                if (!in_array($garantia, $garantiasPermitidas, true)) {
+                    $errores[] = 'La lista contiene una garantía no válida';
+                    break;
+                }
+            }
+        }
+
+        return $errores;
     }
 
     /**

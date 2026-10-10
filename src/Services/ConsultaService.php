@@ -153,6 +153,15 @@ class ConsultaService
 
     public function crear(array $rawData): int
     {
+        $erroresPerfil = ConsultaValidator::validarPerfilInteresado(
+            $rawData['perfil_interesado'] ?? null
+        );
+        if ($erroresPerfil !== []) {
+            throw new ValidationException([
+                'perfil_interesado' => $erroresPerfil,
+            ]);
+        }
+
         $data = ConsultaSanitizer::sanitizarConsulta(
             $rawData
         );
@@ -191,6 +200,7 @@ class ConsultaService
                     'propiedad_id' => $propiedadId,
                     'usuario_id' => $data['usuario_id'],
                     'fecha_consulta' => date('Y-m-d H:i:s'),
+                    'perfil_interesado' => $data['perfil_interesado'],
                 ]);
 
                 if (!empty($data['mensaje'])) {

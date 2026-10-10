@@ -14,7 +14,12 @@ class Consulta extends Model
     protected $fillable = [
         'propiedad_id',
         'usuario_id',
-        'fecha_consulta'
+        'fecha_consulta',
+        'perfil_interesado'
+    ];
+
+    protected $casts = [
+        'perfil_interesado' => 'array',
     ];
 
     protected $dates = [
