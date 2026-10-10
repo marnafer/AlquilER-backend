@@ -99,6 +99,17 @@ class ConsultaServiceTest extends TestCase
         parent::tearDown();
     }
 
+    private function perfilInteresadoValido(): array
+    {
+        return [
+            'fecha_mudanza' => '2026-11-01',
+            'cantidad_ocupantes' => 2,
+            'tiene_mascotas' => true,
+            'cantidad_mascotas' => 1,
+            'garantias' => ['recibo_sueldo', 'garante'],
+        ];
+    }
+
     public function test_listar_devuelve_las_consultas_para_un_administrador(): void
     {
         $consultas = [
@@ -1052,6 +1063,10 @@ class ConsultaServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->never())
             ->method('create');
+        
+        $this->consultaRepository
+        ->expects($this->never())
+        ->method('update');
 
         $this->mensajeConsultaRepository
             ->expects($this->never())
@@ -1072,6 +1087,186 @@ class ConsultaServiceTest extends TestCase
         ]);
 
         $this->assertSame(10, $resultado);
+    }
+
+    public function test_crear_guarda_el_perfil_del_interesado(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 7;
+
+        $perfil = $this->perfilInteresadoValido();
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findByPropiedadYUsuario')
+            ->with(20, 5)
+            ->willReturn(null);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(
+                function (array $data) use ($perfil): bool {
+                    return $data['propiedad_id'] === 20
+                        && $data['usuario_id'] === 5
+                        && isset($data['fecha_consulta'])
+                        && $data['perfil_interesado'] === $perfil;
+                }
+            ))
+            ->willReturn(10);
+
+        $this->mensajeConsultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'consulta_creada');
+
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear');
+
+        $resultado = $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+            'perfil_interesado' => $perfil,
+        ]);
+
+        $this->assertSame(10, $resultado);
+    }
+
+    public function test_crear_actualiza_el_perfil_al_reutilizar_consulta(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 7;
+
+        $consultaExistente = new Consulta();
+        $consultaExistente->id = 10;
+
+        $perfil = $this->perfilInteresadoValido();
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findByPropiedadYUsuario')
+            ->with(20, 5)
+            ->willReturn($consultaExistente);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('update')
+            ->with(10, ['perfil_interesado' => $perfil])
+            ->willReturn(true);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->mensajeConsultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->notificacionService
+            ->expects($this->never())
+            ->method('crear');
+
+        $resultado = $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+            'perfil_interesado' => $perfil,
+        ]);
+
+        $this->assertSame(10, $resultado);
+    }
+
+    public function test_crear_conserva_el_perfil_existente_si_se_envia_null(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 7;
+
+        $consultaExistente = new Consulta();
+        $consultaExistente->id = 10;
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findByPropiedadYUsuario')
+            ->with(20, 5)
+            ->willReturn($consultaExistente);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $resultado = $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+            'perfil_interesado' => null,
+        ]);
+
+        $this->assertSame(10, $resultado);
+    }
+
+    public function test_crear_rechaza_un_perfil_interesado_invalido(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('findByPropiedadYUsuario');
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+            'perfil_interesado' => [
+                'fecha_mudanza' => 'fecha-invalida',
+                'cantidad_ocupantes' => 0,
+                'tiene_mascotas' => 'desconocido',
+                'cantidad_mascotas' => -1,
+                'garantias' => ['garantia-inventada'],
+            ],
+        ]);
     }
     
 }

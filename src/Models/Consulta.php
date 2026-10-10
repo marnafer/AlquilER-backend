@@ -14,12 +14,17 @@ class Consulta extends Model
     protected $fillable = [
         'propiedad_id',
         'usuario_id',
-        'fecha_consulta'
+        'fecha_consulta',
+        'perfil_interesado',
+    ];
+
+    protected $casts = [
+        'perfil_interesado' => 'array',
     ];
 
     protected $dates = [
         'fecha_consulta',
-        'deleted_at'
+        'deleted_at',
     ];
 
     public $timestamps = false;
@@ -47,10 +52,13 @@ class Consulta extends Model
     }
 
     /**
-     * Relación: Una consulta tiene muchos mensajes en su hilo de conversación.
+     * Una consulta tiene muchos mensajes en su hilo de conversación.
      */
     public function mensajes()
     {
-        return $this->hasMany(MensajeConsulta::class, 'consulta_id');
+        return $this->hasMany(
+            MensajeConsulta::class,
+            'consulta_id'
+        );
     }
 }

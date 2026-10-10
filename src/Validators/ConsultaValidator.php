@@ -80,6 +80,20 @@ class ConsultaValidator
             }
         }
 
+        // Perfil opcional del interesado
+        if (
+            array_key_exists('perfil_interesado', $data)
+            && $data['perfil_interesado'] !== null
+        ) {
+            $erroresPerfil = self::validarPerfilInteresado(
+                $data['perfil_interesado']
+            );
+
+            if (!empty($erroresPerfil)) {
+                $errores['perfil_interesado'] = $erroresPerfil;
+            }
+        }
+
         if (!empty($errores)) {
 
             return [
@@ -325,5 +339,110 @@ class ConsultaValidator
             'message' => 'ID válido',
             'errors' => null
         ];
+    }
+
+    /**
+     * Validar el perfil de precalificación del interesado.
+     *
+     * Devuelve un array vacío si es válido,
+     * o un array con los errores encontrados.
+     */
+    public static function validarPerfilInteresado($perfil): array
+    {
+        if (!is_array($perfil)) {
+            return ['El perfil del interesado debe ser un objeto'];
+        }
+
+        $errores = [];
+
+        // Fecha de mudanza: obligatoria en un perfil enviado.
+        $fecha = $perfil['fecha_mudanza'] ?? null;
+        $date = is_string($fecha)
+            ? \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha)
+            : false;
+        $erroresFecha = \DateTimeImmutable::getLastErrors();
+
+        if (
+            $date === false
+            || ($erroresFecha !== false
+                && (
+                    $erroresFecha['warning_count'] > 0
+                    || $erroresFecha['error_count'] > 0
+                ))
+            || $date->format('Y-m-d') !== $fecha
+        ) {
+            $errores['fecha_mudanza'] = 'Debe ser una fecha válida en formato YYYY-MM-DD';
+        }
+
+        // Cantidad de ocupantes: entero entre 1 y 50.
+        $ocupantes = filter_var(
+            $perfil['cantidad_ocupantes'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+
+        if ($ocupantes === false || $ocupantes < 1 || $ocupantes > 50) {
+            $errores['cantidad_ocupantes'] = 'Debe ser un entero entre 1 y 50';
+        }
+
+        // Tiene mascotas: debe poder interpretarse como booleano.
+        $tieneMascotas = filter_var(
+            $perfil['tiene_mascotas'] ?? null,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        if ($tieneMascotas === null) {
+            $errores['tiene_mascotas'] = 'Debe indicar si tiene mascotas';
+        }
+
+        // Cantidad de mascotas: entero entre 0 y 20.
+        $cantidadMascotas = filter_var(
+            $perfil['cantidad_mascotas'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+
+        if (
+            $cantidadMascotas === false
+            || $cantidadMascotas < 0
+            || $cantidadMascotas > 20
+        ) {
+            $errores['cantidad_mascotas'] = 'Debe ser un entero entre 0 y 20';
+        } elseif (
+            $tieneMascotas !== null
+            && (
+                ($tieneMascotas && $cantidadMascotas < 1)
+                || (!$tieneMascotas && $cantidadMascotas !== 0)
+            )
+        ) {
+            $errores['cantidad_mascotas'] =
+                'La cantidad debe coincidir con la información sobre mascotas';
+        }
+
+        // Garantías: lista de valores permitidos.
+        $garantiasPermitidas = [
+            'recibo_sueldo',
+            'garantia_propietaria',
+            'seguro_caucion',
+            'garante',
+        ];
+
+        $garantias = $perfil['garantias'] ?? null;
+
+        if (!is_array($garantias)) {
+            $errores['garantias'] = 'Debe enviar una lista de garantías';
+        } else {
+            foreach ($garantias as $garantia) {
+                if (
+                    !is_string($garantia)
+                    || !in_array($garantia, $garantiasPermitidas, true)
+                ) {
+                    $errores['garantias'] =
+                        'La lista contiene una garantía no permitida';
+                    break;
+                }
+            }
+        }
+
+        return $errores;
     }
 }

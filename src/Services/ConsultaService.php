@@ -150,45 +150,40 @@ class ConsultaService
             $rolId
         );
     }
-
+    
     public function crear(array $rawData): int
     {
-        $data = ConsultaSanitizer::sanitizarConsulta(
-            $rawData
-        );
+        $data = ConsultaSanitizer::sanitizarConsulta($rawData);
 
-        $validacion = ConsultaValidator::validarCrearConsulta(
-            $data
-        );
+        $validacion = ConsultaValidator::validarCrearConsulta($data);
 
         if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
+            throw new ValidationException($validacion['errors']);
         }
 
         $propiedadId = (int) $data['propiedad_id'];
+        $usuarioId = (int) $data['usuario_id'];
 
-        $propiedad = $this->propiedadRepository->findById(
-            $propiedadId
-        );
+        // Distinguir un perfil omitido de uno enviado.
+        // Un perfil null no reemplaza al perfil existente.
+        $perfilEnviado = array_key_exists('perfil_interesado', $rawData)
+            && $rawData['perfil_interesado'] !== null;
+
+        $propiedad = $this->propiedadRepository->findById($propiedadId);
 
         if (!$propiedad) {
-            throw new NotFoundException(
-                'La propiedad no existe'
-            );
+            throw new NotFoundException('La propiedad no existe');
         }
 
         $propietarioId = (int) $propiedad->usuario_id;
-
-       $usuarioId = (int) $data['usuario_id'];
 
         return DB::transaction(
             function () use (
                 $data,
                 $propiedadId,
                 $propietarioId,
-                $usuarioId
+                $usuarioId,
+                $perfilEnviado
             ): int {
                 // Reutilizar la conversación si ya existe.
                 $consultaExistente =
@@ -198,15 +193,33 @@ class ConsultaService
                     );
 
                 if ($consultaExistente !== null) {
+                    // Actualizar el perfil solamente si se envió uno nuevo
+                    // y pasó la validación anterior.
+                    if ($perfilEnviado) {
+                        $this->consultaRepository->update(
+                            (int) $consultaExistente->id,
+                            [
+                                'perfil_interesado' => $data['perfil_interesado'],
+                            ]
+                        );
+                    }
+
                     return (int) $consultaExistente->id;
                 }
 
-                // Crear la consulta únicamente si no existe.
-                $consultaId = $this->consultaRepository->create([
+                // Crear una conversación nueva.
+                $datosConsulta = [
                     'propiedad_id' => $propiedadId,
                     'usuario_id' => $usuarioId,
                     'fecha_consulta' => date('Y-m-d H:i:s'),
-                ]);
+                ];
+
+                if ($perfilEnviado) {
+                    $datosConsulta['perfil_interesado'] =
+                        $data['perfil_interesado'];
+                }
+
+                $consultaId = $this->consultaRepository->create($datosConsulta);
 
                 if (!empty($data['mensaje'])) {
                     $this->mensajeConsultaRepository->create([
