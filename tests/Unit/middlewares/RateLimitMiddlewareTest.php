@@ -53,7 +53,7 @@ final class RateLimitMiddlewareTest extends TestCase
         );
 
         $this->assertSame(
-            59,
+            119,
             $resultado['restantes']
         );
 
@@ -63,11 +63,11 @@ final class RateLimitMiddlewareTest extends TestCase
         );
     }
 
-    public function test_permite_hasta_60_solicitudes(): void
+    public function test_permite_hasta_120_solicitudes(): void
     {
         $resultado = null;
 
-        for ($i = 1; $i <= 60; $i++) {
+        for ($i = 1; $i <= 120; $i++) {
             $resultado =
                 RateLimitMiddleware::evaluar(
                     '203.0.113.20',
@@ -90,9 +90,9 @@ final class RateLimitMiddlewareTest extends TestCase
         );
     }
 
-    public function test_rechaza_la_solicitud_61(): void
+    public function test_rechaza_la_solicitud_121(): void
     {
-        for ($i = 1; $i <= 60; $i++) {
+        for ($i = 1; $i <= 120; $i++) {
             RateLimitMiddleware::evaluar(
                 '203.0.113.30',
                 1000,
@@ -124,7 +124,7 @@ final class RateLimitMiddlewareTest extends TestCase
 
     public function test_reinicia_el_limite_al_comenzar_una_nueva_ventana(): void
     {
-        for ($i = 1; $i <= 60; $i++) {
+        for ($i = 1; $i <= 120; $i++) {
             RateLimitMiddleware::evaluar(
                 '203.0.113.40',
                 1000,
@@ -144,7 +144,7 @@ final class RateLimitMiddlewareTest extends TestCase
         );
 
         $this->assertSame(
-            59,
+            119,
             $resultado['restantes']
         );
 
@@ -156,7 +156,7 @@ final class RateLimitMiddlewareTest extends TestCase
 
     public function test_el_limite_es_independiente_por_ip(): void
     {
-        for ($i = 1; $i <= 60; $i++) {
+        for ($i = 1; $i <= 120; $i++) {
             RateLimitMiddleware::evaluar(
                 '203.0.113.50',
                 1000,
@@ -176,7 +176,7 @@ final class RateLimitMiddlewareTest extends TestCase
         );
 
         $this->assertSame(
-            59,
+            119,
             $resultado['restantes']
         );
     }
