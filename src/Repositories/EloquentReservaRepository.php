@@ -58,6 +58,7 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
     {
         return Reserva::with([
             'propiedad',
+            'propiedad.localidad',
             'usuario',
             'resenas'
         ])
