@@ -15,11 +15,7 @@ class Consulta extends Model
         'propiedad_id',
         'usuario_id',
         'fecha_consulta',
-<<<<<<< HEAD
-        'perfil_interesado'
-=======
         'perfil_interesado',
->>>>>>> 35044cb9b9bb836a4118be6cf8c7bec99b5263c4
     ];
 
     protected $casts = [

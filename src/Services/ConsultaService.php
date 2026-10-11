@@ -153,7 +153,6 @@ class ConsultaService
     
     public function crear(array $rawData): int
     {
-<<<<<<< HEAD
         $erroresPerfil = ConsultaValidator::validarPerfilInteresado(
             $rawData['perfil_interesado'] ?? null
         );
@@ -166,9 +165,6 @@ class ConsultaService
         $data = ConsultaSanitizer::sanitizarConsulta(
             $rawData
         );
-=======
-        $data = ConsultaSanitizer::sanitizarConsulta($rawData);
->>>>>>> 35044cb9b9bb836a4118be6cf8c7bec99b5263c4
 
         $validacion = ConsultaValidator::validarCrearConsulta($data);
 
@@ -233,19 +229,13 @@ class ConsultaService
                     'propiedad_id' => $propiedadId,
                     'usuario_id' => $usuarioId,
                     'fecha_consulta' => date('Y-m-d H:i:s'),
-<<<<<<< HEAD
-                    'perfil_interesado' => $data['perfil_interesado'],
-                ]);
-=======
                 ];
 
                 if ($perfilEnviado) {
                     $datosConsulta['perfil_interesado'] =
                         $data['perfil_interesado'];
                 }
-
                 $consultaId = $this->consultaRepository->create($datosConsulta);
->>>>>>> 35044cb9b9bb836a4118be6cf8c7bec99b5263c4
 
                 if (!empty($data['mensaje'])) {
                     $this->mensajeConsultaRepository->create([

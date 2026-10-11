@@ -19,64 +19,6 @@ class ConsultaSanitizer
         ];
     }
 
-    public static function sanitizarPerfilInteresado($perfil): ?array
-    {
-        if (!is_array($perfil)) {
-            return null;
-        }
-
-        $garantiasPermitidas = [
-            'recibo_sueldo',
-            'garantia_propietaria',
-            'seguro_caucion',
-            'garante',
-        ];
-        $mascotas = filter_var(
-            $perfil['tiene_mascotas'] ?? null,
-            FILTER_VALIDATE_BOOLEAN,
-            FILTER_NULL_ON_FAILURE
-        );
-
-        return [
-            'fecha_mudanza' => self::sanitizarFechaDia(
-                $perfil['fecha_mudanza'] ?? null
-            ),
-            'cantidad_ocupantes' => self::sanitizarEntero(
-                $perfil['cantidad_ocupantes'] ?? null
-            ),
-            'tiene_mascotas' => $mascotas,
-            'cantidad_mascotas' => self::sanitizarEntero(
-                $perfil['cantidad_mascotas'] ?? null
-            ),
-            'garantias' => array_values(array_unique(array_filter(
-                is_array($perfil['garantias'] ?? null)
-                    ? $perfil['garantias']
-                    : [],
-                fn($garantia) => in_array($garantia, $garantiasPermitidas, true)
-            ))),
-        ];
-    }
-
-    private static function sanitizarFechaDia($fecha): ?string
-    {
-        if (!is_string($fecha)) {
-            return null;
-        }
-
-        $fecha = trim($fecha);
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
-
-        return $date && $date->format('Y-m-d') === $fecha
-            ? $fecha
-            : null;
-    }
-
-    private static function sanitizarEntero($valor): ?int
-    {
-        $entero = filter_var($valor, FILTER_VALIDATE_INT);
-        return $entero === false ? null : $entero;
-    }
-
     public static function sanitizarId($id)
     {
         if ($id === null || $id === '') {
@@ -118,12 +60,10 @@ class ConsultaSanitizer
 
     public static function sanitizarPerfilInteresado($perfil)
     {
-        // Si no se envía el perfil o se envía null, no hay perfil nuevo.
         if ($perfil === null) {
             return null;
         }
 
-        // Conservamos el tipo incorrecto para que el validador lo rechace.
         if (!is_array($perfil)) {
             return $perfil;
         }
@@ -135,14 +75,19 @@ class ConsultaSanitizer
         );
 
         $garantias = $perfil['garantias'] ?? [];
-
-            $garantiasSanitizadas = array_values(array_unique(array_map(
-                static fn ($garantia) => is_string($garantia)
+        if (is_array($garantias)) {
+            $garantiasSanitizadas = [];
+            foreach ($garantias as $garantia) {
+                $garantia = is_string($garantia)
                     ? trim($garantia)
-                    : $garantia,
-                $garantias
-            )));
-        
+                    : $garantia;
+                if (!in_array($garantia, $garantiasSanitizadas, true)) {
+                    $garantiasSanitizadas[] = $garantia;
+                }
+            }
+        } else {
+            $garantiasSanitizadas = $garantias;
+        }
 
         return [
             'fecha_mudanza' => self::sanitizarFechaDia(
@@ -161,7 +106,7 @@ class ConsultaSanitizer
 
     private static function sanitizarFechaDia($fecha): ?string
     {
-        if (!is_string($fecha) || $fecha === '') {
+        if (!is_string($fecha)) {
             return null;
         }
 
@@ -182,10 +127,6 @@ class ConsultaSanitizer
 
     private static function sanitizarEntero($valor): ?int
     {
-        if ($valor === null || $valor === '') {
-            return null;
-        }
-
         $entero = filter_var($valor, FILTER_VALIDATE_INT);
 
         return $entero === false ? null : $entero;

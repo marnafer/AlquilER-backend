@@ -514,51 +514,6 @@ class PropiedadSanitizer
             : ($resultado ? 1 : 0);
     }
 
-    public static function sanitizarRequisitosInteresados($requisitos): array
-    {
-        if (!is_array($requisitos)) {
-            return [];
-        }
-
-        $garantiasPermitidas = [
-            'recibo_sueldo',
-            'garantia_propietaria',
-            'seguro_caucion',
-            'garante',
-        ];
-
-        return [
-            'fecha_disponible_desde' =>
-                self::sanitizarFechaRequisito(
-                    $requisitos['fecha_disponible_desde'] ?? null
-                ),
-            'max_ocupantes' =>
-                self::sanitizarEnteroPositivo(
-                    $requisitos['max_ocupantes'] ?? null
-                ),
-            'garantias_aceptadas' => array_values(array_unique(array_filter(
-                is_array($requisitos['garantias_aceptadas'] ?? null)
-                    ? $requisitos['garantias_aceptadas']
-                    : [],
-                fn($garantia) => in_array($garantia, $garantiasPermitidas, true)
-            ))),
-        ];
-    }
-
-    private static function sanitizarFechaRequisito($fecha): ?string
-    {
-        if (!is_string($fecha) || trim($fecha) === '') {
-            return null;
-        }
-
-        $fecha = trim($fecha);
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
-
-        return $date && $date->format('Y-m-d') === $fecha
-            ? $fecha
-            : null;
-    }
-
     public static function sanitizarDestacada(
         $destacada
     ): ?int {
