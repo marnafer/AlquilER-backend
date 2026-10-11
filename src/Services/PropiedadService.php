@@ -332,7 +332,6 @@ class PropiedadService
             'capacidad',
             'acepta_mascotas',
             'acepta_hijos',
-            'requisitos_interesados',
             'disponible',
             'destacada',
             'categoria_id',

@@ -42,9 +42,6 @@ class PropiedadSanitizer
                 $data['acepta_hijos'] ?? null,
                 false
             ),
-            'requisitos_interesados' => self::sanitizarRequisitosInteresados(
-                $data['requisitos_interesados'] ?? null
-            ),
             'disponible' => self::sanitizarDisponible(
                 $data['disponible'] ?? null
             ),
@@ -135,13 +132,6 @@ class PropiedadSanitizer
                 self::sanitizarBooleano(
                     $data['acepta_hijos'],
                     false
-                );
-        }
-
-        if (array_key_exists('requisitos_interesados', $data)) {
-            $sanitizado['requisitos_interesados'] =
-                self::sanitizarRequisitosInteresados(
-                    $data['requisitos_interesados']
                 );
         }
 

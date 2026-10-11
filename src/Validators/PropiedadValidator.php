@@ -564,10 +564,6 @@ class PropiedadValidator
                 'acepta_hijos'
             ),
 
-            'requisitos_interesados' => self::validarRequisitosInteresados(
-                $data['requisitos_interesados'] ?? null
-            ),
-
             'disponible' => self::validarDisponible(
                 $data['disponible'] ?? null
             ),

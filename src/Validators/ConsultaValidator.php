@@ -374,6 +374,16 @@ class ConsultaValidator
             $errores['fecha_mudanza'] = 'Debe ser una fecha válida en formato YYYY-MM-DD';
         }
 
+        $fechaMudanza = new \DateTimeImmutable(
+            $perfil['fecha_mudanza']
+        );
+
+        $hoy = new \DateTimeImmutable('today');
+
+        if ($fechaMudanza < $hoy) {
+            $errores['fecha_mudanza'] = 'La fecha de mudanza no puede ser anterior a hoy';
+        }
+
         // Cantidad de ocupantes: entero entre 1 y 50.
         $ocupantes = filter_var(
             $perfil['cantidad_ocupantes'] ?? null,
