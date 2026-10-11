@@ -51,4 +51,17 @@ class EloquentNotificacionRepository implements NotificacionRepositoryInterface
             ->where('leida', 0)
             ->update(['leida' => 1]) > 0;
     }
+
+    public function findNoLeidaPorUsuarioYReferencia(
+        int $usuarioId,
+        string $tipo,
+        int $referenciaId
+    ): ?Notificacion {
+        return Notificacion::query()
+            ->where('usuario_id', $usuarioId)
+            ->where('tipo', $tipo)
+            ->where('referencia_id', $referenciaId)
+            ->where('leida', 0)
+            ->first();
+    }
 }

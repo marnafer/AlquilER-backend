@@ -53,29 +53,32 @@ class MensajeConsultaService
             "Envió un mensaje en la consulta #{$consulta->id}"
         );
 
-        // Notifica al otro participante de la consulta (interesado o propietario)
-        $propietarioId = null;
+       // Notifica al otro participante de la consulta.
+$propietarioId = $consulta->propiedad?->usuario_id;
 
-        if (
-            $consulta->relationLoaded('propiedad')
-            && $consulta->propiedad
-        ) {
-            $propietarioId = (int) $consulta->propiedad->usuario_id;
-        }
+$destinatarioId = ($usuarioLogueadoId === (int) $consulta->usuario_id)
+    ? $propietarioId
+    : (int) $consulta->usuario_id;
 
-        $destinatarioId = ($usuarioLogueadoId === (int) $consulta->usuario_id)
-            ? $propietarioId
-            : (int) $consulta->usuario_id;
+if ($destinatarioId && $destinatarioId !== $usuarioLogueadoId) {
+    $remitente = ($usuarioLogueadoId === (int) $consulta->usuario_id)
+        ? $consulta->usuario
+        : $consulta->propiedad?->usuario;
 
-        if ($destinatarioId && $destinatarioId !== $usuarioLogueadoId) {
-            $this->notificacionService->crear(
-                $destinatarioId,
-                'mensaje_nuevo',
-                'Nuevo mensaje en consulta',
-                "Recibiste un nuevo mensaje en la consulta #{$consulta->id}.",
-                (int) $consulta->id
-            );
-        }
+    $nombreRemitente = trim(
+        ($remitente->nombre ?? '') . ' ' . ($remitente->apellido ?? '')
+    );
+
+    $tituloPropiedad = $consulta->propiedad?->titulo ?? 'una propiedad';
+
+    $this->notificacionService->crear(
+        $destinatarioId,
+        'mensaje_nuevo',
+        "Nuevo mensaje de \"{$nombreRemitente}\"",
+        "Recibiste nuevos mensajes por \"{$tituloPropiedad}\".",
+        (int) $consulta->id
+    );
+}
 
         return $mensaje;
     }

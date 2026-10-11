@@ -36,8 +36,8 @@ class MensajeConsultaValidator
         } else {
             $longitud = mb_strlen(trim($mensaje));
 
-            if ($longitud < 5) {
-                $errores['mensaje'] = 'El mensaje debe tener al menos 5 caracteres';
+            if ($longitud < 1) {
+                $errores['mensaje'] = 'El mensaje debe tener al menos 1 caracter';
             } elseif ($longitud > 2000) {
                 $errores['mensaje'] = 'El mensaje no puede superar los 2000 caracteres';
             }
