@@ -267,13 +267,15 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         );
     }
 
+    
     public function existePorReservaYTipo(
         int $reservaId,
         string $tipo
     ): bool {
-        return Resena::query()
+        return Resena::withTrashed()
             ->where('reserva_id', $reservaId)
             ->where('tipo', $tipo)
             ->exists();
     }
+
 }
