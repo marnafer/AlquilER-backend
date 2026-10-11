@@ -6,7 +6,7 @@ namespace App\Middlewares;
 
 final class RateLimitMiddleware
 {
-    private const MAX_REQUESTS = 60;
+    private const MAX_REQUESTS = 120;
 
     private const WINDOW_SECONDS = 60;
 

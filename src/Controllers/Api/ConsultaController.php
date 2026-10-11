@@ -87,6 +87,20 @@ class ConsultaController
         ]);
     }
 
+    public function indexRecibidas(): void
+    {
+        $user = AutenticadorMiddleware::verificar();
+
+        $consultas = $this->service->listarRecibidasPorPropietario(
+            (int) $user->sub
+        );
+
+        Response::success([
+            'items' => $consultas,
+            'total' => count($consultas),
+        ]);
+    }
+
     public function show($id): void
     {
         $user = AutenticadorMiddleware::verificar();

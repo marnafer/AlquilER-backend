@@ -105,21 +105,9 @@ class ResenaSanitizer
         }
 
         $comentario = trim($comentario);
+        $comentario = preg_replace('/\s+/u', ' ', $comentario);
+        $comentario = strip_tags($comentario);
 
-        $comentario = preg_replace(
-            '/\s+/u',
-            ' ',
-            $comentario
-        );
-
-        $comentario = strip_tags(
-            $comentario
-        );
-
-        return htmlspecialchars(
-            $comentario,
-            ENT_QUOTES | ENT_SUBSTITUTE,
-            'UTF-8'
-        );
+        return $comentario;
     }
 }

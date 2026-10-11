@@ -48,7 +48,7 @@ class Propiedad extends Model
         'categoria_id' => 'integer',
         'localidad_id' => 'integer',
         'usuario_id' => 'integer',
-        'fecha_publicacion' => 'datetime',
+        'fecha_publicacion' => 'datetime'
     ];
 
     protected $hidden = [

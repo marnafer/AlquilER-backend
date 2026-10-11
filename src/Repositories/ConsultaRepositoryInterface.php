@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Repositories;
+use App\Models\Consulta;
 
 interface ConsultaRepositoryInterface
 {
@@ -43,4 +44,14 @@ interface ConsultaRepositoryInterface
      * Obtener consultas por propiedad
      */
     public function getByPropiedad(int $propiedadId): array;
+
+    /**
+     * Buscar una consulta activa por propiedad e interesado.
+     */
+    public function findByPropiedadYUsuario(int $propiedadId, int $usuarioId): ?Consulta;
+
+    /**
+     * Obtener consultas recibidas por un propietario
+     */
+    public function getRecibidasPorPropietario(int $usuarioId): array;
 }
