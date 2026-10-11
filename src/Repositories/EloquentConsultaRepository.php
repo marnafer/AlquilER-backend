@@ -123,9 +123,16 @@ class EloquentConsultaRepository implements ConsultaRepositoryInterface
      */
     public function getByPropiedad(int $propiedadId): array
     {
-        return Consulta::where('propiedad_id', $propiedadId)
-            ->with(['usuario'])
-            ->orderBy('fecha_consulta', 'desc')
+        $query = Consulta::where('propiedad_id', $propiedadId)
+            ->with(['usuario']);
+
+        $this->agregarUltimoMensaje($query);
+
+        return $query
+            ->orderByRaw(
+                'COALESCE(ultima_actividad, consultas.fecha_consulta) DESC'
+            )
+            ->orderByDesc('consultas.id')
             ->get()
             ->toArray();
     }

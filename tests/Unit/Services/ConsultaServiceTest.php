@@ -424,6 +424,38 @@ class ConsultaServiceTest extends TestCase
         ]);
     }
 
+    public function test_crear_rechaza_consultas_a_la_propiedad_del_mismo_usuario(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 20;
+        $propiedad->usuario_id = 5;
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(20)
+            ->willReturn($propiedad);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('findByPropiedadYUsuario');
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->notificacionService
+            ->expects($this->never())
+            ->method('crear');
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->service->crear([
+            'propiedad_id' => 20,
+            'usuario_id' => 5,
+        ]);
+    }
+
     public function test_actualizar_actualiza_la_consulta(): void
     {
         $consulta = new Consulta();
