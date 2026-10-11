@@ -42,6 +42,9 @@ class PropiedadSanitizer
                 $data['acepta_hijos'] ?? null,
                 false
             ),
+            'requisitos_interesados' => self::sanitizarRequisitosInteresados(
+                $data['requisitos_interesados'] ?? null
+            ),
             'disponible' => self::sanitizarDisponible(
                 $data['disponible'] ?? null
             ),
@@ -132,6 +135,13 @@ class PropiedadSanitizer
                 self::sanitizarBooleano(
                     $data['acepta_hijos'],
                     false
+                );
+        }
+
+        if (array_key_exists('requisitos_interesados', $data)) {
+            $sanitizado['requisitos_interesados'] =
+                self::sanitizarRequisitosInteresados(
+                    $data['requisitos_interesados']
                 );
         }
 
@@ -520,5 +530,49 @@ class PropiedadSanitizer
         return $valor === null
             ? null
             : ($valor ? 1 : 0);
+    }
+
+    public static function sanitizarRequisitosInteresados($requisitos)
+    {
+        if (!is_array($requisitos)) {
+            return $requisitos;
+        }
+
+        $sanitizados = [];
+
+        if (array_key_exists('fecha_disponible_desde', $requisitos)) {
+            $fecha = $requisitos['fecha_disponible_desde'];
+
+            $sanitizados['fecha_disponible_desde'] =
+                is_string($fecha) ? trim($fecha) : $fecha;
+        }
+
+        if (array_key_exists('max_ocupantes', $requisitos)) {
+            $maxOcupantes = $requisitos['max_ocupantes'];
+
+            $sanitizados['max_ocupantes'] =
+                is_string($maxOcupantes)
+                    ? trim($maxOcupantes)
+                    : $maxOcupantes;
+        }
+
+        if (array_key_exists('garantias_aceptadas', $requisitos)) {
+            $garantias = $requisitos['garantias_aceptadas'];
+
+            if (is_array($garantias)) {
+                $sanitizados['garantias_aceptadas'] = array_map(
+                    static fn($garantia) =>
+                        is_string($garantia)
+                            ? trim($garantia)
+                            : $garantia,
+                    $garantias
+                );
+            } else {
+                // Se conserva el tipo para que el validador lo rechace.
+                $sanitizados['garantias_aceptadas'] = $garantias;
+            }
+        }
+
+        return $sanitizados;
     }
 }

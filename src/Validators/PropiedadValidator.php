@@ -212,6 +212,83 @@ class PropiedadValidator
         return null;
     }
 
+    public static function validarRequisitosInteresados($requisitos): array
+    {
+        if ($requisitos === null) {
+            return [];
+        }
+
+        if (!is_array($requisitos)) {
+            return [
+                'Los requisitos deben enviarse como un objeto',
+            ];
+        }
+
+        $errores = [];
+
+        // Validar fecha de disponibilidad.
+        $fecha = $requisitos['fecha_disponible_desde'] ?? null;
+
+        if ($fecha !== null && $fecha !== '') {
+            $date = is_string($fecha)
+                ? \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha)
+                : false;
+
+            if (
+                !$date ||
+                $date->format('Y-m-d') !== $fecha
+            ) {
+                $errores[] =
+                    'La fecha de disponibilidad debe tener formato AAAA-MM-DD';
+            }
+        }
+
+        // Validar cantidad máxima de ocupantes.
+        $maxOcupantes = $requisitos['max_ocupantes'] ?? null;
+
+        if ($maxOcupantes !== null && $maxOcupantes !== '') {
+            if (
+                filter_var(
+                    $maxOcupantes,
+                    FILTER_VALIDATE_INT
+                ) === false ||
+                (int) $maxOcupantes < 1 ||
+                (int) $maxOcupantes > 50
+            ) {
+                $errores[] =
+                    'El máximo de ocupantes debe ser un entero entre 1 y 50';
+            }
+        }
+
+        // Validar garantías aceptadas.
+        $garantias = $requisitos['garantias_aceptadas'] ?? [];
+
+        $garantiasPermitidas = [
+            'recibo_sueldo',
+            'garantia_propietaria',
+            'seguro_caucion',
+            'garante',
+        ];
+
+        if (!is_array($garantias) || !array_is_list($garantias)) {
+            $errores[] =
+                'Las garantías aceptadas deben ser una lista';
+        } else {
+            foreach ($garantias as $garantia) {
+                if (
+                    !is_string($garantia) ||
+                    !in_array($garantia, $garantiasPermitidas, true)
+                ) {
+                    $errores[] =
+                        'La lista contiene una garantía no válida';
+                    break;
+                }
+            }
+        }
+
+        return $errores;
+    }
+
     public static function validarDestacada(
         $destacada
     ): ?string {
@@ -487,6 +564,10 @@ class PropiedadValidator
                 'acepta_hijos'
             ),
 
+            'requisitos_interesados' => self::validarRequisitosInteresados(
+                $data['requisitos_interesados'] ?? null
+            ),
+
             'disponible' => self::validarDisponible(
                 $data['disponible'] ?? null
             ),
@@ -504,10 +585,20 @@ class PropiedadValidator
             ),
         ];
 
-        foreach ($validaciones as $campo => $error) {
-            if ($error !== null) {
-                $errores[$campo] = $error;
+       foreach ($validaciones as $campo => $error) {
+            if ($error === null) {
+                continue;
             }
+
+            if (is_array($error)) {
+                if ($error !== []) {
+                    $errores[$campo] = $error;
+                }
+
+                continue;
+            }
+
+            $errores[$campo] = $error;
         }
 
         return [

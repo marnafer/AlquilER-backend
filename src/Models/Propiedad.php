@@ -25,6 +25,7 @@ class Propiedad extends Model
         'capacidad',
         'acepta_mascotas',
         'acepta_hijos',
+        'requisitos_interesados',
         'disponible',
         'destacada',
         'categoria_id',
@@ -42,11 +43,12 @@ class Propiedad extends Model
         'capacidad' => 'integer',
         'acepta_mascotas' => 'boolean',
         'acepta_hijos' => 'boolean',
+        'requisitos_interesados' => 'array',
         'destacada' => 'boolean',
         'categoria_id' => 'integer',
         'localidad_id' => 'integer',
         'usuario_id' => 'integer',
-        'fecha_publicacion' => 'datetime',
+        'fecha_publicacion' => 'datetime'
     ];
 
     protected $hidden = [
