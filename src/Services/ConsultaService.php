@@ -177,6 +177,12 @@ class ConsultaService
 
         $propietarioId = (int) $propiedad->usuario_id;
 
+        if ($usuarioId === $propietarioId) {
+            throw new ForbiddenException(
+                'No puedes iniciar una consulta sobre tu propia propiedad'
+            );
+        }
+
         return DB::transaction(
             function () use (
                 $data,

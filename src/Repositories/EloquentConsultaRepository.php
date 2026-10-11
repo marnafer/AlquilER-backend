@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Consulta;
+use App\Models\MensajeConsulta;
 
 class EloquentConsultaRepository implements ConsultaRepositoryInterface
 {
@@ -98,16 +99,24 @@ class EloquentConsultaRepository implements ConsultaRepositoryInterface
     }
     
     /**
-     * Obtener consultas por usuario
+     * Obtener consultas por usuario, ordenadas por actividad reciente.
      */
     public function getByUsuario(int $usuarioId): array
     {
-        return Consulta::where('usuario_id', $usuarioId)
-            ->with(['propiedad', 'propiedad.imagenes'])
-            ->orderBy('fecha_consulta', 'desc')
+        $query = Consulta::where('usuario_id', $usuarioId)
+            ->with(['propiedad', 'propiedad.imagenes']);
+
+        $this->agregarUltimoMensaje($query);
+
+        return $query
+            ->orderByRaw(
+                'COALESCE(ultima_actividad, consultas.fecha_consulta) DESC'
+            )
+            ->orderByDesc('consultas.id')
             ->get()
             ->toArray();
     }
+
     
     /**
      * Obtener consultas por propiedad
@@ -132,19 +141,54 @@ class EloquentConsultaRepository implements ConsultaRepositoryInterface
     }
 
     /**
-     * Obtener todas las consultas recibidas en propiedades del usuario.
+     * Obtener consultas recibidas en propiedades del usuario,
+     * ordenadas por actividad reciente.
      */
     public function getRecibidasPorPropietario(int $usuarioId): array
     {
-        return Consulta::whereHas(
+        $query = Consulta::whereHas(
             'propiedad',
             function ($query) use ($usuarioId) {
                 $query->where('usuario_id', $usuarioId);
             }
-        )
-            ->with(['propiedad', 'usuario'])
-            ->orderByDesc('fecha_consulta')
+        )->with(['propiedad', 'usuario']);
+
+        $this->agregarUltimoMensaje($query);
+
+        return $query
+            ->orderByRaw(
+                'COALESCE(ultima_actividad, consultas.fecha_consulta) DESC'
+            )
+            ->orderByDesc('consultas.id')
             ->get()
             ->toArray();
+    }
+
+    /**
+     * Agregar la fecha y el texto del último mensaje no eliminado.
+     */
+    private function agregarUltimoMensaje($query): void
+    {
+        $query->addSelect([
+            'ultimo_mensaje' => MensajeConsulta::query()
+                ->select('mensaje')
+                ->whereColumn(
+                    'mensajes_consultas.consulta_id',
+                    'consultas.id'
+                )
+                ->orderByDesc('fecha_mensaje')
+                ->orderByDesc('id')
+                ->limit(1),
+
+            'ultima_actividad' => MensajeConsulta::query()
+                ->select('fecha_mensaje')
+                ->whereColumn(
+                    'mensajes_consultas.consulta_id',
+                    'consultas.id'
+                )
+                ->orderByDesc('fecha_mensaje')
+                ->orderByDesc('id')
+                ->limit(1),
+        ]);
     }
 }
