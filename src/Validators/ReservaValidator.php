@@ -172,16 +172,12 @@ class ReservaValidator
 
         $finValido = false;
 
-        if (
-            isset($data['fecha_fin_alquiler']) &&
-            $data['fecha_fin_alquiler'] !== null &&
-            $data['fecha_fin_alquiler'] !== ''
-        ) {
-            if (!self::esFechaValida((string) $fechaFin)) {
-                $errores['fecha_fin_alquiler'] = 'La fecha de fin del alquiler no es válida';
-            } else {
-                $finValido = true;
-            }
+        if ($fechaFin === null || $fechaFin === '') {
+            $errores['fecha_fin_alquiler'] = 'La fecha de fin del alquiler es requerida';
+        } elseif (!self::esFechaValida((string) $fechaFin)) {
+            $errores['fecha_fin_alquiler'] = 'La fecha de fin del alquiler no es válida';
+        } else {
+            $finValido = true;
         }
 
         if (

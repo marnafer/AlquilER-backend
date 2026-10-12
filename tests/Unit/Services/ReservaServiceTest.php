@@ -25,11 +25,13 @@ use Tests\TestCase;
 final class ReservaServiceTest extends TestCase
 {
     /**
-     * Fecha de inicio utilizable para crear reservas. El validador rechaza
+     * Fecha de inicio y fecha de fin utilizables para crear reservas. El validador rechaza
      * fechas en el pasado, asi que se calcula relativa a hoy en vez de fija,
      * para que estos casos no se rompan al correr el suite otro dia.
      */
     private const FECHA_INICIO = '+30 days';
+
+    private const FECHA_FIN = '+1 year +30 days';
 
     private $reservaRepository;
     private $propiedadRepository;
@@ -466,6 +468,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -511,6 +514,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -597,6 +601,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime('-10 days')),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime('+1 year')),
             ],
             1
         );
@@ -623,6 +628,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 999,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -661,6 +667,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -699,6 +706,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -1424,6 +1432,26 @@ final class ReservaServiceTest extends TestCase
             1,
             99,
             Rol::ADMIN
+        );
+    }
+
+    public function test_it_rejects_creating_reserva_without_end_date(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crear(
+            [
+                'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+            ],
+            1
         );
     }
 }
