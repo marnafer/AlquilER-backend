@@ -489,12 +489,12 @@ class ReservaService
         if (
             !in_array(
                 $reserva->estado,
-                ['pendiente', 'confirmada'],
+                ['pendiente'],
                 true
             )
         ) {
             throw new BadRequestException(
-                'Solo se puede cancelar una reserva pendiente o confirmada'
+                'Solo se puede cancelar una reserva pendiente'
             );
         }
 

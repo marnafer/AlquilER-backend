@@ -975,6 +975,154 @@ final class ReservaServiceTest extends TestCase
 
         $this->assertTrue($result);
     }
+    
+    public function test_it_can_cancel_pending_reserva(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->with(5, 1, $reserva)
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCancelar')
+            ->with(5, 1, $reserva)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('update')
+            ->with(
+                1,
+                ['estado' => 'cancelada']
+            )
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'reserva_cancelada');
+
+        $result = $this->reservaService->cancelar(
+            1,
+            5,
+            1
+        );
+
+        $this->assertTrue($result);
+    }
+
+    public function test_it_rejects_cancelling_confirmed_reserva(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'confirmada',
+            'usuario_id' => 5,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCancelar')
+            ->with(5, 1, $reserva)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage(
+            'Solo se puede cancelar una reserva pendiente'
+        );
+
+        $this->reservaService->cancelar(
+            1,
+            5,
+            1
+        );
+    }
+
+    public function test_it_rejects_cancelling_reserva_without_permission(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCancelar')
+            ->with(7, 1, $reserva)
+            ->willReturn(false);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para cancelar esta reserva'
+        );
+
+        $this->reservaService->cancelar(
+            1,
+            7,
+            1
+        );
+    }
 
     public function test_it_throws_exception_when_rejecting_non_pending_reserva(): void
     {
