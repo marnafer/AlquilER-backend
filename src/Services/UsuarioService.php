@@ -14,6 +14,8 @@ use App\Models\Usuario;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Repositories\ConsultaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\PropiedadRepositoryInterface;
+use App\Repositories\ResenaRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
 use App\Policies\UsuarioPolicy;
@@ -25,7 +27,9 @@ class UsuarioService
         private readonly LogActividadService $logActividadService,
         private readonly UsuarioPolicy $policy,
         private readonly ConsultaRepositoryInterface $consultaRepository,
-        private readonly ReservaRepositoryInterface $reservaRepository
+        private readonly ReservaRepositoryInterface $reservaRepository,
+        private readonly PropiedadRepositoryInterface $propiedadRepository,
+        private readonly ResenaRepositoryInterface $resenaRepository
     ) {
     }
 
@@ -117,10 +121,29 @@ class UsuarioService
             );
         }
 
+        $esPropietario = $this->propiedadRepository
+            ->existePorUsuario($usuarioConsultadoId);
+
         return [
             'id' => $usuarioConsultadoId,
             'nombre' => $usuario->nombre,
             'apellido' => $usuario->apellido,
+            'calificaciones' => [
+                'inquilino' => round(
+                    $this->resenaRepository->getPromedioByUsuario(
+                        $usuarioConsultadoId
+                    ),
+                    2
+                ),
+                'propiedades' => $esPropietario
+                    ? round(
+                        $this->resenaRepository->getPromedioByPropietario(
+                            $usuarioConsultadoId
+                        ),
+                        2
+                    )
+                    : null,
+            ],
         ];
     }
 

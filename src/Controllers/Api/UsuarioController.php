@@ -82,6 +82,22 @@ class UsuarioController
     }
 
     /**
+     * GET /api/usuarios/{id}/perfil-publico
+     */
+    public function publicProfile($id): void
+    {
+        $user = AutenticadorMiddleware::verificar();
+
+        Response::success(
+            $this->service->obtenerPerfilPublico(
+                $id,
+                (int) $user->sub,
+                (int) $user->rol_id
+            )
+        );
+    }
+
+    /**
      * POST /api/admin/usuarios
      */
     public function storeAdmin(): void

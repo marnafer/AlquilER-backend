@@ -8,10 +8,15 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Rol;
 use App\Models\Usuario;
 use App\Policies\UsuarioPolicy;
 use App\Repositories\UsuarioRepositoryInterface;
+use App\Repositories\ConsultaRepositoryInterface;
+use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\PropiedadRepositoryInterface;
+use App\Repositories\ResenaRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\UsuarioService;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,6 +30,19 @@ final class UsuarioServiceTest extends TestCase
 
     /** @var LogActividadService&MockObject */
     private $logService;
+
+    /** @var ConsultaRepositoryInterface&MockObject */
+    private $consultaRepository;
+
+    /** @var ReservaRepositoryInterface&MockObject */
+    private $reservaRepository;
+
+    /** @var PropiedadRepositoryInterface&MockObject */
+    private $propiedadRepository;
+
+    /** @var ResenaRepositoryInterface&MockObject */
+    private $resenaRepository;
+    
     private UsuarioPolicy $policy;
 
     protected function setUp(): void
@@ -33,6 +51,22 @@ final class UsuarioServiceTest extends TestCase
 
         $this->repository = $this->createMock(
             UsuarioRepositoryInterface::class
+        );
+
+        $this->consultaRepository = $this->createMock(
+            ConsultaRepositoryInterface::class
+        );
+
+        $this->reservaRepository = $this->createMock(
+            ReservaRepositoryInterface::class
+        );
+
+        $this->propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $this->resenaRepository = $this->createMock(
+            ResenaRepositoryInterface::class
         );
 
         $this->logService = $this->createMock(
@@ -47,7 +81,11 @@ final class UsuarioServiceTest extends TestCase
         return new UsuarioService(
             $this->repository,
             $this->logService,
-            $this->policy
+            $this->policy,
+            $this->consultaRepository,
+            $this->reservaRepository,
+            $this->propiedadRepository,
+            $this->resenaRepository
         );
     }
 
@@ -149,6 +187,158 @@ final class UsuarioServiceTest extends TestCase
         $this->expectExceptionMessage('Usuario no encontrado');
 
         $this->crearServicio()->obtenerConRol(1);
+    }
+
+    public function test_obtener_perfil_publico_devuelve_datos_y_calificaciones(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+            'email' => 'ana@example.com',
+            'telefono' => '123456',
+            'domicilio' => 'Calle privada 123',
+        ]);
+        $usuario->id = 5;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('existeConsultaEntreUsuarios')
+            ->with(1, 5)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('existeReservaEntreUsuarios');
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('existePorUsuario')
+            ->with(5)
+            ->willReturn(true);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getPromedioByUsuario')
+            ->with(5)
+            ->willReturn(4.567);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getPromedioByPropietario')
+            ->with(5)
+            ->willReturn(4.876);
+
+        $resultado = $this->crearServicio()
+            ->obtenerPerfilPublico(5, 1, Rol::USUARIO);
+
+        $this->assertSame([
+            'id' => 5,
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+            'calificaciones' => [
+                'inquilino' => 4.57,
+                'propiedades' => 4.88,
+            ],
+        ], $resultado);
+
+        $this->assertArrayNotHasKey('email', $resultado);
+        $this->assertArrayNotHasKey('telefono', $resultado);
+        $this->assertArrayNotHasKey('domicilio', $resultado);
+        $this->assertArrayNotHasKey('contrasena', $resultado);
+    }
+
+    public function test_obtener_perfil_publico_devuelve_null_si_no_es_propietario(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+        ]);
+        $usuario->id = 5;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('existeConsultaEntreUsuarios')
+            ->with(1, 5)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('existeReservaEntreUsuarios');
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('existePorUsuario')
+            ->with(5)
+            ->willReturn(false);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getPromedioByUsuario')
+            ->with(5)
+            ->willReturn(0.0);
+
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getPromedioByPropietario');
+
+        $resultado = $this->crearServicio()
+            ->obtenerPerfilPublico(5, 1, Rol::USUARIO);
+
+        $this->assertNull(
+            $resultado['calificaciones']['propiedades']
+        );
+
+        $this->assertSame(
+            0.0,
+            $resultado['calificaciones']['inquilino']
+        );
+    }
+
+    public function test_obtener_perfil_publico_no_permite_consultar_el_propio_perfil(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('existeConsultaEntreUsuarios');
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('existeReservaEntreUsuarios');
+
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('existePorUsuario');
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->crearServicio()->obtenerPerfilPublico(
+            1,
+            1,
+            Rol::ADMIN
+        );
     }
 
     public function test_actualiza_un_usuario(): void

@@ -136,7 +136,9 @@ $usuarioService = new UsuarioService(
     $logActividadService,
     $usuarioPolicy,
     $consultaRepository,
-    $reservaRepository
+    $reservaRepository,
+    $propiedadRepository,
+    $resenaRepository
 );
 
 $categoriaService = new CategoriaService(

@@ -31,6 +31,8 @@ interface ResenaRepositoryInterface
 
     public function getPromedioByPropiedad(int $propiedadId): float;
 
+    public function getPromedioByPropietario(int $propietarioId): float;
+
     public function getPromedioByUsuario(int $usuarioId): float;
 
     public function existePorReservaYTipo(

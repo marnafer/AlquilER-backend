@@ -542,4 +542,74 @@ final class UsuarioControllerTest extends TestCase
             $response['error']
         );
     }
+
+    public function test_public_profile_devuelve_el_perfil_publico(): void
+    {
+        $perfil = [
+            'id' => 5,
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+            'calificaciones' => [
+                'inquilino' => 4.5,
+                'propiedades' => 4.8,
+            ],
+        ];
+
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerPerfilPublico')
+            ->with(5, 1, 1)
+            ->willReturn($perfil);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->publicProfile(5)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($perfil, $response['data']);
+    }
+
+    public function test_public_profile_requiere_autenticacion(): void
+    {
+        $this->service
+            ->expects($this->never())
+            ->method('obtenerPerfilPublico');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->publicProfile(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Token requerido',
+            $response['error']
+        );
+    }
+
+    public function test_public_profile_devuelve_forbidden_si_no_tiene_permisos(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerPerfilPublico')
+            ->with(5, 1, 1)
+            ->willThrowException(
+                new ForbiddenException(
+                    'No autorizado para consultar este perfil'
+                )
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller->publicProfile(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'No autorizado para consultar este perfil',
+            $response['error']
+        );
+    }
 }
