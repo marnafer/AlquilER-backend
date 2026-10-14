@@ -8,6 +8,7 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
 use App\Models\Reserva;
 use App\Policies\ResenaPolicy;
@@ -16,6 +17,7 @@ use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\ResenaService;
+use App\Models\Rol;
 use Illuminate\Database\Eloquent\Collection;
 use Tests\TestCase;
 
@@ -565,7 +567,7 @@ final class ResenaServiceTest extends TestCase
         $this->resenaService->eliminar(
             10,
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->addToAssertionCount(1);
@@ -605,7 +607,7 @@ final class ResenaServiceTest extends TestCase
         $this->resenaService->restaurar(
             10,
             99,
-            2
+            Rol::ADMIN
         );
 
         $this->addToAssertionCount(1);
@@ -627,7 +629,7 @@ final class ResenaServiceTest extends TestCase
         $this->resenaService->restaurar(
             999,
             99,
-            2
+            Rol::ADMIN
         );
     }
 
@@ -656,4 +658,46 @@ final class ResenaServiceTest extends TestCase
 
         $this->assertSame(4.2, $result);
     }
+
+    
+    public function test_it_throws_exception_when_user_cannot_review_reservation(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'finalizada',
+            'usuario_id' => 2,
+            'propiedad_id' => 1,
+        ]);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->resenaPolicy
+        ->expects($this->once())
+        ->method('crear')
+        ->with($reserva, 10)
+        ->willThrowException(
+            new ForbiddenException(
+                'No tienes permiso para crear esta reseña'
+            )
+        );
+
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->resenaService->crear(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+            ],
+            10
+        );
+    }
+
 }

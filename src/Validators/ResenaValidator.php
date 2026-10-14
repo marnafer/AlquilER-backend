@@ -172,19 +172,28 @@ class ResenaValidator
     /**
      * Valida calificación
      */
+    
     public static function validarCalificacion($calificacion)
     {
-        if ($calificacion === null || $calificacion === '') {
+        if (
+            $calificacion === null ||
+            $calificacion === ''
+        ) {
             return [
                 'success' => false,
                 'error' => 'La calificación es requerida'
             ];
         }
 
-        if (!is_numeric($calificacion)) {
+        if (
+            filter_var(
+                $calificacion,
+                FILTER_VALIDATE_INT
+            ) === false
+        ) {
             return [
                 'success' => false,
-                'error' => 'La calificación debe ser numérica'
+                'error' => 'La calificación debe ser un número entero'
             ];
         }
 
@@ -245,10 +254,6 @@ class ResenaValidator
 
         if (!$resultado['success']) {
             $errores['reserva_id'] = $resultado['error'];
-        }
-
-        if (!$resultado['success']) {
-            $errores['tipo'] = $resultado['error'];
         }
 
         $resultado = self::validarCalificacion(

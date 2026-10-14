@@ -8,17 +8,28 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Rol;
 use App\Models\Usuario;
 use App\Repositories\UsuarioRepositoryInterface;
+use App\Repositories\ConsultaRepositoryInterface;
+use App\Repositories\ReservaRepositoryInterface;
+use App\Repositories\PropiedadRepositoryInterface;
+use App\Repositories\ResenaRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
+use App\Policies\UsuarioPolicy;
 
 class UsuarioService
 {
     public function __construct(
         private readonly UsuarioRepositoryInterface $repository,
-        private readonly LogActividadService $logActividadService
+        private readonly LogActividadService $logActividadService,
+        private readonly UsuarioPolicy $policy,
+        private readonly ConsultaRepositoryInterface $consultaRepository,
+        private readonly ReservaRepositoryInterface $reservaRepository,
+        private readonly PropiedadRepositoryInterface $propiedadRepository,
+        private readonly ResenaRepositoryInterface $resenaRepository
     ) {
     }
 
@@ -55,6 +66,88 @@ class UsuarioService
         return $usuario;
     }
 
+    
+    public function obtenerAutorizado(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): Usuario {
+        $usuario = $this->obtener($rawId);
+
+        if (!$this->policy->puedeVer(
+            $usuarioId,
+            $rolId,
+            (int) $usuario->id
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para consultar este usuario'
+            );
+        }
+
+        return $usuario;
+    }
+
+    public function obtenerPerfilPublico(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): array {
+        $usuario = $this->obtener($rawId);
+
+        $usuarioConsultadoId = (int) $usuario->id;
+
+        $existeRelacion = false;
+
+        if ($usuarioId !== $usuarioConsultadoId) {
+            $existeRelacion =
+                $this->consultaRepository->existeConsultaEntreUsuarios(
+                    $usuarioId,
+                    $usuarioConsultadoId
+                )
+                || $this->reservaRepository->existeReservaEntreUsuarios(
+                    $usuarioId,
+                    $usuarioConsultadoId
+                );
+        }
+
+        if (!$this->policy->puedeVerPerfilPublico(
+            $usuarioId,
+            $rolId,
+            $usuarioConsultadoId,
+            $existeRelacion
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para consultar este perfil'
+            );
+        }
+
+        $esPropietario = $this->propiedadRepository
+            ->existePorUsuario($usuarioConsultadoId);
+
+        return [
+            'id' => $usuarioConsultadoId,
+            'nombre' => $usuario->nombre,
+            'apellido' => $usuario->apellido,
+            'calificaciones' => [
+                'inquilino' => round(
+                    $this->resenaRepository->getPromedioByUsuario(
+                        $usuarioConsultadoId
+                    ),
+                    2
+                ),
+                'propiedades' => $esPropietario
+                    ? round(
+                        $this->resenaRepository->getPromedioByPropietario(
+                            $usuarioConsultadoId
+                        ),
+                        2
+                    )
+                    : null,
+            ],
+        ];
+    }
+
+
     public function obtenerConRol($rawId): Usuario
     {
         $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
@@ -80,9 +173,21 @@ class UsuarioService
 
     public function actualizar(
         $rawId,
-        array $rawData
+        array $rawData,
+        int $usuarioId,
+        int $rolId
     ): void {
         $usuario = $this->obtener($rawId);
+
+        if (!$this->policy->puedeActualizar(
+            $usuarioId,
+            $rolId,
+            (int) $usuario->id
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para actualizar este usuario'
+            );
+        }
 
         if ($rawData === []) {
             throw new BadRequestException(
@@ -216,9 +321,23 @@ class UsuarioService
         return $usuario;
     }
 
-    public function eliminar($rawId): void
+    public function eliminar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): void
     {
         $usuario = $this->obtener($rawId);
+
+        if (!$this->policy->puedeEliminar(
+            $usuarioId,
+            $rolId,
+            (int) $usuario->id
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para eliminar este usuario'
+            );
+        }
 
         $this->repository->delete($usuario);
 

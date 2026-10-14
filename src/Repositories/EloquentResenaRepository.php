@@ -249,6 +249,25 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         );
     }
 
+    public function getPromedioByPropietario(
+        int $propietarioId
+    ): float {
+        return (float) (
+            Resena::query()
+                ->where('tipo', 'propiedad')
+                ->whereHas(
+                    'reserva.propiedad',
+                    function (Builder $query) use ($propietarioId): void {
+                        $query->where(
+                            'usuario_id',
+                            $propietarioId
+                        );
+                    }
+                )
+                ->avg('calificacion') ?? 0
+        );
+    }
+
     public function getPromedioByUsuario(int $usuarioId): float
     {
         return (float) (
@@ -267,13 +286,15 @@ class EloquentResenaRepository implements ResenaRepositoryInterface
         );
     }
 
+    
     public function existePorReservaYTipo(
         int $reservaId,
         string $tipo
     ): bool {
-        return Resena::query()
+        return Resena::withTrashed()
             ->where('reserva_id', $reservaId)
             ->where('tipo', $tipo)
             ->exists();
     }
+
 }

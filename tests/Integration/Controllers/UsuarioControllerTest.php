@@ -8,6 +8,7 @@ use App\Controllers\Api\UsuarioController;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Usuario;
 use App\Services\UsuarioService;
 use Tests\TestCase;
@@ -113,15 +114,14 @@ final class UsuarioControllerTest extends TestCase
             'apellido' => 'Gomez',
             'email' => 'ana@example.com',
         ]);
-
         $usuario->id = 1;
 
         $this->actingAs(1, 1);
 
         $this->service
             ->expects($this->once())
-            ->method('obtener')
-            ->with(1)
+            ->method('obtenerAutorizado')
+            ->with(1, 1, 1)
             ->willReturn($usuario);
 
         $response = $this->captureJson(
@@ -129,14 +129,8 @@ final class UsuarioControllerTest extends TestCase
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(
-            'Ana',
-            $response['data']['nombre']
-        );
-        $this->assertSame(
-            1,
-            $response['data']['id']
-        );
+        $this->assertSame('Ana', $response['data']['nombre']);
+        $this->assertSame(1, $response['data']['id']);
     }
 
     public function test_show_devuelve_not_found_si_no_existe(): void
@@ -145,12 +139,10 @@ final class UsuarioControllerTest extends TestCase
 
         $this->service
             ->expects($this->once())
-            ->method('obtener')
-            ->with(999)
+            ->method('obtenerAutorizado')
+            ->with(999, 1, 2)
             ->willThrowException(
-                new NotFoundException(
-                    'Usuario no encontrado'
-                )
+                new NotFoundException('Usuario no encontrado')
             );
 
         $response = $this->captureJson(
@@ -166,18 +158,15 @@ final class UsuarioControllerTest extends TestCase
 
     public function test_show_permite_a_un_admin_ver_cualquier_usuario(): void
     {
-        $usuario = new Usuario([
-            'nombre' => 'Ana',
-        ]);
-
+        $usuario = new Usuario(['nombre' => 'Ana']);
         $usuario->id = 5;
 
         $this->actingAs(1, 2);
 
         $this->service
             ->expects($this->once())
-            ->method('obtener')
-            ->with(5)
+            ->method('obtenerAutorizado')
+            ->with(5, 1, 2)
             ->willReturn($usuario);
 
         $response = $this->captureJson(
@@ -185,19 +174,22 @@ final class UsuarioControllerTest extends TestCase
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(
-            5,
-            $response['data']['id']
-        );
+        $this->assertSame(5, $response['data']['id']);
     }
 
-    public function test_show_no_permite_ver_otro_usuario(): void
+    public function test_show_devuelve_forbidden_si_el_servicio_rechaza_el_acceso(): void
     {
         $this->actingAs(1, 1);
 
         $this->service
-            ->expects($this->never())
-            ->method('obtener');
+            ->expects($this->once())
+            ->method('obtenerAutorizado')
+            ->with(5, 1, 1)
+            ->willThrowException(
+                new ForbiddenException(
+                    'No autorizado para consultar este usuario'
+                )
+            );
 
         $response = $this->captureJson(
             fn() => $this->controller->show(5)
@@ -205,7 +197,7 @@ final class UsuarioControllerTest extends TestCase
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'No autorizado',
+            'No autorizado para consultar este usuario',
             $response['error']
         );
     }
@@ -264,15 +256,13 @@ final class UsuarioControllerTest extends TestCase
             ->method('actualizar')
             ->with(
                 1,
-                [
-                    'nombre' => 'Nombre Actualizado',
-                ]
+                ['nombre' => 'Nombre Actualizado'],
+                1,
+                1
             );
 
         $response = $this->captureJsonWithBody(
-            json_encode([
-                'nombre' => 'Nombre Actualizado',
-            ]),
+            json_encode(['nombre' => 'Nombre Actualizado']),
             fn() => $this->controller->update(1)
         );
 
@@ -283,24 +273,28 @@ final class UsuarioControllerTest extends TestCase
         );
     }
 
-    public function test_update_no_permite_actualizar_otro_usuario(): void
+    public function test_update_devuelve_forbidden_si_el_servicio_rechaza_el_acceso(): void
     {
         $this->actingAs(1, 1);
 
         $this->service
-            ->expects($this->never())
-            ->method('actualizar');
+            ->expects($this->once())
+            ->method('actualizar')
+            ->with(5, ['nombre' => 'Cambio'], 1, 1)
+            ->willThrowException(
+                new ForbiddenException(
+                    'No autorizado para actualizar este usuario'
+                )
+            );
 
         $response = $this->captureJsonWithBody(
-            json_encode([
-                'nombre' => 'Cambio',
-            ]),
+            json_encode(['nombre' => 'Cambio']),
             fn() => $this->controller->update(5)
         );
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'No autorizado',
+            'No autorizado para actualizar este usuario',
             $response['error']
         );
     }
@@ -312,17 +306,10 @@ final class UsuarioControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(
-                5,
-                [
-                    'nombre' => 'Cambio',
-                ]
-            );
+            ->with(5, ['nombre' => 'Cambio'], 1, 2);
 
         $response = $this->captureJsonWithBody(
-            json_encode([
-                'nombre' => 'Cambio',
-            ]),
+            json_encode(['nombre' => 'Cambio']),
             fn() => $this->controller->update(5)
         );
 
@@ -340,24 +327,17 @@ final class UsuarioControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(
-                1,
-                [
-                    'nombre' => 'A',
-                ]
-            )
+            ->with(1, ['nombre' => 'A'], 1, 1)
             ->willThrowException(
                 new ValidationException([
                     'nombre' => [
-                        'El nombre debe tener entre 2 y 50 caracteres'
-                    ]
+                        'El nombre debe tener entre 2 y 50 caracteres',
+                    ],
                 ])
             );
 
         $response = $this->captureJsonWithBody(
-            json_encode([
-                'nombre' => 'A',
-            ]),
+            json_encode(['nombre' => 'A']),
             fn() => $this->controller->update(1)
         );
 
@@ -375,22 +355,13 @@ final class UsuarioControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('actualizar')
-            ->with(
-                1,
-                [
-                    'email' => 'otro@example.com',
-                ]
-            )
+            ->with(1, ['email' => 'otro@example.com'], 1, 1)
             ->willThrowException(
-                new ConflictException(
-                    'El email ya está registrado'
-                )
+                new ConflictException('El email ya está registrado')
             );
 
         $response = $this->captureJsonWithBody(
-            json_encode([
-                'email' => 'otro@example.com',
-            ]),
+            json_encode(['email' => 'otro@example.com']),
             fn() => $this->controller->update(1)
         );
 
@@ -408,26 +379,29 @@ final class UsuarioControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('eliminar')
-            ->with(1);
+            ->with(1, 1, 1);
 
         $response = $this->captureJson(
             fn() => $this->controller->delete(1)
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(
-            'Usuario eliminado',
-            $response['message']
-        );
+        $this->assertSame('Usuario eliminado', $response['message']);
     }
 
-    public function test_delete_no_permite_eliminar_otro_usuario(): void
+    public function test_delete_devuelve_forbidden_si_el_servicio_rechaza_el_acceso(): void
     {
         $this->actingAs(1, 1);
 
         $this->service
-            ->expects($this->never())
-            ->method('eliminar');
+            ->expects($this->once())
+            ->method('eliminar')
+            ->with(5, 1, 1)
+            ->willThrowException(
+                new ForbiddenException(
+                    'No autorizado para eliminar este usuario'
+                )
+            );
 
         $response = $this->captureJson(
             fn() => $this->controller->delete(5)
@@ -435,7 +409,7 @@ final class UsuarioControllerTest extends TestCase
 
         $this->assertFalse($response['success']);
         $this->assertSame(
-            'No autorizado',
+            'No autorizado para eliminar este usuario',
             $response['error']
         );
     }
@@ -447,17 +421,14 @@ final class UsuarioControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('eliminar')
-            ->with(5);
+            ->with(5, 1, 2);
 
         $response = $this->captureJson(
             fn() => $this->controller->delete(5)
         );
 
         $this->assertTrue($response['success']);
-        $this->assertSame(
-            'Usuario eliminado',
-            $response['message']
-        );
+        $this->assertSame('Usuario eliminado', $response['message']);
     }
 
     public function test_delete_devuelve_not_found_si_no_existe(): void
@@ -467,11 +438,9 @@ final class UsuarioControllerTest extends TestCase
         $this->service
             ->expects($this->once())
             ->method('eliminar')
-            ->with(1)
+            ->with(1, 1, 1)
             ->willThrowException(
-                new NotFoundException(
-                    'Usuario no encontrado'
-                )
+                new NotFoundException('Usuario no encontrado')
             );
 
         $response = $this->captureJson(
@@ -570,6 +539,76 @@ final class UsuarioControllerTest extends TestCase
         $this->assertFalse($response['success']);
         $this->assertSame(
             'Ya existe un usuario activo con ese email',
+            $response['error']
+        );
+    }
+
+    public function test_public_profile_devuelve_el_perfil_publico(): void
+    {
+        $perfil = [
+            'id' => 5,
+            'nombre' => 'Ana',
+            'apellido' => 'Gomez',
+            'calificaciones' => [
+                'inquilino' => 4.5,
+                'propiedades' => 4.8,
+            ],
+        ];
+
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerPerfilPublico')
+            ->with(5, 1, 1)
+            ->willReturn($perfil);
+
+        $response = $this->captureJson(
+            fn() => $this->controller->publicProfile(5)
+        );
+
+        $this->assertTrue($response['success']);
+        $this->assertSame($perfil, $response['data']);
+    }
+
+    public function test_public_profile_requiere_autenticacion(): void
+    {
+        $this->service
+            ->expects($this->never())
+            ->method('obtenerPerfilPublico');
+
+        $response = $this->captureJson(
+            fn() => $this->controller->publicProfile(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'Token requerido',
+            $response['error']
+        );
+    }
+
+    public function test_public_profile_devuelve_forbidden_si_no_tiene_permisos(): void
+    {
+        $this->actingAs(1, 1);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerPerfilPublico')
+            ->with(5, 1, 1)
+            ->willThrowException(
+                new ForbiddenException(
+                    'No autorizado para consultar este perfil'
+                )
+            );
+
+        $response = $this->captureJson(
+            fn() => $this->controller->publicProfile(5)
+        );
+
+        $this->assertFalse($response['success']);
+        $this->assertSame(
+            'No autorizado para consultar este perfil',
             $response['error']
         );
     }

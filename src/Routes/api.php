@@ -44,6 +44,8 @@ $router->get('/api/usuarios/{id}', [$usuarioController, 'show']);
 
 $router->get('/api/usuarios/me', [$usuarioController, 'profile']);
 
+$router->get('/api/usuarios/{id}/perfil-publico', [$usuarioController, 'publicProfile']);
+
 $router->put('/api/usuarios/{id}', [$usuarioController, 'update']);
 
 $router->delete('/api/usuarios/{id}', [$usuarioController, 'delete']);

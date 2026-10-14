@@ -376,26 +376,30 @@ class ConsultaValidator
 
         // Fecha de mudanza: obligatoria en un perfil enviado.
         $fecha = $perfil['fecha_mudanza'] ?? null;
+
         $date = is_string($fecha)
             ? \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha)
             : false;
+
         $erroresFecha = \DateTimeImmutable::getLastErrors();
 
-        if (
-            $date === false
-            || ($erroresFecha !== false
-                && (
-                    $erroresFecha['warning_count'] > 0
-                    || $erroresFecha['error_count'] > 0
-                ))
-            || $date->format('Y-m-d') !== $fecha
-        ) {
-            $errores['fecha_mudanza'] = 'Debe ser una fecha válida en formato YYYY-MM-DD';
-        }
+        $fechaValida = (
+            $date !== false
+            && (
+                $erroresFecha === false
+                || (
+                    $erroresFecha['warning_count'] === 0
+                    && $erroresFecha['error_count'] === 0
+                )
+            )
+            && $date->format('Y-m-d') === $fecha
+        );
 
-        if ($date !== false && !isset($errores['fecha_mudanza'])) {
+        if (!$fechaValida) {
+            $errores['fecha_mudanza'] =
+                'Debe ser una fecha válida en formato YYYY-MM-DD';
+        } else {
             $hoy = new \DateTimeImmutable('today');
-
             if ($date < $hoy) {
                 $errores['fecha_mudanza'] =
                     'La fecha de mudanza no puede ser anterior a hoy';
@@ -414,7 +418,7 @@ class ConsultaValidator
 
         // Tiene mascotas: debe poder interpretarse como booleano.
         $tieneMascotas = filter_var(
-            $perfil['tiene_mascotas'] ?? null,
+            $perfil['tiene_mascotas'] ?? null,  
             FILTER_VALIDATE_BOOLEAN,
             FILTER_NULL_ON_FAILURE
         );

@@ -8,6 +8,8 @@ use App\Exceptions\ValidationException;
 use App\Exceptions\ForbiddenException;
 use App\Models\Consulta;
 use App\Models\MensajeConsulta;
+use App\Models\Propiedad;
+use App\Models\Usuario;
 use App\Repositories\MensajeConsultaRepositoryInterface;
 use App\Services\ConsultaService;
 use App\Services\LogActividadService;
@@ -57,6 +59,7 @@ final class MensajeConsultaServiceTest extends TestCase
         $consulta = new Consulta();
         $consulta->id = 100;
         $consulta->usuario_id = 5;
+        $consulta->setRelation('propiedad', null);
 
         $this->consultaService->expects($this->once())
             ->method('obtenerConsultaAutorizada')
@@ -100,9 +103,16 @@ final class MensajeConsultaServiceTest extends TestCase
         $consulta->id = 100;
         $consulta->usuario_id = 5;
 
-        $propiedad = new \App\Models\Propiedad();
+        $interesado = new Usuario();
+        $interesado->setAttribute('nombre', 'Juan');
+        $interesado->setAttribute('apellido', 'Pérez');
+
+        $propiedad = new Propiedad();
         $propiedad->setAttribute('id', 30);
         $propiedad->setAttribute('usuario_id', 7);
+        $propiedad->setAttribute('titulo', 'Casa en Crespo');
+
+        $consulta->setRelation('usuario', $interesado);
         $consulta->setRelation('propiedad', $propiedad);
 
         $this->consultaService->expects($this->once())
@@ -121,15 +131,16 @@ final class MensajeConsultaServiceTest extends TestCase
         $this->logActividadService->expects($this->once())
             ->method('registrar');
 
-        $this->notificacionService->expects($this->once())
-            ->method('crear')
-            ->with(
-                7,
-                'mensaje_nuevo',
-                'Nuevo mensaje en consulta',
-                $this->isType('string'),
-                100
-            );
+        $this->notificacionService
+        ->expects($this->once())
+        ->method('crear')
+        ->with(
+            7,
+            'mensaje_nuevo',
+            'Nuevo mensaje de "Juan Pérez"',
+            'Recibiste nuevos mensajes por "Casa en Crespo".',
+            100
+        );
 
         $resultado = $this->service->crearMensaje([
             'consulta_id' => 100,
@@ -145,9 +156,21 @@ final class MensajeConsultaServiceTest extends TestCase
         $consulta->id = 100;
         $consulta->usuario_id = 5;
 
-        $propiedad = new \App\Models\Propiedad();
+        $interesado = new Usuario();
+        $interesado->setAttribute('nombre', 'María');
+        $interesado->setAttribute('apellido', 'Gómez');
+
+        $propietario = new Usuario();
+        $propietario->setAttribute('nombre', 'Juan');
+        $propietario->setAttribute('apellido', 'Pérez');
+
+        $propiedad = new Propiedad();
         $propiedad->setAttribute('id', 30);
         $propiedad->setAttribute('usuario_id', 7);
+        $propiedad->setAttribute('titulo', 'Casa en Crespo');
+        $propiedad->setRelation('usuario', $propietario);
+
+        $consulta->setRelation('usuario', $interesado);
         $consulta->setRelation('propiedad', $propiedad);
 
         $this->consultaService->expects($this->once())
@@ -166,13 +189,14 @@ final class MensajeConsultaServiceTest extends TestCase
         $this->logActividadService->expects($this->once())
             ->method('registrar');
 
-        $this->notificacionService->expects($this->once())
+        $this->notificacionService
+            ->expects($this->once())
             ->method('crear')
             ->with(
                 5,
                 'mensaje_nuevo',
-                'Nuevo mensaje en consulta',
-                $this->isType('string'),
+                'Nuevo mensaje de "Juan Pérez"',
+                'Recibiste nuevos mensajes por "Casa en Crespo".',
                 100
             );
 
