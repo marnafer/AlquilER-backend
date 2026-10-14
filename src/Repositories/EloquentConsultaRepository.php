@@ -191,4 +191,43 @@ class EloquentConsultaRepository implements ConsultaRepositoryInterface
                 ->limit(1),
         ]);
     }
+
+    /**
+     * Comprobar si dos usuarios tienen una consulta activa
+     * como interesado y propietario.
+     */
+    public function existeConsultaEntreUsuarios(
+        int $usuarioId,
+        int $usuarioConsultadoId
+    ): bool {
+        return Consulta::query()
+            ->where(function ($query) use (
+                $usuarioId,
+                $usuarioConsultadoId
+            ) {
+                // El usuario autenticado es el interesado.
+                $query->where('usuario_id', $usuarioId)
+                    ->whereHas('propiedad', function ($query) use (
+                        $usuarioConsultadoId
+                    ) {
+                        $query->where(
+                            'usuario_id',
+                            $usuarioConsultadoId
+                        );
+                    });
+            })
+            ->orWhere(function ($query) use (
+                $usuarioId,
+                $usuarioConsultadoId
+            ) {
+                // El usuario consultado es el interesado.
+                $query->where('usuario_id', $usuarioConsultadoId)
+                    ->whereHas('propiedad', function ($query) use (
+                        $usuarioId
+                    ) {
+                        $query->where('usuario_id', $usuarioId);
+                    });
+            })
+            ->exists();
+    }
 }

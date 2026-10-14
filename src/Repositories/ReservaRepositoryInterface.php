@@ -54,4 +54,13 @@ interface ReservaRepositoryInterface
     ): bool;
 
     public function finalizarVencidas(): int;
+
+    /**
+     * Comprobar si un interesado tiene una reserva no eliminada
+     * sobre una propiedad del propietario indicado.
+     */
+    public function existeReservaEntreUsuarios(
+        int $propietarioId,
+        int $interesadoId
+    ): bool;
 }

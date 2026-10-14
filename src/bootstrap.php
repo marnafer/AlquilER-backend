@@ -134,7 +134,9 @@ $autenticadorService = new AutenticadorService(
 $usuarioService = new UsuarioService(
     $usuarioRepository,
     $logActividadService,
-    $usuarioPolicy
+    $usuarioPolicy,
+    $consultaRepository,
+    $reservaRepository
 );
 
 $categoriaService = new CategoriaService(

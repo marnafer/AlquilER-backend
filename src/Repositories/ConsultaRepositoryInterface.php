@@ -54,4 +54,13 @@ interface ConsultaRepositoryInterface
      * Obtener consultas recibidas por un propietario
      */
     public function getRecibidasPorPropietario(int $usuarioId): array;
+
+    /**
+     * Comprobar si dos usuarios tienen una consulta activa
+     * como interesado y propietario.
+     */
+    public function existeConsultaEntreUsuarios(
+        int $usuarioId,
+        int $usuarioConsultadoId
+    ): bool;
 }
