@@ -80,6 +80,7 @@ use App\Policies\PropiedadImagenPolicy;
 use App\Policies\PropiedadPolicy;
 use App\Policies\ResenaPolicy;
 use App\Policies\ReservaPolicy;
+use App\Policies\UsuarioPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
@@ -112,6 +113,7 @@ $propiedadPolicy = new PropiedadPolicy();
 $propiedadImagenPolicy = new PropiedadImagenPolicy();
 $resenaPolicy = new ResenaPolicy();
 $reservaPolicy = new ReservaPolicy();
+$usuarioPolicy = new UsuarioPolicy();
 
 // INSTANCIAR SERVICES
 $notificacionService = new NotificacionService(
@@ -131,7 +133,8 @@ $autenticadorService = new AutenticadorService(
 
 $usuarioService = new UsuarioService(
     $usuarioRepository,
-    $logActividadService
+    $logActividadService,
+    $usuarioPolicy
 );
 
 $categoriaService = new CategoriaService(

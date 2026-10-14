@@ -8,17 +8,20 @@ use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Exceptions\ForbiddenException;
 use App\Models\Rol;
 use App\Models\Usuario;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Sanitizers\UsuarioSanitizer;
 use App\Validators\UsuarioValidator;
+use App\Policies\UsuarioPolicy;
 
 class UsuarioService
 {
     public function __construct(
         private readonly UsuarioRepositoryInterface $repository,
-        private readonly LogActividadService $logActividadService
+        private readonly LogActividadService $logActividadService,
+        private readonly UsuarioPolicy $policy
     ) {
     }
 
@@ -55,6 +58,28 @@ class UsuarioService
         return $usuario;
     }
 
+    
+    public function obtenerAutorizado(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): Usuario {
+        $usuario = $this->obtener($rawId);
+
+        if (!$this->policy->puedeVer(
+            $usuarioId,
+            $rolId,
+            (int) $usuario->id
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para consultar este usuario'
+            );
+        }
+
+        return $usuario;
+    }
+
+
     public function obtenerConRol($rawId): Usuario
     {
         $id = UsuarioSanitizer::sanitizarIdUsuario($rawId);
@@ -80,9 +105,21 @@ class UsuarioService
 
     public function actualizar(
         $rawId,
-        array $rawData
+        array $rawData,
+        int $usuarioId,
+        int $rolId
     ): void {
         $usuario = $this->obtener($rawId);
+
+        if (!$this->policy->puedeActualizar(
+            $usuarioId,
+            $rolId,
+            (int) $usuario->id
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para actualizar este usuario'
+            );
+        }
 
         if ($rawData === []) {
             throw new BadRequestException(
@@ -216,9 +253,23 @@ class UsuarioService
         return $usuario;
     }
 
-    public function eliminar($rawId): void
+    public function eliminar(
+        $rawId,
+        int $usuarioId,
+        int $rolId
+    ): void
     {
         $usuario = $this->obtener($rawId);
+
+        if (!$this->policy->puedeEliminar(
+            $usuarioId,
+            $rolId,
+            (int) $usuario->id
+        )) {
+            throw new ForbiddenException(
+                'No autorizado para eliminar este usuario'
+            );
+        }
 
         $this->repository->delete($usuario);
 

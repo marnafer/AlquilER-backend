@@ -72,18 +72,4 @@ class AutenticadorMiddleware
 
         return $user;
     }
-
-    public static function verificarPropietarioOAdmin(string|int $propietarioId): object 
-    {
-        $user = self::verificar();
-
-        if (
-            (int) $user->rol_id !== Rol::ADMIN
-            && (string) $user->sub !== (string) $propietarioId
-        ) {
-            throw new ForbiddenException('No autorizado');
-        }
-
-        return $user;
-    }
 }

@@ -54,14 +54,20 @@ class UsuarioController
     /**
      * GET /api/usuarios/{id}
      */
+    
     public function show($id): void
     {
-        AutenticadorMiddleware::verificarPropietarioOAdmin($id);
+        $user = AutenticadorMiddleware::verificar();
 
         Response::success(
-            $this->service->obtener($id)
+            $this->service->obtenerAutorizado(
+                $id,
+                (int) $user->sub,
+                (int) $user->rol_id
+            )
         );
     }
+
 
     /**
      * GET /api/usuarios/me
@@ -98,18 +104,16 @@ class UsuarioController
      */
     public function update($id): void
     {
-        AutenticadorMiddleware::verificarPropietarioOAdmin($id);
+        $user = AutenticadorMiddleware::verificar();
 
         $this->service->actualizar(
             $id,
-            Request::json()
+            Request::json(),
+            (int) $user->sub,
+            (int) $user->rol_id
         );
 
-        Response::success(
-            [],
-            200,
-            'Usuario actualizado correctamente'
-        );
+        Response::success([], 200, 'Usuario actualizado correctamente');
     }
 
     /**
@@ -117,15 +121,15 @@ class UsuarioController
      */
     public function delete($id): void
     {
-        AutenticadorMiddleware::verificarPropietarioOAdmin($id);
+        $user = AutenticadorMiddleware::verificar();
 
-        $this->service->eliminar($id);
-
-        Response::success(
-            [],
-            200,
-            'Usuario eliminado'
+        $this->service->eliminar(
+            $id,
+            (int) $user->sub,
+            (int) $user->rol_id
         );
+
+        Response::success([], 200, 'Usuario eliminado');
     }
 
     /**
