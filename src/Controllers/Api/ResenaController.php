@@ -151,6 +151,36 @@ class ResenaController
         );
     }
 
+    // GET /api/resenas/mis-propiedades
+    public function getMyPropertiesReviews(): void
+    {
+        $usuario = AutenticadorMiddleware::verificar();
+
+        $resenas = $this->service->obtenerResenasDeMisPropiedades(
+            (int) $usuario->sub
+        );
+
+        Response::success([
+            'items' => $resenas,
+            'total' => $resenas->count(),
+        ], 200, 'Reseñas de tus propiedades obtenidas correctamente');
+    }
+
+    // GET /api/resenas/como-inquilino
+    public function getMyTenantReviews(): void
+    {
+        $usuario = AutenticadorMiddleware::verificar();
+
+        $resenas = $this->service->obtenerMisResenasComoInquilino(
+            (int) $usuario->sub
+        );
+
+        Response::success([
+            'items' => $resenas,
+            'total' => $resenas->count(),
+        ], 200, 'Reseñas realizadas como inquilino obtenidas correctamente');
+    }
+
     // POST /api/admin/resenas
     public function storeAdmin()
     {

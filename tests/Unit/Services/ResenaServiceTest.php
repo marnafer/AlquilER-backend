@@ -700,4 +700,53 @@ final class ResenaServiceTest extends TestCase
         );
     }
 
+    public function test_it_can_get_reviews_of_own_properties(): void
+    {
+        $resenas = new Collection([
+            new Resena([
+                'id' => 1,
+                'tipo' => 'propiedad',
+            ]),
+            new Resena([
+                'id' => 2,
+                'tipo' => 'propiedad',
+            ]),
+        ]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByPropietario')
+            ->with(5)
+            ->willReturn($resenas);
+
+        $result = $this->resenaService
+            ->obtenerResenasDeMisPropiedades(5);
+
+        $this->assertSame($resenas, $result);
+        $this->assertCount(2, $result);
+    }
+
+    public function test_it_can_get_reviews_left_as_tenant(): void
+    {
+        $resenas = new Collection([
+            new Resena([
+                'id' => 1,
+                'tipo' => 'propiedad',
+                'calificador_id' => 5,
+            ]),
+        ]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByCalificadorYTipo')
+            ->with(5, 'propiedad')
+            ->willReturn($resenas);
+
+        $result = $this->resenaService
+            ->obtenerMisResenasComoInquilino(5);
+
+        $this->assertSame($resenas, $result);
+        $this->assertCount(1, $result);
+    }
+
 }

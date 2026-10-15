@@ -161,6 +161,21 @@ class ResenaService
         );
     }
 
+    public function obtenerResenasDeMisPropiedades(
+        int $usuarioId
+    ): Collection {
+        return $this->repository->getByPropietario($usuarioId);
+    }
+
+    public function obtenerMisResenasComoInquilino(
+        int $usuarioId
+    ): Collection {
+        return $this->repository->getByCalificadorYTipo(
+            $usuarioId,
+            'propiedad'
+        );
+    }
+
     public function crear(
         array $rawData,
         int $usuarioId

@@ -501,4 +501,59 @@ final class ResenaControllerTest extends TestCase
         $this->assertTrue($respuesta['success']);
         $this->assertSame(200, http_response_code());
     }
+
+    public function test_el_controlador_puede_obtener_resenas_de_sus_propiedades(): void
+    {
+        $resenas = new Collection([
+            new Resena([
+                'id' => 1,
+                'tipo' => 'propiedad',
+            ]),
+            new Resena([
+                'id' => 2,
+                'tipo' => 'propiedad',
+            ]),
+        ]);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerResenasDeMisPropiedades')
+            ->with(1)
+            ->willReturn($resenas);
+
+        $respuesta = $this->captureJson(
+            fn() => $this->controller->getMyPropertiesReviews()
+        );
+
+        $this->assertTrue($respuesta['success']);
+        $this->assertSame(2, $respuesta['data']['total']);
+        $this->assertCount(2, $respuesta['data']['items']);
+        $this->assertSame(200, http_response_code());
+    }
+
+    public function test_el_controlador_puede_obtener_resenas_que_dejo_como_inquilino(): void
+    {
+        $resenas = new Collection([
+            new Resena([
+                'id' => 1,
+                'tipo' => 'propiedad',
+                'calificador_id' => 1,
+            ]),
+        ]);
+
+        $this->service
+            ->expects($this->once())
+            ->method('obtenerMisResenasComoInquilino')
+            ->with(1)
+            ->willReturn($resenas);
+
+        $respuesta = $this->captureJson(
+            fn() => $this->controller->getMyTenantReviews()
+        );
+
+        $this->assertTrue($respuesta['success']);
+        $this->assertSame(1, $respuesta['data']['total']);
+        $this->assertCount(1, $respuesta['data']['items']);
+        $this->assertSame(200, http_response_code());
+    }
 }
