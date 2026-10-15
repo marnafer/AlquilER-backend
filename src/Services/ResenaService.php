@@ -18,7 +18,6 @@ use App\Policies\ResenaPolicy;
 use App\Sanitizers\ResenaSanitizer;
 use App\Validators\ResenaValidator;
 use Illuminate\Database\Eloquent\Collection;
-use App\Services\NotificacionService;
 
 class ResenaService
 {
