@@ -18,6 +18,7 @@ use App\Policies\ResenaPolicy;
 use App\Sanitizers\ResenaSanitizer;
 use App\Validators\ResenaValidator;
 use Illuminate\Database\Eloquent\Collection;
+use App\Services\NotificacionService;
 
 class ResenaService
 {
@@ -26,7 +27,9 @@ class ResenaService
         private readonly ReservaRepositoryInterface $reservaRepository,
         private readonly ResenaPolicy $policy,
         private readonly LogActividadService $logActividadService,
-        private readonly UsuarioRepositoryInterface $usuarioRepository
+        private readonly UsuarioRepositoryInterface $usuarioRepository,
+        private readonly NotificacionService $notificacionService
+
     ) {
     }
 
@@ -232,6 +235,28 @@ class ResenaService
         $resena = $this->repository->create(
             $data
         );
+
+        if ($tipo === 'propiedad') {
+        // El inquilino calificó la propiedad.
+        $propietarioId = (int) $reserva->propiedad->usuario_id;
+
+        $this->notificacionService->crear(
+            $propietarioId,
+            'resena_nueva',
+            'Nueva reseña',
+            'Recibiste una nueva reseña sobre tu propiedad.',
+            (int) $reserva->id
+        );
+    } else {
+        // El propietario calificó al inquilino.
+        $this->notificacionService->crear(
+            (int) $reserva->usuario_id,
+            'resena_nueva',
+            'Nueva reseña',
+            'Recibiste una nueva reseña sobre tu estadía.',
+            (int) $reserva->id
+        );
+    }
 
         $this->logActividadService->registrar(
             $usuarioId,
