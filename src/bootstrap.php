@@ -217,7 +217,8 @@ $resenaService = new ResenaService(
     $reservaRepository,
     $resenaPolicy,
     $logActividadService,
-    $usuarioRepository
+    $usuarioRepository,
+    $notificacionService
 );
 
 $propiedadServicioService = new PropiedadServicioService(
