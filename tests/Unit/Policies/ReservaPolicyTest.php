@@ -63,6 +63,15 @@ final class ReservaPolicyTest extends TestCase
         $this->assertFalse($this->policy->puedeVer(14, Rol::USUARIO, $reserva));
     }
 
+    public function test_puede_ver_deniega_a_un_usuario_cuando_no_hay_propiedad(): void
+    {
+        $reserva = new Reserva();
+        $reserva->usuario_id = 5;
+        $reserva->setRelation('propiedad', null);
+
+        $this->assertFalse($this->policy->puedeVer(9, Rol::USUARIO, $reserva));
+    }
+
     public function test_puede_crear_permite_a_un_usuario_distinto_del_propietario(): void
     {
         $this->assertTrue($this->policy->puedeCrear(5, 9));
@@ -104,6 +113,24 @@ final class ReservaPolicyTest extends TestCase
         $reserva->setRelation('propiedad', $propiedad);
 
         $this->assertFalse($this->policy->puedeConfirmar(5, Rol::USUARIO, $reserva));
+    }
+
+    public function test_puede_confirmar_deniega_a_un_usuario_cuando_no_hay_propiedad(): void
+    {
+        $reserva = new Reserva();
+        $reserva->usuario_id = 5;
+        $reserva->setRelation('propiedad', null);
+
+        $this->assertFalse($this->policy->puedeConfirmar(9, Rol::USUARIO, $reserva));
+    }
+
+    public function test_puede_rechazar_permite_al_administrador(): void
+    {
+        $reserva = new Reserva();
+        $reserva->usuario_id = 5;
+        $reserva->setRelation('propiedad', null);
+
+        $this->assertTrue($this->policy->puedeRechazar(99, Rol::ADMIN, $reserva));
     }
 
     public function test_puede_rechazar_permite_al_propietario(): void
@@ -152,6 +179,15 @@ final class ReservaPolicyTest extends TestCase
         $reserva->setRelation('propiedad', $propiedad);
 
         $this->assertFalse($this->policy->puedeFinalizar(5, Rol::USUARIO, $reserva));
+    }
+
+    public function test_puede_finalizar_permite_al_administrador(): void
+    {
+        $reserva = new Reserva();
+        $reserva->usuario_id = 5;
+        $reserva->setRelation('propiedad', null);
+
+        $this->assertTrue($this->policy->puedeFinalizar(99, Rol::ADMIN, $reserva));
     }
 
     public function test_puede_cancelar_permite_al_inquilino(): void
