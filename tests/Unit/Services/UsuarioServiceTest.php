@@ -209,7 +209,7 @@ final class UsuarioServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('existeConsultaEntreUsuarios')
-            ->with(1, 5)
+            ->with(5, 1)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -294,7 +294,7 @@ final class UsuarioServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('existeConsultaEntreUsuarios')
-            ->with(1, 5)
+            ->with(5, 1)
             ->willReturn(true);
 
         $this->reservaRepository

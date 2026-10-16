@@ -765,6 +765,7 @@ final class ResenaServiceTest extends TestCase
         $this->assertCount(2, $result);
     }
 
+    
     public function test_it_can_get_reviews_left_as_tenant(): void
     {
         $resenas = new Collection([
@@ -777,8 +778,8 @@ final class ResenaServiceTest extends TestCase
 
         $this->resenaRepository
             ->expects($this->once())
-            ->method('getByCalificadorYTipo')
-            ->with(5, 'propiedad')
+            ->method('getByUsuario')
+            ->with(5)
             ->willReturn($resenas);
 
         $result = $this->resenaService
