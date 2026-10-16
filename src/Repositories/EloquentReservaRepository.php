@@ -305,7 +305,7 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
         $reservaDelConsultadoSobrePropiedadDelUsuario =
             Reserva::query()
                 ->where('usuario_id', $usuarioConsultadoId)
-                ->whereIn('estado', ['pendiente', 'confirmada'])
+                ->whereIn('estado', ['pendiente', 'confirmada','finalizada'])
                 ->whereHas('propiedad', function ($query) use ($usuarioId) {
                     $query->where('usuario_id', $usuarioId);
                 })
@@ -317,7 +317,7 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
 
         return Reserva::query()
             ->where('usuario_id', $usuarioId)
-            ->whereIn('estado', ['pendiente', 'confirmada'])
+            ->whereIn('estado', ['pendiente', 'confirmada','finalizada'])
             ->whereHas('propiedad', function ($query) use ($usuarioConsultadoId) {
                 $query->where('usuario_id', $usuarioConsultadoId);
             })
