@@ -39,4 +39,11 @@ interface ResenaRepositoryInterface
         int $reservaId,
         string $tipo
     ): bool;
+
+    public function getByPropietario(int $propietarioId): Collection;
+
+    public function getByCalificadorYTipo(
+        int $calificadorId,
+        string $tipo
+    ): Collection;
 }

@@ -293,27 +293,35 @@ class EloquentReservaRepository implements ReservaRepositoryInterface
             ]);
     }
 
-        /**
-     * Comprobar si un interesado tiene una reserva no eliminada
-     * sobre una propiedad del propietario indicado.
-     *
-     * Se consideran los estados pendiente y confirmada.
+     
+    /**
+     * Comprobar si existe una reserva no eliminada entre un
+     * propietario y un interesado, en cualquiera de los sentidos.
      */
     public function existeReservaEntreUsuarios(
-        int $propietarioId,
-        int $interesadoId
+        int $usuarioConsultadoId,    
+        int $usuarioId
     ): bool {
+        $reservaDelConsultadoSobrePropiedadDelUsuario =
+            Reserva::query()
+                ->where('usuario_id', $usuarioConsultadoId)
+                ->whereIn('estado', ['pendiente', 'confirmada','finalizada'])
+                ->whereHas('propiedad', function ($query) use ($usuarioId) {
+                    $query->where('usuario_id', $usuarioId);
+                })
+                ->exists();
+
+        if ($reservaDelConsultadoSobrePropiedadDelUsuario) {
+            return true;
+        }
+
         return Reserva::query()
-            ->where('usuario_id', $interesadoId)
-            ->whereIn('estado', [
-                'pendiente',
-                'confirmada',
-            ])
-            ->whereHas('propiedad', function ($query) use (
-                $propietarioId
-            ) {
-                $query->where('usuario_id', $propietarioId);
+            ->where('usuario_id', $usuarioId)
+            ->whereIn('estado', ['pendiente', 'confirmada','finalizada'])
+            ->whereHas('propiedad', function ($query) use ($usuarioConsultadoId) {
+                $query->where('usuario_id', $usuarioConsultadoId);
             })
             ->exists();
     }
+
 }

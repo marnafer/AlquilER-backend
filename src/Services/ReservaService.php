@@ -455,6 +455,14 @@ class ReservaService
                 $usuarioId,
                 'reserva_finalizada'
             );
+
+            $this->notificacionService->crear(
+                (int) $reserva->usuario_id,
+                'reserva_finalizada',
+                'Reserva finalizada',
+                'La reserva ha finalizado. Ya podés dejar tu reseña.',
+                (int) $reserva->id
+            );
         }
 
         return $resultado;

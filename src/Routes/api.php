@@ -232,6 +232,10 @@ $router->get('/api/resenas/usuario/{usuarioId}', [$resenaController, 'getByUsuar
 
 $router->get('/api/resenas/calificador/{calificadorId}', [$resenaController, 'getByCalificador']);
 
+$router->get('/api/resenas/mis-propiedades',[$resenaController, 'getMyPropertiesReviews']);
+
+$router->get('/api/resenas/como-inquilino',[$resenaController, 'getMyTenantReviews']);
+
 $router->post('/api/resenas', [$resenaController, 'store']);
 
 $router->put('/api/resenas/{id}', [$resenaController, 'update']);

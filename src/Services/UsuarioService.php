@@ -101,12 +101,12 @@ class UsuarioService
         if ($usuarioId !== $usuarioConsultadoId) {
             $existeRelacion =
                 $this->consultaRepository->existeConsultaEntreUsuarios(
-                    $usuarioId,
-                    $usuarioConsultadoId
+                    $usuarioConsultadoId,
+                    $usuarioId
                 )
                 || $this->reservaRepository->existeReservaEntreUsuarios(
-                    $usuarioId,
-                    $usuarioConsultadoId
+                    $usuarioConsultadoId,
+                    $usuarioId
                 );
         }
 
@@ -124,10 +124,21 @@ class UsuarioService
         $esPropietario = $this->propiedadRepository
             ->existePorUsuario($usuarioConsultadoId);
 
+        $resenasInquilino = $this->resenaRepository->getByUsuario(
+            $usuarioConsultadoId
+        );
+
+        $resenasPropiedades = $esPropietario
+            ? $this->resenaRepository->getByPropietario(
+                $usuarioConsultadoId
+            )
+            : collect();
+
         return [
             'id' => $usuarioConsultadoId,
             'nombre' => $usuario->nombre,
             'apellido' => $usuario->apellido,
+
             'calificaciones' => [
                 'inquilino' => round(
                     $this->resenaRepository->getPromedioByUsuario(
@@ -135,6 +146,7 @@ class UsuarioService
                     ),
                     2
                 ),
+
                 'propiedades' => $esPropietario
                     ? round(
                         $this->resenaRepository->getPromedioByPropietario(
@@ -143,6 +155,11 @@ class UsuarioService
                         2
                     )
                     : null,
+            ],
+
+            'resenas' => [
+                'inquilino' => $resenasInquilino,
+                'propiedades' => $resenasPropiedades,
             ],
         ];
     }

@@ -209,7 +209,7 @@ final class UsuarioServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('existeConsultaEntreUsuarios')
-            ->with(1, 5)
+            ->with(5, 1)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -234,18 +234,42 @@ final class UsuarioServiceTest extends TestCase
             ->with(5)
             ->willReturn(4.876);
 
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByUsuario')
+            ->with(5)
+            ->willReturn(new Collection());
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByPropietario')
+            ->with(5)
+            ->willReturn(new Collection());
+
         $resultado = $this->crearServicio()
             ->obtenerPerfilPublico(5, 1, Rol::USUARIO);
 
+        $this->assertSame(5, $resultado['id']);
+        $this->assertSame('Ana', $resultado['nombre']);
+        $this->assertSame('Gomez', $resultado['apellido']);
+
         $this->assertSame([
-            'id' => 5,
-            'nombre' => 'Ana',
-            'apellido' => 'Gomez',
-            'calificaciones' => [
-                'inquilino' => 4.57,
-                'propiedades' => 4.88,
-            ],
-        ], $resultado);
+            'inquilino' => 4.57,
+            'propiedades' => 4.88,
+        ], $resultado['calificaciones']);
+
+        $this->assertInstanceOf(
+            Collection::class,
+            $resultado['resenas']['inquilino']
+        );
+
+        $this->assertInstanceOf(
+            Collection::class,
+            $resultado['resenas']['propiedades']
+        );
+
+        $this->assertCount(0, $resultado['resenas']['inquilino']);
+        $this->assertCount(0, $resultado['resenas']['propiedades']);
 
         $this->assertArrayNotHasKey('email', $resultado);
         $this->assertArrayNotHasKey('telefono', $resultado);
@@ -270,7 +294,7 @@ final class UsuarioServiceTest extends TestCase
         $this->consultaRepository
             ->expects($this->once())
             ->method('existeConsultaEntreUsuarios')
-            ->with(1, 5)
+            ->with(5, 1)
             ->willReturn(true);
 
         $this->reservaRepository
@@ -282,6 +306,16 @@ final class UsuarioServiceTest extends TestCase
             ->method('existePorUsuario')
             ->with(5)
             ->willReturn(false);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByUsuario')
+            ->with(5)
+            ->willReturn(new Collection());
+
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getByPropietario');
 
         $this->resenaRepository
             ->expects($this->once())

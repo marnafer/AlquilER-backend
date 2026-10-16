@@ -11,12 +11,14 @@ use App\Exceptions\ValidationException;
 use App\Exceptions\ForbiddenException;
 use App\Models\Resena;
 use App\Models\Reserva;
+use App\Models\Propiedad;
 use App\Policies\ResenaPolicy;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\UsuarioRepositoryInterface;
 use App\Services\LogActividadService;
 use App\Services\ResenaService;
+use App\Services\NotificacionService;
 use App\Models\Rol;
 use Illuminate\Database\Eloquent\Collection;
 use Tests\TestCase;
@@ -29,6 +31,7 @@ final class ResenaServiceTest extends TestCase
     private $logService;
     private $usuarioRepository;
     private $resenaService;
+    private $notificacionService;
 
     protected function setUp(): void
     {
@@ -54,12 +57,17 @@ final class ResenaServiceTest extends TestCase
             UsuarioRepositoryInterface::class
         );
 
+        $this->notificacionService = $this->createMock(
+            NotificacionService::class
+        );
+
         $this->resenaService = new ResenaService(
             $this->resenaRepository,
             $this->reservaRepository,
             $this->resenaPolicy,
             $this->logService,
-            $this->usuarioRepository
+            $this->usuarioRepository,
+            $this->notificacionService
         );
     }
 
@@ -239,6 +247,13 @@ final class ResenaServiceTest extends TestCase
             'propiedad_id' => 1,
         ]);
 
+        $reserva->id = 5;
+
+        $propiedad = new Propiedad();
+        $propiedad->usuario_id = 9;
+
+        $reserva->setRelation('propiedad', $propiedad);
+
         $resena = new Resena([
             'id' => 10,
             'reserva_id' => 5,
@@ -287,6 +302,17 @@ final class ResenaServiceTest extends TestCase
                 'Creación de reseña'
             );
 
+        $this->notificacionService
+        ->expects($this->once())
+        ->method('crear')
+        ->with(
+            9,
+            'resena_nueva',
+            'Nueva reseña',
+            'Recibiste una nueva reseña sobre tu propiedad.',
+            5
+        );    
+
         $result = $this->resenaService->crear(
             [
                 'reserva_id' => 5,
@@ -307,6 +333,8 @@ final class ResenaServiceTest extends TestCase
             'usuario_id' => 2,
             'propiedad_id' => 1,
         ]);
+
+        $reserva->id = 5;
 
         $resena = new Resena([
             'id' => 11,
@@ -355,6 +383,17 @@ final class ResenaServiceTest extends TestCase
                 9,
                 'Creación de reseña'
             );
+
+        $this->notificacionService
+        ->expects($this->once())
+        ->method('crear')
+        ->with(
+            2,
+            'resena_nueva',
+            'Nueva reseña',
+            'Recibiste una nueva reseña sobre tu estadía.',
+            5
+        );    
 
         $result = $this->resenaService->crear(
             [
@@ -698,6 +737,56 @@ final class ResenaServiceTest extends TestCase
             ],
             10
         );
+    }
+
+    public function test_it_can_get_reviews_of_own_properties(): void
+    {
+        $resenas = new Collection([
+            new Resena([
+                'id' => 1,
+                'tipo' => 'propiedad',
+            ]),
+            new Resena([
+                'id' => 2,
+                'tipo' => 'propiedad',
+            ]),
+        ]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByPropietario')
+            ->with(5)
+            ->willReturn($resenas);
+
+        $result = $this->resenaService
+            ->obtenerResenasDeMisPropiedades(5);
+
+        $this->assertSame($resenas, $result);
+        $this->assertCount(2, $result);
+    }
+
+    
+    public function test_it_can_get_reviews_left_as_tenant(): void
+    {
+        $resenas = new Collection([
+            new Resena([
+                'id' => 1,
+                'tipo' => 'propiedad',
+                'calificador_id' => 5,
+            ]),
+        ]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('getByUsuario')
+            ->with(5)
+            ->willReturn($resenas);
+
+        $result = $this->resenaService
+            ->obtenerMisResenasComoInquilino(5);
+
+        $this->assertSame($resenas, $result);
+        $this->assertCount(1, $result);
     }
 
 }
