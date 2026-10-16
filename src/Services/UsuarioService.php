@@ -101,12 +101,12 @@ class UsuarioService
         if ($usuarioId !== $usuarioConsultadoId) {
             $existeRelacion =
                 $this->consultaRepository->existeConsultaEntreUsuarios(
-                    $usuarioId,
-                    $usuarioConsultadoId
+                    $usuarioConsultadoId,
+                    $usuarioId
                 )
                 || $this->reservaRepository->existeReservaEntreUsuarios(
-                    $usuarioId,
-                    $usuarioConsultadoId
+                    $usuarioConsultadoId,
+                    $usuarioId
                 );
         }
 
