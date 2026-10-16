@@ -172,10 +172,7 @@ class ResenaService
     public function obtenerMisResenasComoInquilino(
         int $usuarioId
     ): Collection {
-        return $this->repository->getByCalificadorYTipo(
-            $usuarioId,
-            'propiedad'
-        );
+        return $this->repository->getByUsuario($usuarioId);
     }
 
     public function crear(
