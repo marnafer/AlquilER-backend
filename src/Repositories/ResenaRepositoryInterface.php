@@ -31,10 +31,19 @@ interface ResenaRepositoryInterface
 
     public function getPromedioByPropiedad(int $propiedadId): float;
 
+    public function getPromedioByPropietario(int $propietarioId): float;
+
     public function getPromedioByUsuario(int $usuarioId): float;
 
     public function existePorReservaYTipo(
         int $reservaId,
         string $tipo
     ): bool;
+
+    public function getByPropietario(int $propietarioId): Collection;
+
+    public function getByCalificadorYTipo(
+        int $calificadorId,
+        string $tipo
+    ): Collection;
 }

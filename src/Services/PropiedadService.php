@@ -161,6 +161,18 @@ class PropiedadService
         int $rolId = Rol::USUARIO,
         ?int $propietarioId = null
     ): Propiedad {
+        if (array_key_exists('requisitos_interesados', $rawData)) {
+            $erroresRequisitos =
+                PropiedadValidator::validarRequisitosInteresados(
+                    $rawData['requisitos_interesados']
+                );
+            if ($erroresRequisitos !== []) {
+                throw new ValidationException([
+                    'requisitos_interesados' => $erroresRequisitos,
+                ]);
+            }
+        }
+
         $servicioIds = $rawData['servicios'] ?? [];
         $propietarioId = $rawData['propietario_id'] ?? null;
 
@@ -332,6 +344,7 @@ class PropiedadService
             'capacidad',
             'acepta_mascotas',
             'acepta_hijos',
+            'requisitos_interesados',
             'disponible',
             'destacada',
             'categoria_id',
@@ -347,6 +360,18 @@ class PropiedadService
             throw new BadRequestException(
                 'No se enviaron campos actualizables'
             );
+        }
+
+        if (array_key_exists('requisitos_interesados', $datosRecibidos)) {
+            $erroresRequisitos =
+                PropiedadValidator::validarRequisitosInteresados(
+                    $datosRecibidos['requisitos_interesados']
+                );
+            if ($erroresRequisitos !== []) {
+                throw new ValidationException([
+                    'requisitos_interesados' => $erroresRequisitos,
+                ]);
+            }
         }
 
         $data = PropiedadSanitizer::sanitizarActualizar(

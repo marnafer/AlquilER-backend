@@ -4,6 +4,7 @@ namespace App\Sanitizers;
 
 class ConsultaSanitizer
 {
+
     public static function sanitizarConsulta($data): array
     {
         return [
@@ -11,7 +12,10 @@ class ConsultaSanitizer
             'propiedad_id' => self::sanitizarId($data['propiedad_id'] ?? null),
             'usuario_id' => self::sanitizarId($data['usuario_id'] ?? null),
             'mensaje' => self::sanitizarMensaje($data['mensaje'] ?? null),
-            'fecha_consulta' => self::sanitizarFecha($data['fecha_consulta'] ?? null)
+            'fecha_consulta' => self::sanitizarFecha($data['fecha_consulta'] ?? null),
+            'perfil_interesado' => self::sanitizarPerfilInteresado(
+                $data['perfil_interesado'] ?? null
+            ),
         ];
     }
 
@@ -24,7 +28,7 @@ class ConsultaSanitizer
         $id = filter_var($id, FILTER_VALIDATE_INT);
 
         return ($id !== false && $id > 0)
-            ? (int) $id 
+            ? (int) $id
             : null;
     }
 
@@ -37,13 +41,8 @@ class ConsultaSanitizer
         $mensaje = trim($mensaje);
         $mensaje = preg_replace('/\s+/', ' ', $mensaje);
         $mensaje = strip_tags($mensaje);
-        $mensaje = htmlspecialchars(
-            $mensaje,
-            ENT_QUOTES,
-            'UTF-8'
-        );
 
-        return substr($mensaje, 0, 5000);
+        return mb_substr($mensaje, 0, 5000, 'UTF-8');
     }
 
     public static function sanitizarFecha($fecha)
@@ -57,5 +56,79 @@ class ConsultaSanitizer
         return $timestamp
             ? date('Y-m-d H:i:s', $timestamp)
             : null;
+    }
+
+    public static function sanitizarPerfilInteresado($perfil)
+    {
+        if ($perfil === null) {
+            return null;
+        }
+
+        if (!is_array($perfil)) {
+            return $perfil;
+        }
+
+        $tieneMascotas = filter_var(
+            $perfil['tiene_mascotas'] ?? null,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        $garantias = $perfil['garantias'] ?? [];
+        if (is_array($garantias)) {
+            $garantiasSanitizadas = [];
+            foreach ($garantias as $garantia) {
+                $garantia = is_string($garantia)
+                    ? trim($garantia)
+                    : $garantia;
+                if (!in_array($garantia, $garantiasSanitizadas, true)) {
+                    $garantiasSanitizadas[] = $garantia;
+                }
+            }
+        } else {
+            $garantiasSanitizadas = $garantias;
+        }
+
+        return [
+            'fecha_mudanza' => self::sanitizarFechaDia(
+                $perfil['fecha_mudanza'] ?? null
+            ),
+            'cantidad_ocupantes' => self::sanitizarEntero(
+                $perfil['cantidad_ocupantes'] ?? null
+            ),
+            'tiene_mascotas' => $tieneMascotas,
+            'cantidad_mascotas' => self::sanitizarEntero(
+                $perfil['cantidad_mascotas'] ?? null
+            ),
+            'garantias' => $garantiasSanitizadas,
+        ];
+    }
+
+    private static function sanitizarFechaDia($fecha): ?string
+    {
+        if (!is_string($fecha)) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
+        $errores = \DateTimeImmutable::getLastErrors();
+
+        if (
+            $date === false
+            || ($errores !== false
+                && ($errores['warning_count'] > 0 || $errores['error_count'] > 0))
+            || $date->format('Y-m-d') !== $fecha
+        ) {
+            return null;
+        }
+
+        return $fecha;
+    }
+
+    private static function sanitizarEntero($valor): ?int
+    {
+        $entero = filter_var($valor, FILTER_VALIDATE_INT);
+
+        return $entero === false ? null : $entero;
     }
 }

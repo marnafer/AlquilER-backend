@@ -160,6 +160,13 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ->get();
     }
 
+    public function existePorUsuario(int $usuarioId): bool
+    {
+        return Propiedad::query()
+            ->where('usuario_id', $usuarioId)
+            ->exists();
+    }
+
     public function findById(int $id): ?Propiedad
     {
         return Propiedad::query()

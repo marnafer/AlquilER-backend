@@ -44,6 +44,8 @@ $router->get('/api/usuarios/{id}', [$usuarioController, 'show']);
 
 $router->get('/api/usuarios/me', [$usuarioController, 'profile']);
 
+$router->get('/api/usuarios/{id}/perfil-publico', [$usuarioController, 'publicProfile']);
+
 $router->put('/api/usuarios/{id}', [$usuarioController, 'update']);
 
 $router->delete('/api/usuarios/{id}', [$usuarioController, 'delete']);
@@ -202,6 +204,8 @@ $router->get('/api/consultas/propiedad/{propiedadId}', [$consultaController, 'in
 
 $router->get('/api/consultas/usuario/{usuarioId}', [$consultaController, 'indexByUsuario']);
 
+$router->get('/api/consultas/recibidas',[$consultaController, 'indexRecibidas']);
+
 $router->post('/api/consultas', [$consultaController, 'store']);
 
 $router->put('/api/consultas/{id}', [$consultaController, 'update']);
@@ -227,6 +231,10 @@ $router->get('/api/resenas/propiedad/{propiedadId}', [$resenaController, 'getByP
 $router->get('/api/resenas/usuario/{usuarioId}', [$resenaController, 'getByUsuario']);
 
 $router->get('/api/resenas/calificador/{calificadorId}', [$resenaController, 'getByCalificador']);
+
+$router->get('/api/resenas/mis-propiedades',[$resenaController, 'getMyPropertiesReviews']);
+
+$router->get('/api/resenas/como-inquilino',[$resenaController, 'getMyTenantReviews']);
 
 $router->post('/api/resenas', [$resenaController, 'store']);
 

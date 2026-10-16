@@ -81,6 +81,10 @@ APP_DEBUG=true
 *Luego acceder desde el navegador a:
 
 *http://localhost:8000
+
+Si la base de datos ya existía antes de incorporar la precalificación de
+interesados, ejecutar una vez el script
+`scripts/migrations/20261010_precalificacion_interesados.sql` sobre esa base.
 * **Opción B: XAMPP**
 *Abrir XAMPP.
 *Iniciar los servicios Apache y MySQL.
@@ -248,4 +252,3 @@ El objetivo es obtener una API REST más mantenible, segura, escalable y prepara
 [POST-PROPIEDADES-1](./docs/capturas/post-propiedades-1.png)
 [POST-PROPIEDADES-2](./docs/capturas/post-propiedades-2.png)
 [PUT-PROPIEDADES](./docs/capturas/put-propiedades-1.png)
-

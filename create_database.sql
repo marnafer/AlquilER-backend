@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS `consultas` (
   `id` int(11) UNSIGNED NOT NULL,
   `propiedad_id` int(11) UNSIGNED NOT NULL,
   `usuario_id` int(11) UNSIGNED NOT NULL,
+  `perfil_interesado` JSON DEFAULT NULL,
   `fecha_consulta` timestamp NOT NULL DEFAULT current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -176,6 +177,7 @@ CREATE TABLE IF NOT EXISTS `propiedades` (
   `cantidad_dormitorios` tinyint(2) UNSIGNED NOT NULL,
   `cantidad_banos` tinyint(2) UNSIGNED NOT NULL,
   `capacidad` tinyint(3) UNSIGNED DEFAULT NULL,
+  `requisitos_interesados` JSON DEFAULT NULL,
   `disponible` tinyint(1) NOT NULL DEFAULT 1,
   `destacada` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   `categoria_id` int(11) UNSIGNED NOT NULL,

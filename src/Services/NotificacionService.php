@@ -44,16 +44,39 @@ class NotificacionService
         string $mensaje,
         ?int $referenciaId = null
     ): void {
-        $this->notificacionRepository->create([
-            'usuario_id' => $usuarioId,
-            'tipo' => $tipo,
+        $data = [
             'titulo' => $titulo,
             'mensaje' => $mensaje,
-            'referencia_id' => $referenciaId,
-            'leida' => 0,
-            'fecha_notificacion' => date('Y-m-d H:i:s')
-        ]);
+            'fecha_notificacion' => date('Y-m-d H:i:s'),
+        ];
+
+        // Evita duplicar notificaciones de mensajes de una misma conversación.
+        if ($tipo === 'mensaje_nuevo' && $referenciaId !== null) {
+            $existente = $this->notificacionRepository
+                ->findNoLeidaPorUsuarioYReferencia(
+                    $usuarioId,
+                    $tipo,
+                    $referenciaId
+                );
+
+            if ($existente !== null) {
+                $this->notificacionRepository->update(
+                    (int) $existente->id,
+                    $data
+                );
+
+                return;
+            }
     }
+
+    $this->notificacionRepository->create([
+        'usuario_id' => $usuarioId,
+        'tipo' => $tipo,
+        ...$data,
+        'referencia_id' => $referenciaId,
+        'leida' => 0,
+    ]);
+}
 
     public function marcarLeida(
         $rawId,

@@ -25,11 +25,13 @@ use Tests\TestCase;
 final class ReservaServiceTest extends TestCase
 {
     /**
-     * Fecha de inicio utilizable para crear reservas. El validador rechaza
+     * Fecha de inicio y fecha de fin utilizables para crear reservas. El validador rechaza
      * fechas en el pasado, asi que se calcula relativa a hoy en vez de fija,
      * para que estos casos no se rompan al correr el suite otro dia.
      */
     private const FECHA_INICIO = '+30 days';
+
+    private const FECHA_FIN = '+1 year +30 days';
 
     private $reservaRepository;
     private $propiedadRepository;
@@ -110,7 +112,14 @@ final class ReservaServiceTest extends TestCase
             $filtros
         );
 
-        $this->assertSame($reservas, $result);
+        $this->assertSame(
+            [
+                'mis_reservas' => [],
+                'reservas_de_mis_propiedades' => [],
+                'todas' => $reservas,
+            ],
+            $result
+        );
     }
 
     public function test_it_lists_reservas_within_user_scope(): void
@@ -153,7 +162,13 @@ final class ReservaServiceTest extends TestCase
             1
         );
 
-        $this->assertSame($reservas, $result);
+        $this->assertSame(
+            [
+                'mis_reservas' => $reservas,
+                'reservas_de_mis_propiedades' => [],
+            ],
+            $result
+        );
     }
 
     public function test_it_lists_only_user_reservas_when_user_has_no_properties(): void
@@ -189,7 +204,65 @@ final class ReservaServiceTest extends TestCase
             1
         );
 
-        $this->assertSame($reservas, $result);
+        $this->assertSame(
+            [
+                'mis_reservas' => $reservas,
+                'reservas_de_mis_propiedades' => [],
+            ],
+            $result
+        );
+    }
+
+    public function test_it_separates_reservas_i_made_from_those_on_my_properties(): void
+    {
+        $propias = [
+            [
+                'id' => 1,
+                'usuario_id' => 1,
+                'propiedad_id' => 10,
+            ],
+        ];
+
+        $recibidas = [
+            [
+                'id' => 2,
+                'usuario_id' => 7,
+                'propiedad_id' => 20,
+            ],
+        ];
+
+        $propiedad = new Propiedad([
+            'usuario_id' => 1,
+        ]);
+
+        $propiedad->setAttribute('id', 20);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('porUsuario')
+            ->with(1)
+            ->willReturn(
+                new Collection([$propiedad])
+            );
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('listarPorAlcance')
+            ->with(1, [20], [])
+            ->willReturn(array_merge($propias, $recibidas));
+
+        $result = $this->reservaService->listar(
+            1,
+            1
+        );
+
+        $this->assertSame(
+            [
+                'mis_reservas' => $propias,
+                'reservas_de_mis_propiedades' => $recibidas,
+            ],
+            $result
+        );
     }
 
     public function test_it_applies_filters_when_listing_reservas_within_scope(): void
@@ -229,7 +302,13 @@ final class ReservaServiceTest extends TestCase
             $filtros
         );
 
-        $this->assertSame([], $result);
+        $this->assertSame(
+            [
+                'mis_reservas' => [],
+                'reservas_de_mis_propiedades' => [],
+            ],
+            $result
+        );
     }
 
     public function test_it_can_get_reserva_by_id(): void
@@ -389,6 +468,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -434,6 +514,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -520,6 +601,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime('-10 days')),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime('+1 year')),
             ],
             1
         );
@@ -546,6 +628,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 999,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -584,6 +667,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -622,6 +706,7 @@ final class ReservaServiceTest extends TestCase
             [
                 'propiedad_id' => 10,
                 'fecha_inicio_alquiler' => date('Y-m-d', strtotime(self::FECHA_INICIO)),
+                'fecha_fin_alquiler' => date('Y-m-d', strtotime(self::FECHA_FIN))
             ],
             1
         );
@@ -889,6 +974,154 @@ final class ReservaServiceTest extends TestCase
         );
 
         $this->assertTrue($result);
+    }
+    
+    public function test_it_can_cancel_pending_reserva(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->with(5, 1, $reserva)
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCancelar')
+            ->with(5, 1, $reserva)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('update')
+            ->with(
+                1,
+                ['estado' => 'cancelada']
+            )
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'reserva_cancelada');
+
+        $result = $this->reservaService->cancelar(
+            1,
+            5,
+            1
+        );
+
+        $this->assertTrue($result);
+    }
+
+    public function test_it_rejects_cancelling_confirmed_reserva(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'confirmada',
+            'usuario_id' => 5,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCancelar')
+            ->with(5, 1, $reserva)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage(
+            'Solo se puede cancelar una reserva pendiente'
+        );
+
+        $this->reservaService->cancelar(
+            1,
+            5,
+            1
+        );
+    }
+
+    public function test_it_rejects_cancelling_reserva_without_permission(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+            'propiedad_id' => 10,
+        ]);
+
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeCancelar')
+            ->with(7, 1, $reserva)
+            ->willReturn(false);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para cancelar esta reserva'
+        );
+
+        $this->reservaService->cancelar(
+            1,
+            7,
+            1
+        );
     }
 
     public function test_it_throws_exception_when_rejecting_non_pending_reserva(): void
@@ -1347,6 +1580,26 @@ final class ReservaServiceTest extends TestCase
             1,
             99,
             Rol::ADMIN
+        );
+    }
+
+    public function test_it_rejects_creating_reserva_without_end_date(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crear(
+            [
+                'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+            ],
+            1
         );
     }
 }

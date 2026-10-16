@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Consulta;
+use App\Models\MensajeConsulta;
 
 class EloquentConsultaRepository implements ConsultaRepositoryInterface
 {
@@ -98,26 +99,142 @@ class EloquentConsultaRepository implements ConsultaRepositoryInterface
     }
     
     /**
-     * Obtener consultas por usuario
+     * Obtener consultas por usuario, ordenadas por actividad reciente.
      */
     public function getByUsuario(int $usuarioId): array
     {
-        return Consulta::where('usuario_id', $usuarioId)
-            ->with(['propiedad', 'propiedad.imagenes'])
-            ->orderBy('fecha_consulta', 'desc')
+        $query = Consulta::where('usuario_id', $usuarioId)
+            ->with(['propiedad', 'propiedad.imagenes']);
+
+        $this->agregarUltimoMensaje($query);
+
+        return $query
+            ->orderByRaw(
+                'COALESCE(ultima_actividad, consultas.fecha_consulta) DESC'
+            )
+            ->orderByDesc('consultas.id')
             ->get()
             ->toArray();
     }
+
     
     /**
      * Obtener consultas por propiedad
      */
     public function getByPropiedad(int $propiedadId): array
     {
-        return Consulta::where('propiedad_id', $propiedadId)
-            ->with(['usuario'])
-            ->orderBy('fecha_consulta', 'desc')
+        $query = Consulta::where('propiedad_id', $propiedadId)
+            ->with(['usuario']);
+
+        $this->agregarUltimoMensaje($query);
+
+        return $query
+            ->orderByRaw(
+                'COALESCE(ultima_actividad, consultas.fecha_consulta) DESC'
+            )
+            ->orderByDesc('consultas.id')
             ->get()
             ->toArray();
+    }
+
+    /**
+     * Buscar una consulta activa por propiedad e interesado.
+     */
+    public function findByPropiedadYUsuario(int $propiedadId, int $usuarioId): ?Consulta {
+        return Consulta::where('propiedad_id', $propiedadId)
+            ->where('usuario_id', $usuarioId)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Obtener consultas recibidas en propiedades del usuario,
+     * ordenadas por actividad reciente.
+     */
+    public function getRecibidasPorPropietario(int $usuarioId): array
+    {
+        $query = Consulta::whereHas(
+            'propiedad',
+            function ($query) use ($usuarioId) {
+                $query->where('usuario_id', $usuarioId);
+            }
+        )->with(['propiedad', 'usuario']);
+
+        $this->agregarUltimoMensaje($query);
+
+        return $query
+            ->orderByRaw(
+                'COALESCE(ultima_actividad, consultas.fecha_consulta) DESC'
+            )
+            ->orderByDesc('consultas.id')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Agregar la fecha y el texto del último mensaje no eliminado.
+     */
+    private function agregarUltimoMensaje($query): void
+    {
+        $query->addSelect([
+            'ultimo_mensaje' => MensajeConsulta::query()
+                ->select('mensaje')
+                ->whereColumn(
+                    'mensajes_consultas.consulta_id',
+                    'consultas.id'
+                )
+                ->orderByDesc('fecha_mensaje')
+                ->orderByDesc('id')
+                ->limit(1),
+
+            'ultima_actividad' => MensajeConsulta::query()
+                ->select('fecha_mensaje')
+                ->whereColumn(
+                    'mensajes_consultas.consulta_id',
+                    'consultas.id'
+                )
+                ->orderByDesc('fecha_mensaje')
+                ->orderByDesc('id')
+                ->limit(1),
+        ]);
+    }
+
+    /**
+     * Comprobar si dos usuarios tienen una consulta activa
+     * como interesado y propietario.
+     */
+    public function existeConsultaEntreUsuarios(
+        int $usuarioId,
+        int $usuarioConsultadoId
+    ): bool {
+        return Consulta::query()
+            ->where(function ($query) use (
+                $usuarioId,
+                $usuarioConsultadoId
+            ) {
+                // El usuario autenticado es el interesado.
+                $query->where('usuario_id', $usuarioId)
+                    ->whereHas('propiedad', function ($query) use (
+                        $usuarioConsultadoId
+                    ) {
+                        $query->where(
+                            'usuario_id',
+                            $usuarioConsultadoId
+                        );
+                    });
+            })
+            ->orWhere(function ($query) use (
+                $usuarioId,
+                $usuarioConsultadoId
+            ) {
+                // El usuario consultado es el interesado.
+                $query->where('usuario_id', $usuarioConsultadoId)
+                    ->whereHas('propiedad', function ($query) use (
+                        $usuarioId
+                    ) {
+                        $query->where('usuario_id', $usuarioId);
+                    });
+            })
+            ->exists();
     }
 }

@@ -25,6 +25,43 @@ class EloquentMensajeConsultaRepository implements MensajeConsultaRepositoryInte
         return MensajeConsulta::find($id);
     }
 
+    public function findLatestByConsultaId(
+        int $consultaId,
+        int $limit
+    ): Collection {
+        return MensajeConsulta::with('usuario')
+            ->where('consulta_id', $consultaId)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function findOlderByConsultaId(
+        int $consultaId,
+        int $beforeId,
+        int $limit
+    ): Collection {
+        return MensajeConsulta::with('usuario')
+            ->where('consulta_id', $consultaId)
+            ->where('id', '<', $beforeId)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function findNewerByConsultaId(
+        int $consultaId,
+        int $afterId,
+        int $limit
+    ): Collection {
+        return MensajeConsulta::with('usuario')
+            ->where('consulta_id', $consultaId)
+            ->where('id', '>', $afterId)
+            ->orderBy('id', 'asc')
+            ->limit($limit)
+            ->get();
+    }
+
     public function update(int $id, array $data): bool
     {
         $mensaje = MensajeConsulta::find($id);

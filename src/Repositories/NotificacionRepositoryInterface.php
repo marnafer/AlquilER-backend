@@ -17,4 +17,10 @@ interface NotificacionRepositoryInterface
     public function update(int $id, array $data): bool;
 
     public function marcarTodasLeidas(int $usuarioId): bool;
+
+    public function findNoLeidaPorUsuarioYReferencia(
+        int $usuarioId,
+        string $tipo,
+        int $referenciaId
+    ): ?Notificacion;
 }
