@@ -20,6 +20,14 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // 0. Aislar superglobals entre tests.
+        $_GET = [];
+        $_POST = [];
+        unset(
+            $_SERVER['HTTP_AUTHORIZATION'],
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        );
+
         // 1. Constantes que JwtHelper espera.
         //    No incluimos config/config.php para no disparar la
         //    validación de $_ENV (que en CLI está vacío).

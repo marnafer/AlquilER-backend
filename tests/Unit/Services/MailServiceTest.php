@@ -4,13 +4,37 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
+use App\Debug\Debugger;
 use App\Services\MailService;
 use PHPUnit\Framework\TestCase;
 
 final class MailServiceTest extends TestCase
 {
+    /** @var array<string, string|null> */
+    private array $respaldo = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach ($this->archivosTocados() as $archivo) {
+            $this->respaldo[$archivo] = is_file($archivo)
+                ? (string) file_get_contents($archivo)
+                : null;
+        }
+    }
+
     protected function tearDown(): void
     {
+        // MailService::guardarEnLog escribe en storage/emails.log y en el
+        // log de Debugger; se restauran para no dejar efectos secundarios.
+        foreach ($this->respaldo as $archivo => $contenido) {
+            @unlink($archivo);
+            if ($contenido !== null) {
+                file_put_contents($archivo, $contenido);
+            }
+        }
+
         parent::tearDown();
 
         unset($_ENV['MAIL_HOST']);
@@ -18,6 +42,19 @@ final class MailServiceTest extends TestCase
         unset($_ENV['MAIL_FROM']);
         unset($_ENV['MAIL_FROM_NAME']);
         unset($_ENV['MAIL_ENCRYPTION']);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function archivosTocados(): array
+    {
+        return [
+            Debugger::getLogFile(),
+            dirname(__DIR__, 3)
+                . DIRECTORY_SEPARATOR . 'storage'
+                . DIRECTORY_SEPARATOR . 'emails.log',
+        ];
     }
 
     public function test_enviar_sin_host_guarda_en_log_y_devuelve_true(): void
