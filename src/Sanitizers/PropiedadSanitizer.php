@@ -265,6 +265,13 @@ class PropiedadSanitizer
                 );
         }
 
+        if (array_key_exists('limit', $filtros)) {
+            $sanitizado['limit'] =
+                self::sanitizarLimit(
+                    $filtros['limit']
+                );
+        }
+
         return $sanitizado;
     }
 
@@ -574,5 +581,25 @@ class PropiedadSanitizer
         }
 
         return $sanitizados;
+    }
+
+    private static function sanitizarLimit(mixed $valor): mixed
+    {
+        if (is_string($valor)) {
+            $valor = trim($valor);
+        }
+
+        if (is_string($valor) && preg_match('/^-?\d+$/', $valor)) {
+            $valorSanitizado = filter_var(
+                $valor,
+                FILTER_VALIDATE_INT
+            );
+
+            if ($valorSanitizado !== false) {
+                return $valorSanitizado;
+            }
+        }
+
+        return $valor;
     }
 }

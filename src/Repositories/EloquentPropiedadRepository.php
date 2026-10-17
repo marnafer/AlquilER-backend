@@ -122,9 +122,15 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             );
         }
 
-        return $query
-            ->orderBy('id', 'asc')
-            ->get();
+        if (isset($filtros['limit'])) {
+            return $query
+                ->orderByDesc('fecha_publicacion')
+                ->orderByDesc('id')
+                ->limit($filtros['limit'])
+                ->get();
+        }
+
+        return $query->orderBy('id', 'asc')->get();
     }
 
     public function allParaAdmin(array $filtros = []): Collection
