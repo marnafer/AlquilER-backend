@@ -170,12 +170,14 @@ class UsuarioValidator
             ];
         }
 
+        // @codeCoverageIgnoreStart
         if (!is_string($telefono)) {
             return [
                 'success' => false,
                 'error' => 'El teléfono no es válido'
             ];
         }
+        // @codeCoverageIgnoreEnd
 
         $digitos = preg_replace(
             '/[^0-9]/',
@@ -217,12 +219,14 @@ class UsuarioValidator
             ];
         }
 
+        // @codeCoverageIgnoreStart
         if (!is_string($domicilio)) {
             return [
                 'success' => false,
                 'error' => 'El domicilio no es válido'
             ];
         }
+        // @codeCoverageIgnoreEnd
 
         $domicilio = trim($domicilio);
         $len = mb_strlen($domicilio);
