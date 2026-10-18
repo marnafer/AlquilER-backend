@@ -142,9 +142,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
         return $query->orderBy('id', 'asc')->get();
     }
-
-
-    
+   
     public function paginate(
         array $filtros,
         int $pagina,
@@ -168,7 +166,6 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ?? $ordenamientos['antiguedad_desc'];
 
         $items = $query
-            ->orderByDesc('id')
             ->orderBy($columna, $direccion)
             ->orderBy('id', $direccionId)
             ->forPage($pagina, $porPagina)
@@ -187,7 +184,6 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ],
         ];
     }
-
 
     public function allParaAdmin(array $filtros = []): Collection
     {
