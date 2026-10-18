@@ -1460,6 +1460,237 @@ final class PropiedadServicioServiceTest extends TestCase
         $service->obtenerIds(0);
     }
 
+    public function test_listar_por_servicio_lanza_excepcion_si_el_id_es_invalido(): void
+    {
+        $servicioRepository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $servicioRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('getByServicio');
+
+        $service = $this->crearServicio(
+            $repository,
+            null,
+            $servicioRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->listarPorServicio(0);
+    }
+
+    public function test_asignar_lanza_excepcion_si_los_ids_son_invalidos(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('attach');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->asignar(0, 2, 3, 1);
+    }
+
+    public function test_desasignar_lanza_excepcion_si_los_ids_son_invalidos(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('detach');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->desasignar(0, 2, 3, 1);
+    }
+
+    public function test_asignar_multiples_lanza_excepcion_si_el_id_de_propiedad_es_invalido(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('attachMultiple');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->asignarMultiples(
+            0,
+            [1, 2],
+            3,
+            1
+        );
+    }
+
+    public function test_sincronizar_lanza_excepcion_si_el_id_de_propiedad_es_invalido(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('sync');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->sincronizar(
+            0,
+            [1],
+            3,
+            1
+        );
+    }
+
+    public function test_sincronizar_lanza_excepcion_si_los_ids_de_servicio_son_duplicados(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $repository
+            ->expects($this->never())
+            ->method('sync');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->sincronizar(
+            1,
+            [1, 1],
+            3,
+            1
+        );
+    }
+
+    public function test_sincronizar_lanza_excepcion_si_la_propiedad_no_existe(): void
+    {
+        $propiedadRepository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository = $this->createMock(
+            PropiedadServicioRepositoryInterface::class
+        );
+
+        $policy = $this->createMock(
+            PropiedadPolicy::class
+        );
+
+        $propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(999)
+            ->willReturn(null);
+
+        $policy
+            ->expects($this->never())
+            ->method('gestionar');
+
+        $repository
+            ->expects($this->never())
+            ->method('sync');
+
+        $service = $this->crearServicio(
+            $repository,
+            $propiedadRepository,
+            null,
+            null,
+            $policy
+        );
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('La propiedad no existe');
+
+        $service->sincronizar(
+            999,
+            [1, 2],
+            3,
+            1
+        );
+    }
+
     private function crearServicio(
         ?PropiedadServicioRepositoryInterface $repository = null,
         ?PropiedadRepositoryInterface $propiedadRepository = null,

@@ -136,4 +136,21 @@ final class LogActividadServiceTest extends TestCase
             ' Inicio de sesión '
         );
     }
+
+    public function test_registrar_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $repository = $this->createMock(
+            LogActividadRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('create');
+
+        $service = new LogActividadService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->registrar(2, '');
+    }
 }

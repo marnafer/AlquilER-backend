@@ -1602,4 +1602,640 @@ final class ReservaServiceTest extends TestCase
             1
         );
     }
+
+    public function test_it_lists_reservas_given_as_objects(): void
+    {
+        $propias = (object) ['id' => 1, 'usuario_id' => 1];
+        $recibidas = (object) ['id' => 2, 'usuario_id' => 7];
+
+        $propiedad = new Propiedad(['usuario_id' => 1]);
+        $propiedad->setAttribute('id', 20);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('porUsuario')
+            ->with(1)
+            ->willReturn(new Collection([$propiedad]));
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('listarPorAlcance')
+            ->willReturn([$propias, $recibidas]);
+
+        $result = $this->reservaService->listar(1, 1);
+
+        $this->assertSame([$propias], $result['mis_reservas']);
+        $this->assertSame(
+            [$recibidas],
+            $result['reservas_de_mis_propiedades']
+        );
+    }
+
+    public function test_confirmar_lanza_forbidden_sin_permiso(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+        ]);
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeConfirmar')
+            ->willReturn(false);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para confirmar esta reserva'
+        );
+
+        $this->reservaService->confirmar(1, 5, 1);
+    }
+
+    public function test_confirmar_lanza_forbidden_sin_permiso_de_rechazo(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+        ]);
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeRechazar')
+            ->willReturn(false);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para rechazar esta reserva'
+        );
+
+        $this->reservaService->rechazar(1, 5, 1);
+    }
+
+    public function test_finalizar_lanza_forbidden_sin_permiso(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'confirmada',
+            'usuario_id' => 5,
+        ]);
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeFinalizar')
+            ->willReturn(false);
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No tienes permiso para finalizar esta reserva'
+        );
+
+        $this->reservaService->finalizar(1, 5, 1);
+    }
+
+    public function test_finalizar_rechaza_reserva_no_confirmada(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'pendiente',
+            'usuario_id' => 5,
+        ]);
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeFinalizar')
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage(
+            'Solo se puede finalizar una reserva confirmada'
+        );
+
+        $this->reservaService->finalizar(1, 5, 1);
+    }
+
+    public function test_finalizar_reserva_confirmada(): void
+    {
+        $reserva = new Reserva([
+            'id' => 1,
+            'estado' => 'confirmada',
+            'usuario_id' => 8,
+        ]);
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeVer')
+            ->willReturn(true);
+
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeFinalizar')
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('update')
+            ->with(1, ['estado' => 'finalizada'])
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'reserva_finalizada');
+
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                8,
+                'reserva_finalizada',
+                'Reserva finalizada',
+                $this->isType('string'),
+                1
+            );
+
+        $this->assertTrue(
+            $this->reservaService->finalizar(1, 5, 1)
+        );
+    }
+
+    public function test_finalizar_vencidas_devuelve_el_total(): void
+    {
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('finalizarVencidas')
+            ->willReturn(3);
+
+        $this->assertSame(
+            3,
+            $this->reservaService->finalizarVencidas()
+        );
+    }
+
+    public function test_actualizar_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeModificar')
+            ->with(Rol::ADMIN)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->actualizar(
+            'abc',
+            ['estado' => 'confirmada'],
+            99,
+            Rol::ADMIN
+        );
+    }
+
+    public function test_eliminar_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeEliminar')
+            ->with(Rol::ADMIN)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->eliminar('abc', 99, Rol::ADMIN);
+    }
+
+    public function test_restaurar_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeRestaurar')
+            ->with(Rol::ADMIN)
+            ->willReturn(true);
+
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('findDeletedById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->restaurar('abc', 99, Rol::ADMIN);
+    }
+
+    public function test_restaurar_lanza_not_found_si_el_restore_falla(): void
+    {
+        $this->reservaPolicy
+            ->expects($this->once())
+            ->method('puedeRestaurar')
+            ->with(Rol::ADMIN)
+            ->willReturn(true);
+
+        $reserva = new Reserva();
+        $reserva->setAttribute('id', 1);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findDeletedById')
+            ->with(1)
+            ->willReturn($reserva);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('restore')
+            ->with(1)
+            ->willReturn(false);
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage(
+            'Reserva eliminada no encontrada'
+        );
+
+        $this->reservaService->restaurar(1, 99, Rol::ADMIN);
+    }
+
+    public function test_crear_desde_admin_con_datos_de_creacion_invalidos(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crearDesdeAdmin(
+            ['propiedad_id' => 10, 'usuario_id' => 7],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_sin_usuario(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_con_estado_invalido(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'usuario_id' => 7,
+                'estado' => 'cancelada',
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_propiedad_inexistente(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('La propiedad no existe');
+
+        $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'usuario_id' => 7,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_usuario_inexistente(): void
+    {
+        $propiedad = new Propiedad([
+            'id' => 10,
+            'usuario_id' => 5,
+            'disponible' => true,
+        ]);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($propiedad);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(7)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('El usuario no existe');
+
+        $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'usuario_id' => 7,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_propiedad_no_disponible(): void
+    {
+        $propiedad = new Propiedad([
+            'id' => 10,
+            'usuario_id' => 5,
+            'disponible' => false,
+        ]);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($propiedad);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(7)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage(
+            'La propiedad no está disponible para alquiler'
+        );
+
+        $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'usuario_id' => 7,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_como_pendiente(): void
+    {
+        $propiedad = new Propiedad([
+            'id' => 10,
+            'usuario_id' => 5,
+            'disponible' => true,
+        ]);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($propiedad);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(7)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('hayReservaConfirmadaSolapada')
+            ->willReturn(false);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(function (array $data): bool {
+                return $data['usuario_id'] === 7
+                    && $data['estado'] === 'pendiente'
+                    && !isset($data['fecha_confirmacion']);
+            }))
+            ->willReturn(30);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'reserva_creada');
+
+        $this->notificacionService
+            ->expects($this->once())
+            ->method('crear')
+            ->with(
+                5,
+                'reserva_nueva',
+                'Nueva solicitud de reserva',
+                $this->isType('string'),
+                30
+            );
+
+        $result = $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'usuario_id' => 7,
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+
+        $this->assertSame(30, $result);
+    }
+
+    public function test_crear_desde_admin_como_confirmada(): void
+    {
+        $propiedad = new Propiedad([
+            'id' => 10,
+            'usuario_id' => 5,
+            'disponible' => true,
+        ]);
+
+        $this->propiedadRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($propiedad);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(7)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('hayReservaConfirmadaSolapada')
+            ->willReturn(false);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(function (array $data): bool {
+                return $data['usuario_id'] === 7
+                    && $data['estado'] === 'confirmada'
+                    && isset($data['fecha_confirmacion']);
+            }))
+            ->willReturn(31);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'reserva_creada');
+
+        $this->notificacionService
+            ->expects($this->exactly(2))
+            ->method('crear');
+
+        $result = $this->reservaService->crearDesdeAdmin(
+            [
+                'propiedad_id' => 10,
+                'usuario_id' => 7,
+                'estado' => 'confirmada',
+                'fecha_inicio_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_INICIO)
+                ),
+                'fecha_fin_alquiler' => date(
+                    'Y-m-d',
+                    strtotime(self::FECHA_FIN)
+                ),
+            ],
+            99
+        );
+
+        $this->assertSame(31, $result);
+    }
 }

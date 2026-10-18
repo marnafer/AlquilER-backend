@@ -2013,4 +2013,178 @@ class PropiedadServiceTest extends TestCase
             1
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Obtener para actualizar
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_obtener_para_actualizar_devuelve_la_propiedad(): void
+    {
+        $propiedad = $this->propiedad();
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('findByIdForUpdate')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $resultado = $this->crearServicio(
+            repository: $repository
+        )->obtenerParaActualizar(1);
+
+        $this->assertSame($propiedad, $resultado);
+    }
+
+    public function test_obtener_para_actualizar_lanza_excepcion_si_no_existe(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('findByIdForUpdate')
+            ->with(999)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->obtenerParaActualizar(999);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Requisitos de interesados
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_crear_lanza_excepcion_si_los_requisitos_no_son_arreglo(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ValidationException::class);
+
+        $datos = $this->datosPropiedad();
+        $datos['requisitos_interesados'] = 'no-es-arreglo';
+
+        $this->crearServicio(
+            repository: $repository
+        )->crear($datos, 7);
+    }
+
+    public function test_crear_lanza_excepcion_si_los_servicios_no_son_arreglo(): void
+    {
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ValidationException::class);
+
+        $datos = $this->datosPropiedad();
+        $datos['servicios'] = 'no-es-arreglo';
+
+        $this->crearServicio(
+            repository: $repository
+        )->crear($datos, 7);
+    }
+
+    public function test_crear_lanza_excepcion_si_el_propietario_es_invalido(): void
+    {
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $usuarioRepository->expects($this->never())
+            ->method('findById');
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ValidationException::class);
+
+        $datos = $this->datosPropiedad();
+        $datos['propietario_id'] = 'abc';
+
+        $this->crearServicio(
+            repository: $repository,
+            usuarioRepository: $usuarioRepository
+        )->crear($datos, 7, 2);
+    }
+
+    public function test_crear_lanza_excepcion_si_el_propietario_no_existe(): void
+    {
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $usuarioRepository->expects($this->once())
+            ->method('findById')
+            ->with(25)
+            ->willReturn(null);
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->never())
+            ->method('create');
+
+        $this->expectException(NotFoundException::class);
+
+        $datos = $this->datosPropiedad();
+        $datos['propietario_id'] = 25;
+
+        $this->crearServicio(
+            repository: $repository,
+            usuarioRepository: $usuarioRepository
+        )->crear($datos, 7, 2);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_los_requisitos_no_son_arreglo(): void
+    {
+        $propiedad = $this->propiedad();
+
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository->expects($this->never())
+            ->method('update');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio(
+            repository: $repository
+        )->actualizar(
+            7,
+            1,
+            1,
+            [
+                'requisitos_interesados' => 'no-es-arreglo',
+            ]
+        );
+    }
 }
