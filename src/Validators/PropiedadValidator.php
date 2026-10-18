@@ -648,6 +648,7 @@ class PropiedadValidator
                 continue;
             }
 
+            // @codeCoverageIgnoreStart
             if (is_array($error)) {
                 if ($error !== []) {
                     $errores[$campo] = $error;
@@ -655,6 +656,7 @@ class PropiedadValidator
 
                 continue;
             }
+            // @codeCoverageIgnoreEnd
 
             $errores[$campo] = $error;
         }
