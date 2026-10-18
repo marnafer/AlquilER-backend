@@ -119,7 +119,9 @@ class IpHelper
         $subredBinaria = inet_pton($subred);
 
         if ($ipBinaria === false || $subredBinaria === false) {
+            // @codeCoverageIgnoreStart
             return false;
+            // @codeCoverageIgnoreEnd
         }
 
         // IPv4 e IPv6 no pueden compararse entre sí.

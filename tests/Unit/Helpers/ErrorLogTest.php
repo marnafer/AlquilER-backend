@@ -96,6 +96,27 @@ class ErrorLogTest extends TestCase
         });
     }
 
+    public function test_registrar_recrea_el_log_cuando_no_existe(): void
+    {
+        $this->conRespaldoDeLogs(function (): void {
+            @unlink($this->ruta);
+            @unlink($this->rutaRotada);
+            clearstatcache(true, $this->ruta);
+
+            $this->assertFileDoesNotExist($this->ruta);
+
+            ErrorLog::registrar(
+                new RuntimeException('recreado-desde-cero')
+            );
+
+            $this->assertFileExists($this->ruta);
+            $this->assertStringContainsString(
+                'recreado-desde-cero',
+                (string) file_get_contents($this->ruta)
+            );
+        });
+    }
+
     /**
      * Respalda el log (y su version rotada) y los restaura al terminar,
      * para no alterar el archivo real del backend.
