@@ -386,4 +386,76 @@ final class RecuperarContrasenaServiceTest extends TestCase
             'contrasena' => 'NuevaClave123',
         ]);
     }
+
+    public function test_restablecer_lanza_validacion_si_los_datos_son_invalidos(): void
+    {
+        $servicio = $this->crearServicio(
+            $this->createMock(UsuarioRepositoryInterface::class),
+            $this->createMock(PasswordResetRepositoryInterface::class),
+            $this->createMock(MailService::class),
+            $this->createMock(LogActividadService::class)
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $servicio->restablecer([
+            'email' => '',
+            'token' => '',
+            'contrasena' => '',
+        ]);
+    }
+
+    public function test_restablecer_lanza_error_si_el_usuario_no_existe(): void
+    {
+        $registro = new PasswordReset([
+            'email' => 'usuario@test.com',
+            'token' => 'token-valido',
+            'expiracion' => date(
+                'Y-m-d H:i:s',
+                time() + 3600
+            ),
+            'usado' => 0,
+        ]);
+        $registro->id = 1;
+
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $usuarioRepository->expects($this->once())
+            ->method('findByEmail')
+            ->with('usuario@test.com')
+            ->willReturn(null);
+
+        $usuarioRepository->expects($this->never())
+            ->method('update');
+
+        $passwordResetRepository = $this->createMock(
+            PasswordResetRepositoryInterface::class
+        );
+
+        $passwordResetRepository->expects($this->once())
+            ->method('findByTokenAndEmail')
+            ->with('token-valido', 'usuario@test.com')
+            ->willReturn($registro);
+
+        $passwordResetRepository->expects($this->never())
+            ->method('marcarUsado');
+
+        $servicio = $this->crearServicio(
+            $usuarioRepository,
+            $passwordResetRepository,
+            $this->createMock(MailService::class),
+            $this->createMock(LogActividadService::class)
+        );
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage('El enlace de recuperación es inválido');
+
+        $servicio->restablecer([
+            'email' => 'usuario@test.com',
+            'token' => 'token-valido',
+            'contrasena' => 'NuevaClave123',
+        ]);
+    }
 }

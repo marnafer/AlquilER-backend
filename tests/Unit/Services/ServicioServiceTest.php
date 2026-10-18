@@ -598,4 +598,23 @@ final class ServicioServiceTest extends TestCase
 
         $service->restaurar('abc');
     }
+
+    public function test_eliminar_lanza_excepcion_si_el_id_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            ServicioRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('findById');
+
+        $service = new ServicioService($repository);
+
+        $this->expectException(
+            ValidationException::class
+        );
+
+        $service->eliminar('abc');
+    }
 }

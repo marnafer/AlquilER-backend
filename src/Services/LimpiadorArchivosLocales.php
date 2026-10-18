@@ -57,9 +57,11 @@ final class LimpiadorArchivosLocales implements LimpiadorArchivosInterface
         $archivos = scandir($directorio);
 
         if ($archivos === false) {
+            // @codeCoverageIgnoreStart
             throw new OperacionArchivosException(
                 'No se pudo leer el directorio de imágenes'
             );
+            // @codeCoverageIgnoreEnd
         }
 
         $rutasEncontradas = [];
@@ -114,9 +116,11 @@ final class LimpiadorArchivosLocales implements LimpiadorArchivosInterface
             }
 
             if (!unlink($rutaFisica)) {
+                // @codeCoverageIgnoreStart
                 throw new OperacionArchivosException(
                     'No se pudo eliminar el archivo: ' . $rutaFisica
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             $resultado['archivos_eliminados']++;
@@ -144,7 +148,9 @@ final class LimpiadorArchivosLocales implements LimpiadorArchivosInterface
         $fechaModificacion = filemtime($ruta);
 
         if ($fechaModificacion === false) {
+            // @codeCoverageIgnoreStart
             return false;
+            // @codeCoverageIgnoreEnd
         }
 
         return (

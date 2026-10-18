@@ -197,4 +197,78 @@ class IpHelperTest extends TestCase
             IpHelper::obtener()
         );
     }
+
+    public function test_it_skips_an_invalid_entry_in_forwarded_for(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.1';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = 'ip-invalida';
+
+        $_ENV['TRUSTED_PROXIES'] = '10.0.0.1';
+
+        $this->assertSame(
+            '10.0.0.1',
+            IpHelper::obtener()
+        );
+    }
+
+    public function test_it_rejects_a_cidr_with_a_non_numeric_prefix(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.1';
+
+        $_ENV['TRUSTED_PROXIES'] = '10.0.0.0/abc';
+
+        $this->assertSame(
+            '10.0.0.1',
+            IpHelper::obtener()
+        );
+    }
+
+    public function test_it_rejects_a_cidr_with_an_invalid_subnet(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.1';
+
+        $_ENV['TRUSTED_PROXIES'] = '999.0.0.0/24';
+
+        $this->assertSame(
+            '10.0.0.1',
+            IpHelper::obtener()
+        );
+    }
+
+    public function test_it_does_not_match_an_ipv4_address_against_an_ipv6_cidr(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.1';
+
+        $_ENV['TRUSTED_PROXIES'] = '2001:db8::/64';
+
+        $this->assertSame(
+            '10.0.0.1',
+            IpHelper::obtener()
+        );
+    }
+
+    public function test_it_rejects_a_cidr_prefix_bigger_than_the_address_bits(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.1';
+
+        $_ENV['TRUSTED_PROXIES'] = '10.0.0.0/33';
+
+        $this->assertSame(
+            '10.0.0.1',
+            IpHelper::obtener()
+        );
+    }
+
+    public function test_it_matches_a_cidr_that_does_not_align_to_a_full_byte(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.5';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.50';
+
+        $_ENV['TRUSTED_PROXIES'] = '10.0.0.0/25';
+
+        $this->assertSame(
+            '203.0.113.50',
+            IpHelper::obtener()
+        );
+    }
 }

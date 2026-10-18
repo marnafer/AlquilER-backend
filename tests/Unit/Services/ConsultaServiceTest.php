@@ -1071,6 +1071,229 @@ class ConsultaServiceTest extends TestCase
         $this->service->listarRecibidasPorPropietario(0);
     }
 
+    public function test_obtenerAutorizada_rechaza_id_invalido(): void
+    {
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->obtenerAutorizada(0, 5);
+    }
+
+    public function test_obtenerConsultaAutorizada_delega_en_obtenerAutorizada(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 10;
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeParticipar')
+            ->with(5, $consulta)
+            ->willReturn(true);
+
+        $resultado = $this->service->obtenerConsultaAutorizada(
+            10,
+            5
+        );
+
+        $this->assertSame($consulta, $resultado);
+    }
+
+    public function test_crear_rechaza_datos_invalidos(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->crear([
+            'propiedad_id' => 0,
+            'usuario_id' => 0,
+        ]);
+    }
+
+    public function test_actualizar_rechaza_id_invalido(): void
+    {
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->actualizar(
+            0,
+            ['mensaje' => 'Nuevo mensaje'],
+            5
+        );
+    }
+
+    public function test_actualizar_rechaza_consulta_eliminada(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 10;
+        $consulta->deleted_at = '2026-01-01 00:00:00';
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('Consulta no encontrada');
+
+        $this->service->actualizar(
+            10,
+            ['mensaje' => 'Nuevo mensaje'],
+            5
+        );
+    }
+
+    public function test_actualizar_rechaza_datos_invalidos(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 10;
+
+        $usuario = new Usuario();
+        $usuario->id = 5;
+        $usuario->rol_id = 1;
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeActualizar')
+            ->with(5, 1, $consulta)
+            ->willReturn(true);
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->actualizar(
+            10,
+            ['mensaje' => ''],
+            5
+        );
+    }
+
+    public function test_actualizar_crea_el_mensaje_si_no_existe(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 10;
+
+        $usuario = new Usuario();
+        $usuario->id = 5;
+        $usuario->rol_id = 1;
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeActualizar')
+            ->with(5, 1, $consulta)
+            ->willReturn(true);
+
+        $this->mensajeConsultaRepository
+            ->expects($this->once())
+            ->method('findByConsultaId')
+            ->with(10)
+            ->willReturn(new Collection());
+
+        $this->mensajeConsultaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(
+                function (array $data): bool {
+                    return $data['consulta_id'] === 10
+                        && $data['usuario_id'] === 5
+                        && $data['mensaje'] === 'Nuevo mensaje'
+                        && isset($data['fecha_mensaje']);
+                }
+            ));
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'consulta_actualizada');
+
+        $resultado = $this->service->actualizar(
+            10,
+            ['mensaje' => 'Nuevo mensaje'],
+            5
+        );
+
+        $this->assertTrue($resultado);
+    }
+
+    public function test_eliminar_rechaza_id_invalido(): void
+    {
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->eliminar(0, 5);
+    }
+
+    public function test_restaurar_rechaza_id_invalido(): void
+    {
+        $this->consultaRepository
+            ->expects($this->never())
+            ->method('restore');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->restaurar(0, 99);
+    }
+
+    public function test_listarPorPropiedad_rechaza_id_invalido(): void
+    {
+        $this->propiedadRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->listarPorPropiedad(
+            0,
+            5,
+            1
+        );
+    }
+
     public function test_crear_reutiliza_la_consulta_existente(): void
     {
         $propiedad = new Propiedad();

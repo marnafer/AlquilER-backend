@@ -485,4 +485,53 @@ final class RolServiceTest extends TestCase
 
         $service->restaurar(1);
     }
+
+    public function test_actualizar_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $rol = new Rol(['nombre' => 'Usuario']);
+        $rol->id = 1;
+
+        $repository = $this->createMock(
+            RolRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($rol);
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new RolService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->actualizar(1, [
+            'nombre' => ''
+        ]);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_el_id_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            RolRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('findDeletedById');
+
+        $service = new RolService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->restaurar('abc');
+    }
 }

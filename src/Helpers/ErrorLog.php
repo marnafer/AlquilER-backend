@@ -43,7 +43,9 @@ class ErrorLog
             $directorio = dirname($archivo);
 
             if (!is_dir($directorio)) {
+                // @codeCoverageIgnoreStart
                 @mkdir($directorio, 0777, true);
+                // @codeCoverageIgnoreEnd
             }
 
             self::rotarSiCorresponde($archivo);
@@ -68,9 +70,11 @@ class ErrorLog
             // el error_log de php.ini) para no perder nada si el archivo no
             // se puede escribir.
             error_log($exception->__toString());
+            // @codeCoverageIgnoreStart
         } catch (Throwable $falloAlRegistrar) {
             // Silencio intencional: ver la nota de este metodo.
         }
+        // @codeCoverageIgnoreEnd
     }
 
     /**

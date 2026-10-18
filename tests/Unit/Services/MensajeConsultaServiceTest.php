@@ -464,4 +464,44 @@ final class MensajeConsultaServiceTest extends TestCase
             10
         );
     }
+
+    public function test_obtener_historial_usa_limite_predeterminado_si_es_null(): void
+    {
+        $consulta = new Consulta();
+        $consulta->id = 100;
+
+        $mensaje = new MensajeConsulta([
+            'consulta_id' => 100,
+            'usuario_id' => 5,
+            'mensaje' => 'Primer mensaje'
+        ]);
+        $mensaje->setAttribute('id', 1);
+
+        $mensajes = new Collection([$mensaje]);
+
+        $this->consultaService->expects($this->once())
+            ->method('obtenerConsultaAutorizada')
+            ->with(100, 5, null)
+            ->willReturn($consulta);
+
+        $this->mensajeRepository->expects($this->once())
+            ->method('findLatestByConsultaId')
+            ->with(100, 11)
+            ->willReturn($mensajes);
+
+        $resultado = $this->service->obtenerHistorial(
+            100,
+            5,
+            null,
+            null,
+            null,
+            null
+        );
+
+        $this->assertSame(
+            [1],
+            $resultado['items']->pluck('id')->all()
+        );
+        $this->assertSame(1, $resultado['total']);
+    }
 }

@@ -813,4 +813,176 @@ final class UsuarioServiceTest extends TestCase
 
         $this->crearServicio()->restaurar(1);
     }
+
+    public function test_obtener_autorizado_devuelve_el_usuario_propio(): void
+    {
+        $usuario = new Usuario(['nombre' => 'Ana']);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $resultado = $this->crearServicio()->obtenerAutorizado(
+            1,
+            1,
+            Rol::USUARIO
+        );
+
+        $this->assertSame($usuario, $resultado);
+    }
+
+    public function test_obtener_autorizado_lanza_excepcion_si_no_tiene_permiso(): void
+    {
+        $usuario = new Usuario(['nombre' => 'Ana']);
+        $usuario->id = 2;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(2)
+            ->willReturn($usuario);
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage(
+            'No autorizado para consultar este usuario'
+        );
+
+        $this->crearServicio()->obtenerAutorizado(
+            2,
+            1,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_crear_desde_admin_crea_un_usuario(): void
+    {
+        $usuario = new Usuario(['nombre' => 'Ana']);
+        $usuario->id = 5;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('existsByEmail')
+            ->with('ana@example.com')
+            ->willReturn(false);
+
+        $this->repository
+            ->expects($this->once())
+            ->method('createWithRole')
+            ->with(
+                $this->callback(
+                    function (array $data): bool {
+                        return $data['nombre'] === 'Ana'
+                            && $data['email'] === 'ana@example.com'
+                            && password_verify(
+                                'secreto',
+                                $data['contrasena']
+                            );
+                    }
+                ),
+                Rol::USUARIO
+            )
+            ->willReturn($usuario);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'Alta de usuario desde administración');
+
+        $resultado = $this->crearServicio()->crearDesdeAdmin(
+            [
+                'nombre' => 'Ana',
+                'apellido' => 'Gomez',
+                'email' => 'ana@example.com',
+                'telefono' => '123456',
+                'domicilio' => 'Calle 123',
+                'contrasena' => 'secreto',
+                'rol_id' => Rol::USUARIO,
+            ],
+            99
+        );
+
+        $this->assertSame($usuario, $resultado);
+    }
+
+    public function test_crear_desde_admin_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $this->repository
+            ->expects($this->never())
+            ->method('createWithRole');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio()->crearDesdeAdmin(
+            [
+                'nombre' => 'A',
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_lanza_excepcion_si_el_rol_es_invalido(): void
+    {
+        $this->repository
+            ->expects($this->never())
+            ->method('createWithRole');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio()->crearDesdeAdmin(
+            [
+                'nombre' => 'Ana',
+                'apellido' => 'Gomez',
+                'email' => 'ana@example.com',
+                'telefono' => '123456',
+                'domicilio' => 'Calle 123',
+                'contrasena' => 'secreto',
+                'rol_id' => 99,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_lanza_conflicto_si_el_email_ya_existe(): void
+    {
+        $this->repository
+            ->expects($this->once())
+            ->method('existsByEmail')
+            ->with('ana@example.com')
+            ->willReturn(true);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('createWithRole');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage('El email ya está registrado');
+
+        $this->crearServicio()->crearDesdeAdmin(
+            [
+                'nombre' => 'Ana',
+                'apellido' => 'Gomez',
+                'email' => 'ana@example.com',
+                'telefono' => '123456',
+                'domicilio' => 'Calle 123',
+                'contrasena' => 'secreto',
+                'rol_id' => Rol::ADMIN,
+            ],
+            99
+        );
+    }
 }

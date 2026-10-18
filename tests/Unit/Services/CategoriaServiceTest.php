@@ -486,4 +486,53 @@ final class CategoriaServiceTest extends TestCase
 
         $service->restaurar(1);
     }
+
+    public function test_actualizar_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $categoria = new Categoria(['nombre' => 'Casa']);
+        $categoria->id = 1;
+
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($categoria);
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->actualizar(1, [
+            'nombre' => ''
+        ]);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_el_id_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            CategoriaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('findDeletedById');
+
+        $service = new CategoriaService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->restaurar('abc');
+    }
 }

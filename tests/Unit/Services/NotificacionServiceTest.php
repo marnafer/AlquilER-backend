@@ -175,4 +175,64 @@ final class NotificacionServiceTest extends TestCase
 
         $this->assertTrue($this->service->marcarTodasLeidas(5));
     }
+
+    public function test_listar_no_leidas_filtra_las_leidas(): void
+    {
+        $items = [
+            ['id' => 1, 'titulo' => 'A', 'leida' => 0],
+            ['id' => 2, 'titulo' => 'B', 'leida' => 1],
+            ['id' => 3, 'titulo' => 'C', 'leida' => 0],
+        ];
+
+        $this->repository
+            ->expects($this->once())
+            ->method('getByUsuario')
+            ->with(5)
+            ->willReturn($items);
+
+        $resultado = $this->service->listarNoLeidas(5);
+
+        $this->assertSame(
+            [1, 3],
+            array_column($resultado, 'id')
+        );
+    }
+
+    public function test_crear_actualiza_la_notificacion_no_leida_existente(): void
+    {
+        $existente = new Notificacion([
+            'usuario_id' => 5,
+        ]);
+        $existente->id = 7;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findNoLeidaPorUsuarioYReferencia')
+            ->with(5, 'mensaje_nuevo', 100)
+            ->willReturn($existente);
+
+        $this->repository
+            ->expects($this->once())
+            ->method('update')
+            ->with(
+                7,
+                $this->callback(function (array $data): bool {
+                    return $data['titulo'] === 'Nuevo mensaje'
+                        && $data['mensaje'] === 'Tenés un mensaje'
+                        && isset($data['fecha_notificacion']);
+                })
+            );
+
+        $this->repository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->service->crear(
+            5,
+            'mensaje_nuevo',
+            'Nuevo mensaje',
+            'Tenés un mensaje',
+            100
+        );
+    }
 }
