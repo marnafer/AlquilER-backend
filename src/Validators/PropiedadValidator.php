@@ -547,6 +547,10 @@ class PropiedadValidator
             'per_page' => self::validarPorPaginaFiltro(
                 $data['per_page'] ?? null
             ),
+
+            'orden' => self::validarOrdenFiltro(
+                $data['orden'] ?? null
+            ),
         ];
 
         foreach ($validaciones as $campo => $error) {
@@ -691,5 +695,29 @@ class PropiedadValidator
             'message' => 'ID válido',
             'errors' => null,
         ];
+    }
+
+    private static function validarOrdenFiltro(
+        mixed $orden
+    ): ?string {
+        if ($orden === null) {
+            return null;
+        }
+
+        $ordenesPermitidos = [
+            'antiguedad_desc',
+            'antiguedad_asc',
+            'precio_asc',
+            'precio_desc',
+        ];
+
+        if (
+            !is_string($orden)
+            || !in_array($orden, $ordenesPermitidos, true)
+        ) {
+            return 'El orden seleccionado no es válido';
+        }
+
+        return null;
     }
 }

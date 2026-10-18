@@ -4,140 +4,14 @@ namespace App\Repositories;
 
 use App\Models\Propiedad;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 
 class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 {
-    public function all(array $filtros = []): Collection
+
+
+    private function construirConsulta(array $filtros): Builder
     {
-        $query = Propiedad::query()
-            ->with(['imagenes', 'imagenPrincipal', 'servicios']);
-
-        if (isset($filtros['categoria_id'])) {
-            $query->whereIn(
-                'categoria_id',
-                $filtros['categoria_id']
-            );
-        }
-
-        if (isset($filtros['localidad_id'])) {
-            $query->whereIn(
-                'localidad_id',
-                $filtros['localidad_id']
-            );
-        }
-
-        if (!empty($filtros['servicio_id'])) {
-        foreach ($filtros['servicio_id'] as $servicioId) {
-            $query->whereExists(
-                function ($subquery) use ($servicioId) {
-                    $subquery
-                        ->selectRaw('1')
-                        ->from('propiedad_servicio')
-                        ->whereColumn(
-                            'propiedad_servicio.propiedad_id',
-                            'propiedades.id'
-                        )
-                        ->where(
-                            'propiedad_servicio.servicio_id',
-                            $servicioId
-                        );
-                }
-            );
-        }
-    }
-
-        if (isset($filtros['precio_min'])) {
-            $query->where(
-                'precio',
-                '>=',
-                $filtros['precio_min']
-            );
-        }
-
-        if (isset($filtros['precio_max'])) {
-            $query->where(
-                'precio',
-                '<=',
-                $filtros['precio_max']
-            );
-        }
-
-        if (isset($filtros['cantidad_ambientes'])) {
-            $query->where(
-                'cantidad_ambientes',
-                '>=',
-                $filtros['cantidad_ambientes']
-            );
-        }
-
-        if (isset($filtros['cantidad_dormitorios'])) {
-            $query->where(
-                'cantidad_dormitorios',
-                '>=',
-                $filtros['cantidad_dormitorios']
-            );
-        }
-
-        if (isset($filtros['cantidad_banos'])) {
-            $query->where(
-                'cantidad_banos',
-                '>=',
-                $filtros['cantidad_banos']
-            );
-        }
-
-        if (isset($filtros['capacidad'])) {
-            $query->where(
-                'capacidad',
-                '>=',
-                $filtros['capacidad']
-            );
-        }
-
-        if (isset($filtros['destacada'])) {
-            $query->where(
-                'destacada',
-                (int) $filtros['destacada']
-            );
-        }
-
-        if (isset($filtros['acepta_mascotas'])) {
-            $query->where(
-                'acepta_mascotas',
-                (int) $filtros['acepta_mascotas']
-            );
-        }
-
-        if (isset($filtros['acepta_hijos'])) {
-            $query->where(
-                'acepta_hijos',
-                (int) $filtros['acepta_hijos']
-            );
-        }
-
-        if (isset($filtros['disponible'])) {
-            $query->where(
-                'disponible',
-                (int) $filtros['disponible']
-            );
-        }
-
-        if (isset($filtros['limit'])) {
-            return $query
-                ->orderByDesc('fecha_publicacion')
-                ->orderByDesc('id')
-                ->limit($filtros['limit'])
-                ->get();
-        }
-
-        return $query->orderBy('id', 'asc')->get();
-    }
-
-    public function paginate(
-        array $filtros,
-        int $pagina,
-        int $porPagina
-    ): array {
         $query = Propiedad::query()
             ->with(['imagenes', 'imagenPrincipal', 'servicios']);
 
@@ -251,11 +125,52 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             );
         }
 
+        return $query;
+    }
+
+    
+    public function all(array $filtros = []): Collection
+    {
+        $query = $this->construirConsulta($filtros);
+
+        if (isset($filtros['limit'])) {
+            return $query
+                ->orderByDesc('fecha_publicacion')
+                ->orderByDesc('id')
+                ->limit($filtros['limit'])
+                ->get();
+        }
+
+        return $query->orderBy('id', 'asc')->get();
+    }
+
+
+    
+    public function paginate(
+        array $filtros,
+        int $pagina,
+        int $porPagina
+    ): array {
+        $query = $this->construirConsulta($filtros);
+
         $total = (clone $query)->count();
 
+        $ordenamientos = [
+            'antiguedad_desc' => ['fecha_publicacion', 'desc', 'desc'],
+            'antiguedad_asc'  => ['fecha_publicacion', 'asc', 'asc'],
+            'precio_asc'      => ['precio', 'asc', 'asc'],
+            'precio_desc'     => ['precio', 'desc', 'desc'],
+        ];
+
+        $orden = $filtros['orden'] ?? 'antiguedad_desc';
+
+        [$columna, $direccion, $direccionId] =
+            $ordenamientos[$orden]
+            ?? $ordenamientos['antiguedad_desc'];
+
         $items = $query
-            ->orderByDesc('fecha_publicacion')
-            ->orderByDesc('id')
+            ->orderBy($columna, $direccion)
+            ->orderBy('id', $direccionId)
             ->forPage($pagina, $porPagina)
             ->get();
 
@@ -272,6 +187,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
             ],
         ];
     }
+
 
     public function allParaAdmin(array $filtros = []): Collection
     {

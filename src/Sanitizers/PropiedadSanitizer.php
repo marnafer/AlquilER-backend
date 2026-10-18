@@ -284,6 +284,12 @@ class PropiedadSanitizer
             );
         }
 
+        if (array_key_exists('orden', $filtros)) {
+            $sanitizado['orden'] = self::sanitizarOrden(
+                $filtros['orden']
+            );
+        }
+
         return $sanitizado;
     }
 
@@ -613,5 +619,12 @@ class PropiedadSanitizer
         }
 
         return $valor;
+    }
+
+    public static function sanitizarOrden(mixed $orden): mixed
+    {
+        return is_string($orden)
+            ? trim($orden)
+            : $orden;
     }
 }
