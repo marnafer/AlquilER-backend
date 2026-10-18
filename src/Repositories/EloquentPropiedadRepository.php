@@ -124,7 +124,6 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
         if (isset($filtros['limit'])) {
             return $query
-                ->orderByDesc('fecha_publicacion')
                 ->orderByDesc('id')
                 ->limit($filtros['limit'])
                 ->get();
@@ -254,7 +253,6 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
         $total = (clone $query)->count();
 
         $items = $query
-            ->orderByDesc('fecha_publicacion')
             ->orderByDesc('id')
             ->forPage($pagina, $porPagina)
             ->get();
