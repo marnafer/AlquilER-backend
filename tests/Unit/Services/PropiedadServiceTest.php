@@ -98,6 +98,26 @@ class PropiedadServiceTest extends TestCase
         return $propiedad;
     }
 
+    private function resultadoPaginado(
+        Collection $propiedades,
+        int $total,
+        int $pagina = 1,
+        int $porPagina = 10
+    ): array {
+        return [
+            'items' => $propiedades,
+            'total' => $total,
+            'pagination' => [
+                'current_page' => $pagina,
+                'per_page' => $porPagina,
+                'last_page' => max(
+                    1,
+                    (int) ceil($total / $porPagina)
+                ),
+            ],
+        ];
+    }
+
     private function propiedadEliminada(): Propiedad
     {
         $propiedad = $this->getMockBuilder(Propiedad::class)
@@ -154,27 +174,96 @@ class PropiedadServiceTest extends TestCase
             PropiedadRepositoryInterface::class
         );
 
-        $repository->expects($this->once())
-            ->method('all')
-            ->with([])
-            ->willReturn($propiedades);
-
-        $service = $this->crearServicio(
-            repository: $repository
+        $resultadoPaginado = $this->resultadoPaginado(
+            $propiedades,
+            2
         );
 
-        $resultado = $service->listar();
+        $repository->expects($this->once())
+            ->method('paginate')
+            ->with([], 1, 10)
+            ->willReturn($resultadoPaginado);
+
+        $resultado = $this->crearServicio(
+            repository: $repository
+        )->listar();
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(2, $resultado['total']);
+        $this->assertSame(
+            $resultadoPaginado['pagination'],
+            $resultado['pagination']
+        );
+    }
+
+    public function test_listar_usa_paginacion_por_defecto(): void
+    {
+        $propiedades = new Collection([$this->propiedad()]);
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('paginate')
+            ->with([], 1, 10)
+            ->willReturn(
+                $this->resultadoPaginado($propiedades, 25)
+            );
+
+        $resultado = $this->crearServicio(
+            repository: $repository
+        )->listar();
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(25, $resultado['total']);
+        $this->assertSame([
+            'current_page' => 1,
+            'per_page' => 10,
+            'last_page' => 3,
+        ], $resultado['pagination']);
+    }
+
+    public function test_listar_acepta_pagina_y_cantidad_personalizadas(): void
+    {
+        $propiedades = new Collection([$this->propiedad()]);
+        $repository = $this->createMock(
+            PropiedadRepositoryInterface::class
+        );
+
+        $repository->expects($this->once())
+            ->method('paginate')
+            ->with([
+                'page' => 2,
+                'per_page' => 5,
+            ], 2, 5)
+            ->willReturn(
+                $this->resultadoPaginado(
+                    $propiedades,
+                    12,
+                    2,
+                    5
+                )
+            );
+
+        $resultado = $this->crearServicio(
+            repository: $repository
+        )->listar([
+            'page' => '2',
+            'per_page' => '5',
+        ]);
+
+        $this->assertSame($propiedades, $resultado['items']);
+        $this->assertSame(12, $resultado['total']);
+        $this->assertSame([
+            'current_page' => 2,
+            'per_page' => 5,
+            'last_page' => 3,
+        ], $resultado['pagination']);
     }
 
     public function test_listar_destacadas_filtra_por_destacada_y_disponible(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
@@ -187,11 +276,9 @@ class PropiedadServiceTest extends TestCase
             ])
             ->willReturn($propiedades);
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listarDestacadas();
+        )->listarDestacadas();
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
@@ -199,28 +286,19 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_filtra_por_categoria(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
-            ->with([
-                'categoria_id' => [2],
-            ])
-            ->willReturn($propiedades);
+            ->method('paginate')
+            ->with(['categoria_id' => [2]], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
-            'categoria_id' => '2',
-        ]);
+        )->listar(['categoria_id' => '2']);
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
@@ -228,28 +306,19 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_filtra_por_localidad(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
-            ->with([
-                'localidad_id' => [3],
-            ])
-            ->willReturn($propiedades);
+            ->method('paginate')
+            ->with(['localidad_id' => [3]], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
-            'localidad_id' => '3',
-        ]);
+        )->listar(['localidad_id' => '3']);
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
@@ -257,27 +326,22 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_filtra_por_categoria_y_localidad(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
+            ->method('paginate')
             ->with([
                 'categoria_id' => [2],
                 'localidad_id' => [3],
-            ])
-            ->willReturn($propiedades);
+            ], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
+        )->listar([
             'categoria_id' => '2',
             'localidad_id' => '3',
         ]);
@@ -288,28 +352,19 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_filtra_por_multiples_categorias(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
-            ->with([
-                'categoria_id' => [1, 2],
-            ])
-            ->willReturn($propiedades);
+            ->method('paginate')
+            ->with(['categoria_id' => [1, 2]], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
-            'categoria_id' => ['1', '2'],
-        ]);
+        )->listar(['categoria_id' => ['1', '2']]);
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
@@ -317,28 +372,19 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_filtra_por_multiples_localidades(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
-            ->with([
-                'localidad_id' => [1, 2],
-            ])
-            ->willReturn($propiedades);
+            ->method('paginate')
+            ->with(['localidad_id' => [1, 2]], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
-            'localidad_id' => ['1', '2'],
-        ]);
+        )->listar(['localidad_id' => ['1', '2']]);
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
@@ -346,27 +392,22 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_filtra_por_multiples_categorias_y_localidades(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
+            ->method('paginate')
             ->with([
                 'categoria_id' => [1, 2],
                 'localidad_id' => [1, 2],
-            ])
-            ->willReturn($propiedades);
+            ], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
+        )->listar([
             'categoria_id' => ['1', '2'],
             'localidad_id' => ['1', '2'],
         ]);
@@ -377,28 +418,19 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_elimina_ids_duplicados(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
-            ->with([
-                'categoria_id' => [1, 2],
-            ])
-            ->willReturn($propiedades);
+            ->method('paginate')
+            ->with(['categoria_id' => [1, 2]], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
-            'categoria_id' => ['1', '1', '2'],
-        ]);
+        )->listar(['categoria_id' => ['1', '1', '2']]);
 
         $this->assertSame($propiedades, $resultado['items']);
         $this->assertSame(1, $resultado['total']);
@@ -411,15 +443,13 @@ class PropiedadServiceTest extends TestCase
         );
 
         $repository->expects($this->never())
-            ->method('all');
+            ->method('paginate');
 
         $this->expectException(ValidationException::class);
 
         $this->crearServicio(
             repository: $repository
-        )->listar([
-            'categoria_id' => ['1', 'abc'],
-        ]);
+        )->listar(['categoria_id' => ['1', 'abc']]);
     }
 
     public function test_listar_lanza_excepcion_si_el_id_de_localidad_es_invalido(): void
@@ -429,15 +459,13 @@ class PropiedadServiceTest extends TestCase
         );
 
         $repository->expects($this->never())
-            ->method('all');
+            ->method('paginate');
 
         $this->expectException(ValidationException::class);
 
         $this->crearServicio(
             repository: $repository
-        )->listar([
-            'localidad_id' => ['1', 'abc'],
-        ]);
+        )->listar(['localidad_id' => ['1', 'abc']]);
     }
 
     /*
@@ -448,16 +476,13 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_aplica_filtros_avanzados(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
+            ->method('paginate')
             ->with([
                 'precio_min' => '100000.50',
                 'precio_max' => '200000',
@@ -465,14 +490,12 @@ class PropiedadServiceTest extends TestCase
                 'cantidad_dormitorios' => 2,
                 'cantidad_banos' => 1,
                 'capacidad' => 4,
-            ])
-            ->willReturn($propiedades);
+            ], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
+        )->listar([
             'precio_min' => '100000,50',
             'precio_max' => '200000',
             'cantidad_ambientes' => '3',
@@ -487,27 +510,22 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_acepta_precio_minimo_igual_al_maximo(): void
     {
-        $propiedades = new Collection([
-            $this->propiedad(),
-        ]);
-
+        $propiedades = new Collection([$this->propiedad()]);
         $repository = $this->createMock(
             PropiedadRepositoryInterface::class
         );
 
         $repository->expects($this->once())
-            ->method('all')
+            ->method('paginate')
             ->with([
                 'precio_min' => '125000',
                 'precio_max' => '125000',
-            ])
-            ->willReturn($propiedades);
+            ], 1, 10)
+            ->willReturn($this->resultadoPaginado($propiedades, 1));
 
-        $service = $this->crearServicio(
+        $resultado = $this->crearServicio(
             repository: $repository
-        );
-
-        $resultado = $service->listar([
+        )->listar([
             'precio_min' => '125000',
             'precio_max' => '125000',
         ]);
@@ -518,90 +536,60 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_lanza_excepcion_si_el_precio_minimo_es_invalido(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'precio_min' => 'abc',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_el_precio_maximo_es_invalido(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'precio_max' => 'abc',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_el_precio_minimo_es_negativo(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'precio_min' => '-100',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_el_precio_maximo_es_negativo(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'precio_max' => '-100',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_el_precio_minimo_es_mayor_al_maximo(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'precio_min' => '200000',
             'precio_max' => '100000',
         ]);
@@ -609,72 +597,48 @@ class PropiedadServiceTest extends TestCase
 
     public function test_listar_lanza_excepcion_si_la_cantidad_de_ambientes_es_invalida(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'cantidad_ambientes' => '2.5',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_la_cantidad_de_dormitorios_es_invalida(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'cantidad_dormitorios' => 'abc',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_la_cantidad_de_banos_es_invalida(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'cantidad_banos' => '0',
         ]);
     }
 
     public function test_listar_lanza_excepcion_si_la_capacidad_es_invalida(): void
     {
-        $repository = $this->createMock(
-            PropiedadRepositoryInterface::class
-        );
-
-        $repository->expects($this->never())
-            ->method('all');
+        $repository = $this->createMock(PropiedadRepositoryInterface::class);
+        $repository->expects($this->never())->method('paginate');
 
         $this->expectException(ValidationException::class);
 
-        $this->crearServicio(
-            repository: $repository
-        )->listar([
+        $this->crearServicio(repository: $repository)->listar([
             'capacidad' => '-1',
         ]);
     }

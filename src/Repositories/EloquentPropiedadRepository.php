@@ -133,6 +133,146 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
         return $query->orderBy('id', 'asc')->get();
     }
 
+    public function paginate(
+        array $filtros,
+        int $pagina,
+        int $porPagina
+    ): array {
+        $query = Propiedad::query()
+            ->with(['imagenes', 'imagenPrincipal', 'servicios']);
+
+        if (isset($filtros['categoria_id'])) {
+            $query->whereIn(
+                'categoria_id',
+                $filtros['categoria_id']
+            );
+        }
+
+        if (isset($filtros['localidad_id'])) {
+            $query->whereIn(
+                'localidad_id',
+                $filtros['localidad_id']
+            );
+        }
+
+        if (!empty($filtros['servicio_id'])) {
+            foreach ($filtros['servicio_id'] as $servicioId) {
+                $query->whereExists(
+                    function ($subquery) use ($servicioId) {
+                        $subquery
+                            ->selectRaw('1')
+                            ->from('propiedad_servicio')
+                            ->whereColumn(
+                                'propiedad_servicio.propiedad_id',
+                                'propiedades.id'
+                            )
+                            ->where(
+                                'propiedad_servicio.servicio_id',
+                                $servicioId
+                            );
+                    }
+                );
+            }
+        }
+
+        if (isset($filtros['precio_min'])) {
+            $query->where(
+                'precio',
+                '>=',
+                $filtros['precio_min']
+            );
+        }
+
+        if (isset($filtros['precio_max'])) {
+            $query->where(
+                'precio',
+                '<=',
+                $filtros['precio_max']
+            );
+        }
+
+        if (isset($filtros['cantidad_ambientes'])) {
+            $query->where(
+                'cantidad_ambientes',
+                '>=',
+                $filtros['cantidad_ambientes']
+            );
+        }
+
+        if (isset($filtros['cantidad_dormitorios'])) {
+            $query->where(
+                'cantidad_dormitorios',
+                '>=',
+                $filtros['cantidad_dormitorios']
+            );
+        }
+
+        if (isset($filtros['cantidad_banos'])) {
+            $query->where(
+                'cantidad_banos',
+                '>=',
+                $filtros['cantidad_banos']
+            );
+        }
+
+        if (isset($filtros['capacidad'])) {
+            $query->where(
+                'capacidad',
+                '>=',
+                $filtros['capacidad']
+            );
+        }
+
+        if (isset($filtros['destacada'])) {
+            $query->where(
+                'destacada',
+                (int) $filtros['destacada']
+            );
+        }
+
+        if (isset($filtros['acepta_mascotas'])) {
+            $query->where(
+                'acepta_mascotas',
+                (int) $filtros['acepta_mascotas']
+            );
+        }
+
+        if (isset($filtros['acepta_hijos'])) {
+            $query->where(
+                'acepta_hijos',
+                (int) $filtros['acepta_hijos']
+            );
+        }
+
+        if (isset($filtros['disponible'])) {
+            $query->where(
+                'disponible',
+                (int) $filtros['disponible']
+            );
+        }
+
+        $total = (clone $query)->count();
+
+        $items = $query
+            ->orderByDesc('fecha_publicacion')
+            ->orderByDesc('id')
+            ->forPage($pagina, $porPagina)
+            ->get();
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'pagination' => [
+                'current_page' => $pagina,
+                'per_page' => $porPagina,
+                'last_page' => max(
+                    1,
+                    (int) ceil($total / $porPagina)
+                ),
+            ],
+        ];
+    }
+
     public function allParaAdmin(array $filtros = []): Collection
     {
         $query = Propiedad::query()

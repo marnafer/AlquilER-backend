@@ -40,29 +40,23 @@ class PropiedadService
     public function listar(array $filtros = []): array
     {
         $filtrosLimpios =
-            PropiedadSanitizer::sanitizarFiltros(
-                $filtros
-            );
+            PropiedadSanitizer::sanitizarFiltros($filtros);
 
         $validacion =
-            PropiedadValidator::validarFiltros(
-                $filtrosLimpios
-            );
+            PropiedadValidator::validarFiltros($filtrosLimpios);
 
         if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
+            throw new ValidationException($validacion['errors']);
         }
 
-        $propiedades = $this->repository->all(
-            $filtrosLimpios
-        );
+        $pagina = $filtrosLimpios['page'] ?? 1;
+        $porPagina = $filtrosLimpios['per_page'] ?? 10;
 
-        return [
-            'items' => $propiedades,
-            'total' => $propiedades->count(),
-        ];
+        return $this->repository->paginate(
+            $filtrosLimpios,
+            $pagina,
+            $porPagina
+        );
     }
 
     public function listarDestacadas(): array

@@ -272,6 +272,18 @@ class PropiedadSanitizer
                 );
         }
 
+        if (array_key_exists('page', $filtros)) {
+            $sanitizado['page'] = self::sanitizarLimit(
+                $filtros['page']
+            );
+        }
+
+        if (array_key_exists('per_page', $filtros)) {
+            $sanitizado['per_page'] = self::sanitizarLimit(
+                $filtros['per_page']
+            );
+        }
+
         return $sanitizado;
     }
 
