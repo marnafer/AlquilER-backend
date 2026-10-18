@@ -789,4 +789,557 @@ final class ResenaServiceTest extends TestCase
         $this->assertCount(1, $result);
     }
 
+    public function test_obtener_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->obtener('abc');
+    }
+
+    public function test_obtener_por_reserva_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->obtenerPorReserva('abc');
+    }
+
+    public function test_obtener_por_propiedad_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getByPropiedad');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->obtenerPorPropiedad('abc');
+    }
+
+    public function test_obtener_por_usuario_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getByUsuario');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->obtenerPorUsuario('abc');
+    }
+
+    public function test_obtener_por_calificador_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getByCalificador');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->obtenerPorCalificador('abc');
+    }
+
+    public function test_restaurar_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('findDeletedById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->restaurar('abc', 99, Rol::ADMIN);
+    }
+
+    public function test_promedio_propiedad_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getPromedioByPropiedad');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->promedioPropiedad('abc');
+    }
+
+    public function test_promedio_usuario_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('getPromedioByUsuario');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->promedioUsuario('abc');
+    }
+
+    public function test_crear_desde_admin_con_datos_invalidos(): void
+    {
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => null,
+                'calificacion' => 9,
+                'calificador_id' => 2,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_sin_calificador(): void
+    {
+        $this->reservaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_reserva_no_encontrada(): void
+    {
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('Reserva no encontrada');
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 2,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_reserva_no_finalizada(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'pendiente',
+            'usuario_id' => 2,
+        ]);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->expectException(BadRequestException::class);
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 2,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_calificador_inexistente(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'finalizada',
+            'usuario_id' => 2,
+        ]);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(7)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('El usuario calificador no existe');
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 7,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_calificador_no_pertenece_a_la_reserva(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'finalizada',
+            'usuario_id' => 2,
+        ]);
+
+        $propiedad = new Propiedad();
+        $propiedad->usuario_id = 9;
+        $reserva->setRelation('propiedad', $propiedad);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(7)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->expectException(BadRequestException::class);
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 7,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_duplicada(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'finalizada',
+            'usuario_id' => 2,
+        ]);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(2)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('existePorReservaYTipo')
+            ->with(5, 'propiedad')
+            ->willReturn(true);
+
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('create');
+
+        $this->expectException(ConflictException::class);
+
+        $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 2,
+            ],
+            99
+        );
+    }
+
+    public function test_crear_desde_admin_como_inquilino(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'finalizada',
+            'usuario_id' => 2,
+        ]);
+
+        $propiedad = new Propiedad();
+        $propiedad->usuario_id = 9;
+        $reserva->setRelation('propiedad', $propiedad);
+
+        $resena = new Resena(['id' => 10]);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(9)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('existePorReservaYTipo')
+            ->with(5, 'inquilino')
+            ->willReturn(false);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(function (array $data): bool {
+                return $data['tipo'] === 'inquilino'
+                    && $data['calificador_id'] === 9;
+            }))
+            ->willReturn($resena);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'Creación de reseña desde administración');
+
+        $result = $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 9,
+            ],
+            99
+        );
+
+        $this->assertSame($resena, $result);
+    }
+
+    public function test_crear_desde_admin_como_propiedad(): void
+    {
+        $reserva = new Reserva([
+            'id' => 5,
+            'estado' => 'finalizada',
+            'usuario_id' => 2,
+        ]);
+
+        $resena = new Resena(['id' => 10]);
+
+        $this->reservaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($reserva);
+
+        $this->usuarioRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(2)
+            ->willReturn(new \App\Models\Usuario());
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('existePorReservaYTipo')
+            ->with(5, 'propiedad')
+            ->willReturn(false);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('create')
+            ->with($this->callback(function (array $data): bool {
+                return $data['tipo'] === 'propiedad'
+                    && $data['calificador_id'] === 2;
+            }))
+            ->willReturn($resena);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'Creación de reseña desde administración');
+
+        $result = $this->resenaService->crearDesdeAdmin(
+            [
+                'reserva_id' => 5,
+                'calificacion' => 5,
+                'calificador_id' => 2,
+            ],
+            99
+        );
+
+        $this->assertSame($resena, $result);
+    }
+
+    public function test_actualizar_lanza_validation_exception_con_id_invalido(): void
+    {
+        $this->resenaRepository
+            ->expects($this->never())
+            ->method('findById');
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->actualizar('abc', [], 2, Rol::USUARIO);
+    }
+
+    public function test_actualizar_resena_no_encontrada(): void
+    {
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn(null);
+
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('Reseña no encontrada');
+
+        $this->resenaService->actualizar(10, [], 2, Rol::USUARIO);
+    }
+
+    public function test_actualizar_sin_permiso(): void
+    {
+        $resena = new Resena(['id' => 10, 'calificador_id' => 3]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($resena);
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->resenaService->actualizar(
+            10,
+            ['calificacion' => 5],
+            2,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_calificacion_invalida(): void
+    {
+        $resena = new Resena(['id' => 10, 'calificador_id' => 2]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($resena);
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->actualizar(
+            10,
+            ['calificacion' => 9],
+            2,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_comentario_invalido(): void
+    {
+        $resena = new Resena(['id' => 10, 'calificador_id' => 2]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($resena);
+
+        $this->expectException(ValidationException::class);
+
+        $this->resenaService->actualizar(
+            10,
+            ['comentario' => 'ab'],
+            2,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_sin_cambios(): void
+    {
+        $resena = new Resena(['id' => 10, 'calificador_id' => 2]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($resena);
+
+        $this->expectException(BadRequestException::class);
+
+        $this->resenaService->actualizar(10, [], 2, Rol::USUARIO);
+    }
+
+    public function test_actualizar_calificacion_como_propietario(): void
+    {
+        $resena = new Resena(['id' => 10, 'calificador_id' => 2]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($resena);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('update')
+            ->with($resena, ['calificacion' => 4]);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(2, 'Actualización de reseña');
+
+        $this->resenaService->actualizar(
+            10,
+            ['calificacion' => 4],
+            2,
+            Rol::USUARIO
+        );
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_actualizar_comentario_como_admin(): void
+    {
+        $resena = new Resena(['id' => 10, 'calificador_id' => 3]);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($resena);
+
+        $this->resenaRepository
+            ->expects($this->once())
+            ->method('update')
+            ->with($resena, ['comentario' => 'Buen alquiler']);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(99, 'Actualización de reseña');
+
+        $this->resenaService->actualizar(
+            10,
+            ['comentario' => 'Buen alquiler'],
+            99,
+            Rol::ADMIN
+        );
+
+        $this->addToAssertionCount(1);
+    }
+
 }

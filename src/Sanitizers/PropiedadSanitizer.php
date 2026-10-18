@@ -265,6 +265,31 @@ class PropiedadSanitizer
                 );
         }
 
+        if (array_key_exists('limit', $filtros)) {
+            $sanitizado['limit'] =
+                self::sanitizarLimit(
+                    $filtros['limit']
+                );
+        }
+
+        if (array_key_exists('page', $filtros)) {
+            $sanitizado['page'] = self::sanitizarLimit(
+                $filtros['page']
+            );
+        }
+
+        if (array_key_exists('per_page', $filtros)) {
+            $sanitizado['per_page'] = self::sanitizarLimit(
+                $filtros['per_page']
+            );
+        }
+
+        if (array_key_exists('orden', $filtros)) {
+            $sanitizado['orden'] = self::sanitizarOrden(
+                $filtros['orden']
+            );
+        }
+
         return $sanitizado;
     }
 
@@ -574,5 +599,32 @@ class PropiedadSanitizer
         }
 
         return $sanitizados;
+    }
+
+    private static function sanitizarLimit(mixed $valor): mixed
+    {
+        if (is_string($valor)) {
+            $valor = trim($valor);
+        }
+
+        if (is_string($valor) && preg_match('/^-?\d+$/', $valor)) {
+            $valorSanitizado = filter_var(
+                $valor,
+                FILTER_VALIDATE_INT
+            );
+
+            if ($valorSanitizado !== false) {
+                return $valorSanitizado;
+            }
+        }
+
+        return $valor;
+    }
+
+    public static function sanitizarOrden(mixed $orden): mixed
+    {
+        return is_string($orden)
+            ? trim($orden)
+            : $orden;
     }
 }

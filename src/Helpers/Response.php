@@ -38,13 +38,15 @@ class Response
 			]);
 		}
 
-// En entorno de testing, no matamos el proceso: lanzamos una
+		// En entorno de testing, no matamos el proceso: lanzamos una
 		// excepción que los tests capturan para poder seguir ejecutando.
 		if (defined('APP_ENV') && APP_ENV === 'testing') {
 			throw new \Error('__RESPONSE_SENT__');
 		}
 
+		// @codeCoverageIgnoreStart
 		exit;
+		// @codeCoverageIgnoreEnd
 	}
 
 	// ===== FUNCIONES DE EXITO =====
@@ -85,7 +87,9 @@ class Response
 			throw new \Error('__RESPONSE_SENT__');
 		}
 
+		// @codeCoverageIgnoreStart
 		exit;
+		// @codeCoverageIgnoreEnd
 	}
 
 	// ===== FUNCIONES DE ERROR =====

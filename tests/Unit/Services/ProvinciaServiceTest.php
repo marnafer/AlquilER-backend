@@ -501,4 +501,79 @@ final class ProvinciaServiceTest extends TestCase
 
         $service->restaurar(1);
     }
+
+    public function test_crear_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('create');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->crear([
+            'nombre' => ''
+        ]);
+    }
+
+    public function test_actualizar_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $provincia = new Provincia([
+            'nombre' => 'Buenos Aires'
+        ]);
+
+        $provincia->id = 1;
+
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($provincia);
+
+        $repository
+            ->expects($this->never())
+            ->method('existsByName');
+
+        $repository
+            ->expects($this->never())
+            ->method('update');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->actualizar(1, [
+            'nombre' => ''
+        ]);
+    }
+
+    public function test_restaurar_lanza_excepcion_si_el_id_es_invalido(): void
+    {
+        $repository = $this->createMock(
+            ProvinciaRepositoryInterface::class
+        );
+
+        $repository
+            ->expects($this->never())
+            ->method('findDeletedById');
+
+        $service = new ProvinciaService($repository);
+
+        $this->expectException(ValidationException::class);
+
+        $service->restaurar('abc');
+    }
 }

@@ -185,7 +185,9 @@ class MailService
         $directorio = dirname($archivo);
 
         if (!is_dir($directorio)) {
+            // @codeCoverageIgnoreStart
             @mkdir($directorio, 0777, true);
+            // @codeCoverageIgnoreEnd
         }
 
         @file_put_contents($archivo, $linea, FILE_APPEND);
@@ -264,6 +266,7 @@ class MailService
             $respuesta = $enviar('STARTTLS');
 
             if (str_starts_with($respuesta, '220')) {
+                // @codeCoverageIgnoreStart
                 $tls = stream_socket_enable_crypto(
                     $socket,
                     true,
@@ -278,6 +281,7 @@ class MailService
 
                 $leer();
                 $respuesta = $enviar('EHLO alquiler.local');
+                // @codeCoverageIgnoreEnd
             }
         }
 

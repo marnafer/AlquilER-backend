@@ -214,6 +214,29 @@ final class LimpiadorArchivosLocalesTest extends TestCase
         );
     }
 
+    public function test_ignora_subdirectorios(): void
+    {
+        $subcarpeta = $this->directorio
+            . DIRECTORY_SEPARATOR
+            . 'subcarpeta';
+
+        mkdir($subcarpeta, 0755, true);
+
+        $this->crearArchivo('imagen.jpg');
+
+        $this->configurarRutas([]);
+
+        $resultado = $this->limpiador->limpiar(
+            $this->directorio
+        );
+
+        $this->assertSame(1, $resultado['archivos_analizados']);
+
+        $this->assertDirectoryExists($subcarpeta);
+
+        rmdir($subcarpeta);
+    }
+
     private function configurarRutas(array $rutas): void
     {
         $this->repository

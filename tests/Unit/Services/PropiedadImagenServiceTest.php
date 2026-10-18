@@ -781,4 +781,258 @@ final class PropiedadImagenServiceTest extends TestCase
 
         $service->eliminar(1, 8, 1);
     }
+
+    public function test_crear_lanza_excepcion_si_los_datos_son_invalidos(): void
+    {
+        $repository = $this->createMock(
+            PropiedadImagenRepositoryInterface::class
+        );
+        $propiedadService = $this->createMock(PropiedadService::class);
+        $logService = $this->createMock(LogActividadService::class);
+        $gestorArchivos = $this->createMock(
+            GestorArchivosInterface::class
+        );
+        $cargaImagenValidator = $this->createMock(
+            CargaImagenValidatorInterface::class
+        );
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+
+        $cargaImagenValidator
+            ->expects($this->never())
+            ->method('validate');
+
+        $service = new PropiedadImagenService(
+            $repository,
+            $propiedadService,
+            $logService,
+            $gestorArchivos,
+            $cargaImagenValidator,
+            $policy
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $service->crear([], [], 1, 2);
+    }
+
+    public function test_crear_elimina_la_imagen_subida_si_falla_la_persistencia(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 1;
+        $propiedad->usuario_id = 7;
+
+        $repository = $this->createMock(
+            PropiedadImagenRepositoryInterface::class
+        );
+        $propiedadService = $this->createMock(PropiedadService::class);
+        $logService = $this->createMock(LogActividadService::class);
+        $gestorArchivos = $this->createMock(
+            GestorArchivosInterface::class
+        );
+        $cargaImagenValidator = $this->createMock(
+            CargaImagenValidatorInterface::class
+        );
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+
+        $propiedadService
+            ->expects($this->once())
+            ->method('obtener')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $cargaImagenValidator
+            ->expects($this->once())
+            ->method('validate')
+            ->willReturn(null);
+
+        $propiedadService
+            ->expects($this->once())
+            ->method('obtenerParaActualizar')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $repository
+            ->expects($this->once())
+            ->method('countByPropiedadId')
+            ->with(1)
+            ->willReturn(0);
+
+        $gestorArchivos
+            ->expects($this->once())
+            ->method('upload')
+            ->willReturn('imagen.jpg');
+
+        $repository
+            ->expects($this->once())
+            ->method('create')
+            ->willThrowException(
+                new \RuntimeException('Falla de persistencia')
+            );
+
+        $gestorArchivos
+            ->expects($this->once())
+            ->method('delete')
+            ->with('/uploads/propiedades/imagen.jpg');
+
+        $logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $service = new PropiedadImagenService(
+            $repository,
+            $propiedadService,
+            $logService,
+            $gestorArchivos,
+            $cargaImagenValidator,
+            $policy
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Falla de persistencia');
+
+        $service->crear(
+            ['propiedad_id' => 1],
+            ['tmp_name' => '/tmp/php123', 'size' => 1024],
+            7,
+            1
+        );
+    }
+
+    public function test_eliminar_imagen_principal_reasigna_nueva_principal(): void
+    {
+        $imagen = new PropiedadImagen([
+            'ruta' => '/uploads/propiedades/vieja.jpg',
+            'es_principal' => 1,
+        ]);
+        $imagen->id = 1;
+        $imagen->propiedad_id = 3;
+
+        $restante = new PropiedadImagen([
+            'ruta' => '/uploads/propiedades/nueva.jpg',
+        ]);
+        $restantes = new Collection([$restante]);
+
+        $repository = $this->createMock(
+            PropiedadImagenRepositoryInterface::class
+        );
+        $propiedadService = $this->createMock(PropiedadService::class);
+        $logService = $this->createMock(LogActividadService::class);
+        $gestorArchivos = $this->createMock(
+            GestorArchivosInterface::class
+        );
+        $cargaImagenValidator = $this->createMock(
+            CargaImagenValidatorInterface::class
+        );
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($imagen);
+
+        $repository
+            ->expects($this->once())
+            ->method('delete')
+            ->with($imagen);
+
+        $repository
+            ->expects($this->once())
+            ->method('findByPropiedadId')
+            ->with(3)
+            ->willReturn($restantes);
+
+        $repository
+            ->expects($this->once())
+            ->method('setPrincipal')
+            ->with($restante);
+
+        $gestorArchivos
+            ->expects($this->once())
+            ->method('delete')
+            ->with('/uploads/propiedades/vieja.jpg');
+
+        $logService
+            ->expects($this->once())
+            ->method('registrar');
+
+        $service = new PropiedadImagenService(
+            $repository,
+            $propiedadService,
+            $logService,
+            $gestorArchivos,
+            $cargaImagenValidator,
+            $policy
+        );
+
+        $service->eliminar(1, 7, 1);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_eliminar_imagen_principal_sin_imagenes_restantes(): void
+    {
+        $imagen = new PropiedadImagen([
+            'ruta' => '/uploads/propiedades/unica.jpg',
+            'es_principal' => 1,
+        ]);
+        $imagen->id = 1;
+        $imagen->propiedad_id = 3;
+
+        $repository = $this->createMock(
+            PropiedadImagenRepositoryInterface::class
+        );
+        $propiedadService = $this->createMock(PropiedadService::class);
+        $logService = $this->createMock(LogActividadService::class);
+        $gestorArchivos = $this->createMock(
+            GestorArchivosInterface::class
+        );
+        $cargaImagenValidator = $this->createMock(
+            CargaImagenValidatorInterface::class
+        );
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+
+        $repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($imagen);
+
+        $repository
+            ->expects($this->once())
+            ->method('delete')
+            ->with($imagen);
+
+        $repository
+            ->expects($this->once())
+            ->method('findByPropiedadId')
+            ->with(3)
+            ->willReturn(new Collection());
+
+        $repository
+            ->expects($this->never())
+            ->method('setPrincipal');
+
+        $gestorArchivos
+            ->expects($this->once())
+            ->method('delete')
+            ->with('/uploads/propiedades/unica.jpg');
+
+        $logService
+            ->expects($this->once())
+            ->method('registrar');
+
+        $service = new PropiedadImagenService(
+            $repository,
+            $propiedadService,
+            $logService,
+            $gestorArchivos,
+            $cargaImagenValidator,
+            $policy
+        );
+
+        $service->eliminar(1, 7, 1);
+
+        $this->addToAssertionCount(1);
+    }
 }

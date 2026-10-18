@@ -427,6 +427,56 @@ class PropiedadValidator
         return null;
     }
 
+    private static function validarLimitFiltro(
+        mixed $limit
+    ): ?string {
+        if ($limit === null) {
+            return null;
+        }
+
+        if (
+            !is_int($limit)
+            || $limit < 1
+            || $limit > 50
+        ) {
+            return 'El límite debe ser un entero entre 1 y 50.';
+        }
+
+        return null;
+    }
+
+    private static function validarPaginaFiltro(
+        mixed $pagina
+    ): ?string {
+        if ($pagina === null) {
+            return null;
+        }
+
+        if (!is_int($pagina) || $pagina < 1) {
+            return 'La página debe ser un entero mayor o igual a 1.';
+        }
+
+        return null;
+    }
+
+    private static function validarPorPaginaFiltro(
+        mixed $porPagina
+    ): ?string {
+        if ($porPagina === null) {
+            return null;
+        }
+
+        if (
+            !is_int($porPagina)
+            || $porPagina < 1
+            || $porPagina > 50
+        ) {
+            return 'La cantidad de resultados por página debe ser un entero entre 1 y 50.';
+        }
+
+        return null;
+    }
+
     public static function validarFiltros(
         array $data
     ): array {
@@ -488,6 +538,18 @@ class PropiedadValidator
             'rango_precio' => self::validarRangoPrecio(
                 $data['precio_min'] ?? null,
                 $data['precio_max'] ?? null
+            ),
+
+            'page' => self::validarPaginaFiltro(
+                $data['page'] ?? null
+            ),
+
+            'per_page' => self::validarPorPaginaFiltro(
+                $data['per_page'] ?? null
+            ),
+
+            'orden' => self::validarOrdenFiltro(
+                $data['orden'] ?? null
             ),
         ];
 
@@ -579,6 +641,10 @@ class PropiedadValidator
             'localidad_id' => self::validarLocalidadId(
                 $data['localidad_id'] ?? null
             ),
+
+            'limit' => self::validarLimitFiltro(
+                $data['limit'] ?? null
+            )
         ];
 
        foreach ($validaciones as $campo => $error) {
@@ -586,6 +652,7 @@ class PropiedadValidator
                 continue;
             }
 
+            // @codeCoverageIgnoreStart
             if (is_array($error)) {
                 if ($error !== []) {
                     $errores[$campo] = $error;
@@ -593,6 +660,7 @@ class PropiedadValidator
 
                 continue;
             }
+            // @codeCoverageIgnoreEnd
 
             $errores[$campo] = $error;
         }
@@ -627,5 +695,29 @@ class PropiedadValidator
             'message' => 'ID válido',
             'errors' => null,
         ];
+    }
+
+    private static function validarOrdenFiltro(
+        mixed $orden
+    ): ?string {
+        if ($orden === null) {
+            return null;
+        }
+
+        $ordenesPermitidos = [
+            'antiguedad_desc',
+            'antiguedad_asc',
+            'precio_asc',
+            'precio_desc',
+        ];
+
+        if (
+            !is_string($orden)
+            || !in_array($orden, $ordenesPermitidos, true)
+        ) {
+            return 'El orden seleccionado no es válido';
+        }
+
+        return null;
     }
 }

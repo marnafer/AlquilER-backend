@@ -4,13 +4,54 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
+use App\Debug\Debugger;
 use App\Services\MailService;
 use PHPUnit\Framework\TestCase;
 
 final class MailServiceTest extends TestCase
 {
+    /** @var array<string, string|null> */
+    private array $respaldo = [];
+
+    /** @var list<resource> */
+    private array $procesosSmtp = [];
+
+    /** @var list<string> */
+    private array $banderasSmtp = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach ($this->archivosTocados() as $archivo) {
+            $this->respaldo[$archivo] = is_file($archivo)
+                ? (string) file_get_contents($archivo)
+                : null;
+        }
+    }
+
     protected function tearDown(): void
     {
+        // MailService::guardarEnLog escribe en storage/emails.log y en el
+        // log de Debugger; se restauran para no dejar efectos secundarios.
+        foreach ($this->respaldo as $archivo => $contenido) {
+            @unlink($archivo);
+            if ($contenido !== null) {
+                file_put_contents($archivo, $contenido);
+            }
+        }
+
+        foreach ($this->procesosSmtp as $proceso) {
+            if (is_resource($proceso)) {
+                @proc_terminate($proceso);
+                @proc_close($proceso);
+            }
+        }
+
+        foreach ($this->banderasSmtp as $bandera) {
+            @unlink($bandera);
+        }
+
         parent::tearDown();
 
         unset($_ENV['MAIL_HOST']);
@@ -18,6 +59,19 @@ final class MailServiceTest extends TestCase
         unset($_ENV['MAIL_FROM']);
         unset($_ENV['MAIL_FROM_NAME']);
         unset($_ENV['MAIL_ENCRYPTION']);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function archivosTocados(): array
+    {
+        return [
+            Debugger::getLogFile(),
+            dirname(__DIR__, 3)
+                . DIRECTORY_SEPARATOR . 'storage'
+                . DIRECTORY_SEPARATOR . 'emails.log',
+        ];
     }
 
     public function test_enviar_sin_host_guarda_en_log_y_devuelve_true(): void
@@ -98,5 +152,213 @@ final class MailServiceTest extends TestCase
         $this->assertSame('no-responder@alquiler.local', $reflexion->getProperty('from')->getValue($mail));
         $this->assertSame('AlquilER', $reflexion->getProperty('fromName')->getValue($mail));
         $this->assertSame('tls', $reflexion->getProperty('encryption')->getValue($mail));
+    }
+
+    public function test_enviar_sin_host_con_reply_to_y_cuerpo_solo_html(): void
+    {
+        $mail = new MailService(
+            null,
+            null,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p><br>Adios',
+            '',
+            'reply@test.com'
+        );
+
+        $this->assertTrue($resultado);
+    }
+
+    public function test_enviar_con_host_sin_servidor_devuelve_false(): void
+    {
+        $puerto = $this->puertoLibre();
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertFalse($resultado);
+    }
+
+    public function test_enviar_con_servidor_smtp_devuelve_true(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto);
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            'usuario',
+            'secreto',
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertTrue($resultado);
+    }
+
+    public function test_enviar_con_host_encriptacion_desconocida_usa_smtp(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto);
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'plain'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertTrue($resultado);
+    }
+
+    public function test_enviar_con_starttls_no_soportado_continua_en_plano(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto);
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'tls'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertTrue($resultado);
+    }
+
+    public function test_enviar_devuelve_false_si_el_servidor_rechaza_data(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto, 'rechaza-data');
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertFalse($resultado);
+    }
+
+    private function puertoLibre(): int
+    {
+        $socket = stream_socket_server('tcp://127.0.0.1:0', $codigo, $mensaje);
+
+        if ($socket === false) {
+            $this->fail('No se pudo reservar un puerto libre: ' . $mensaje);
+        }
+
+        $nombre = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+
+        return (int) substr($nombre, strrpos($nombre, ':') + 1);
+    }
+
+    private function iniciarServidorSmtp(int $puerto, string $modo = ''): void
+    {
+        $script = dirname(__DIR__, 2)
+            . DIRECTORY_SEPARATOR . 'Support'
+            . DIRECTORY_SEPARATOR . 'ServidorSmtpFalso.php';
+
+        $bandera = tempnam(sys_get_temp_dir(), 'smtp');
+        @unlink($bandera);
+
+        $comando = [PHP_BINARY, $script, (string) $puerto, $bandera];
+
+        if ($modo !== '') {
+            $comando[] = $modo;
+        }
+
+        $proceso = proc_open(
+            $comando,
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes
+        );
+
+        if (!is_resource($proceso)) {
+            $this->fail('No se pudo iniciar el servidor SMTP falso.');
+        }
+
+        foreach ($pipes as $pipe) {
+            fclose($pipe);
+        }
+
+        $this->procesosSmtp[] = $proceso;
+        $this->banderasSmtp[] = $bandera;
+
+        $intentos = 0;
+
+        while (!is_file($bandera) && $intentos < 100) {
+            usleep(50000);
+            $intentos++;
+        }
+
+        if (!is_file($bandera)) {
+            $this->fail('El servidor SMTP falso no quedó disponible.');
+        }
     }
 }

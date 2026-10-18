@@ -9,6 +9,12 @@ interface PropiedadRepositoryInterface
 {
     public function all(array $filtros = []): Collection;
 
+     public function paginate(
+        array $filtros,
+        int $pagina,
+        int $porPagina
+    ): array;
+
     public function allParaAdmin(array $filtros = []): Collection;
 
     public function porUsuario(int $usuarioId): Collection;
