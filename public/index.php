@@ -95,6 +95,9 @@
     // Hacemos la variable $path global para que esté disponible en los routers
     $GLOBALS['path'] = $path;
 
+    // Rate limiting de la API.
+    RateLimitMiddleware::verificar($method, $path);
+
     // Health
     if ($method === 'GET' && $path === '/api/health') {
         Response::success([
@@ -113,8 +116,6 @@
     if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
         require_once SRC_PATH . 'Routes/debug_router.php';
     }
-
-    RateLimitMiddleware::verificar();
 
     $router->dispatch($method, $path);
     exit;
