@@ -1149,4 +1149,93 @@ final class PropiedadValidatorTest extends TestCase
         $this->assertSame('ID inválido', $resultado['message']);
         $this->assertSame(['id' => $errorEsperado], $resultado['errors']);
     }
+
+    public function test_validar_con_limite_valido_ok(): void
+    {
+        $resultado = PropiedadValidator::validar([
+            'titulo' => 'Depto luminoso',
+            'descripcion' => 'Muy lindo depto',
+            'precio' => 50000,
+            'expensas' => 10000,
+            'direccion' => 'Av. Siempreviva 742',
+            'cantidad_ambientes' => 2,
+            'cantidad_dormitorios' => 1,
+            'cantidad_banos' => 1,
+            'capacidad' => 3,
+            'acepta_mascotas' => 1,
+            'acepta_hijos' => 0,
+            'disponible' => 1,
+            'destacada' => 0,
+            'categoria_id' => 1,
+            'localidad_id' => 2,
+            'limit' => 10,
+        ]);
+
+        $this->assertTrue($resultado['success']);
+        $this->assertNull($resultado['errors']);
+    }
+
+    #[DataProvider('limitesInvalidos')]
+    public function test_validar_con_limite_invalido_falla(mixed $limit): void
+    {
+        $resultado = PropiedadValidator::validar([
+            'titulo' => 'Depto luminoso',
+            'descripcion' => 'Muy lindo depto',
+            'precio' => 50000,
+            'expensas' => 10000,
+            'direccion' => 'Av. Siempreviva 742',
+            'cantidad_ambientes' => 2,
+            'cantidad_dormitorios' => 1,
+            'cantidad_banos' => 1,
+            'capacidad' => 3,
+            'acepta_mascotas' => 1,
+            'acepta_hijos' => 0,
+            'disponible' => 1,
+            'destacada' => 0,
+            'categoria_id' => 1,
+            'localidad_id' => 2,
+            'limit' => $limit,
+        ]);
+
+        $this->assertFalse($resultado['success']);
+        $this->assertSame(
+            ['limit' => 'El límite debe ser un entero entre 1 y 50.'],
+            $resultado['errors']
+        );
+    }
+
+    public static function limitesInvalidos(): array
+    {
+        return [
+            'cero' => [0],
+            'negativo' => [-1],
+            'mayor a 50' => [51],
+            'no entero' => ['abc'],
+        ];
+    }
+
+    public function test_validar_filtros_con_pagina_invalida_falla(): void
+    {
+        $resultado = PropiedadValidator::validarFiltros(['page' => 0]);
+
+        $this->assertFalse($resultado['success']);
+        $this->assertSame(
+            ['page' => 'La página debe ser un entero mayor o igual a 1.'],
+            $resultado['errors']
+        );
+    }
+
+    public function test_validar_filtros_con_per_page_invalido_falla(): void
+    {
+        $resultado = PropiedadValidator::validarFiltros(['per_page' => 100]);
+
+        $this->assertFalse($resultado['success']);
+        $this->assertSame(
+            [
+                'per_page' =>
+                    'La cantidad de resultados por página debe ser un entero entre 1 y 50.',
+            ],
+            $resultado['errors']
+        );
+    }
 }
