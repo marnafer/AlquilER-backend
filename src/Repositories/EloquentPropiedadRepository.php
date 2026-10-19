@@ -135,6 +135,7 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
         if (isset($filtros['limit'])) {
             return $query
+                ->orderByDesc('fecha_publicacion')
                 ->orderByDesc('id')
                 ->limit($filtros['limit'])
                 ->get();
