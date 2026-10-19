@@ -150,6 +150,18 @@ class PropiedadSanitizerTest extends TestCase
         $this->assertSame([], PropiedadSanitizer::sanitizarFiltros([]));
     }
 
+    public function test_sanitizar_filtros_orden(): void
+    {
+        $this->assertSame(
+            'precio_asc',
+            PropiedadSanitizer::sanitizarFiltros(['orden' => ' precio_asc '])['orden']
+        );
+        $this->assertSame(
+            123,
+            PropiedadSanitizer::sanitizarFiltros(['orden' => 123])['orden']
+        );
+    }
+
     public function test_sanitizar_limit_non_string_is_returned_as_is(): void
     {
         $resultado = PropiedadSanitizer::sanitizarFiltros(['limit' => 10]);

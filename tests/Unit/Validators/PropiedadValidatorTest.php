@@ -1238,4 +1238,44 @@ final class PropiedadValidatorTest extends TestCase
             $resultado['errors']
         );
     }
+
+    #[DataProvider('ordenesValidos')]
+    public function test_validar_filtros_con_orden_valido_ok(string $orden): void
+    {
+        $resultado = PropiedadValidator::validarFiltros(['orden' => $orden]);
+
+        $this->assertTrue($resultado['success']);
+        $this->assertNull($resultado['errors']);
+    }
+
+    public static function ordenesValidos(): array
+    {
+        return [
+            'antiguedad_desc' => ['antiguedad_desc'],
+            'antiguedad_asc' => ['antiguedad_asc'],
+            'precio_asc' => ['precio_asc'],
+            'precio_desc' => ['precio_desc'],
+        ];
+    }
+
+    #[DataProvider('ordenesInvalidos')]
+    public function test_validar_filtros_con_orden_invalido_falla(mixed $orden): void
+    {
+        $resultado = PropiedadValidator::validarFiltros(['orden' => $orden]);
+
+        $this->assertFalse($resultado['success']);
+        $this->assertSame(
+            ['orden' => 'El orden seleccionado no es válido'],
+            $resultado['errors']
+        );
+    }
+
+    public static function ordenesInvalidos(): array
+    {
+        return [
+            'desconocido' => ['foo'],
+            'numero' => [123],
+            'array' => [[1]],
+        ];
+    }
 }
