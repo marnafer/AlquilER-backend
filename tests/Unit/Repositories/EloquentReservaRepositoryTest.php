@@ -111,6 +111,7 @@ final class EloquentReservaRepositoryTest extends RepositorioTestCase
         $this->assertSame([3], array_column($this->repo->listarPorAlcance(1, [10], ['usuario_id' => 1]), 'id'));
         $this->assertSame([3, 1], array_column($this->repo->listarPorAlcance(1, [10], ['estado' => 'confirmada']), 'id'));
         $this->assertSame([3, 2, 1, 4], array_column($this->repo->listarPorAlcance(1, [10], ['incluir_eliminados' => true]), 'id'));
+        $this->assertSame([4], array_column($this->repo->listarPorAlcance(1, [10], ['solo_eliminados' => true]), 'id'));
     }
 
     public function test_tiene_reserva_activa(): void
