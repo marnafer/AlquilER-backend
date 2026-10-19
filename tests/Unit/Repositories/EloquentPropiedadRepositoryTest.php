@@ -170,4 +170,61 @@ final class EloquentPropiedadRepositoryTest extends RepositorioTestCase
         $this->assertTrue($this->repo->restore($propiedad));
         $this->assertNotNull($this->repo->findById($propiedad->id));
     }
+
+    public function test_all_con_limit_ordena_desc_y_limita(): void
+    {
+        $this->sembrar();
+
+        $this->assertSame(
+            [2],
+            $this->repo->all(['limit' => 1])->pluck('id')->all()
+        );
+    }
+
+    public function test_paginate_ordena_por_defecto_y_pagina(): void
+    {
+        $this->sembrar();
+
+        $primera = $this->repo->paginate([], 1, 1);
+
+        $this->assertSame([2], $primera['items']->pluck('id')->all());
+        $this->assertSame(2, $primera['total']);
+        $this->assertSame(
+            ['current_page' => 1, 'per_page' => 1, 'last_page' => 2],
+            $primera['pagination']
+        );
+
+        $segunda = $this->repo->paginate([], 2, 1);
+
+        $this->assertSame([1], $segunda['items']->pluck('id')->all());
+    }
+
+    public function test_paginate_ordena_por_precio_asc(): void
+    {
+        $this->sembrar();
+
+        $resultado = $this->repo->paginate(['orden' => 'precio_asc'], 1, 10);
+
+        $this->assertSame([1, 2], $resultado['items']->pluck('id')->all());
+    }
+
+    public function test_paginate_con_orden_invalido_usa_el_por_defecto(): void
+    {
+        $this->sembrar();
+
+        $resultado = $this->repo->paginate(['orden' => 'inexistente'], 1, 10);
+
+        $this->assertSame([2, 1], $resultado['items']->pluck('id')->all());
+    }
+
+    public function test_paginate_aplica_filtros(): void
+    {
+        $this->sembrar();
+
+        $resultado = $this->repo->paginate(['categoria_id' => [2]], 1, 10);
+
+        $this->assertSame([2], $resultado['items']->pluck('id')->all());
+        $this->assertSame(1, $resultado['total']);
+        $this->assertSame(1, $resultado['pagination']['last_page']);
+    }
 }

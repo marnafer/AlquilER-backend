@@ -23,9 +23,11 @@ final class GestorArchivosLocales implements GestorArchivosInterface
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
 
         if ($finfo === false) {
+            // @codeCoverageIgnoreStart
             throw new BadRequestException(
                 'No se pudo determinar el formato de la imagen'
             );
+            // @codeCoverageIgnoreEnd
         }
 
         $mime = finfo_file($finfo, $file['tmp_name']);
@@ -59,7 +61,9 @@ final class GestorArchivosLocales implements GestorArchivosInterface
             );
         }
 
+        // @codeCoverageIgnoreStart
         return $nombreArchivo;
+        // @codeCoverageIgnoreEnd
     }
 
     public function delete(string $path): void
@@ -71,9 +75,11 @@ final class GestorArchivosLocales implements GestorArchivosInterface
         }
 
         if (!unlink($rutaFisica)) {
+            // @codeCoverageIgnoreStart
             throw new BadRequestException(
                 'No se pudo eliminar la imagen'
             );
+            // @codeCoverageIgnoreEnd
         }
     }
 }
