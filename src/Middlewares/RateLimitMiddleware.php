@@ -81,19 +81,13 @@ final class RateLimitMiddleware
         if (!str_starts_with($ruta, '/api/')) {
             return;
         }
-
-        $regla = self::obtenerRegla($metodo, $ruta);
-
-        $resultado = self::evaluarRegla(
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            time(),
-            self::obtenerDirectorioAlmacenamiento(),
-            $regla['nombre'],
-            $regla['limite'],
-            $regla['ventana']
+      
+        $resultado = self::evaluarSolicitud(
+            $metodo,
+            $ruta
         );
 
-        header('X-RateLimit-Limit: ' . $regla['limite']);
+        header('X-RateLimit-Limit: ' . $resultado['limite']);
         header('X-RateLimit-Remaining: ' . $resultado['restantes']);
 
         if (!$resultado['permitido']) {
@@ -364,4 +358,37 @@ final class RateLimitMiddleware
 
         @chmod($directorio, 0700);
     }
+
+    
+    /**
+     * Evalúa una solicitud aplicando la regla correspondiente.
+     * Permite probar las políticas sin ejecutar exit().
+     */
+    public static function evaluarSolicitud(
+        string $metodo,
+        string $ruta,
+        ?string $ip = null,
+        ?int $ahora = null,
+        ?string $directorio = null
+    ): array {
+        $regla = self::obtenerRegla(
+            strtoupper(trim($metodo)),
+            '/' . trim($ruta, '/')
+        );
+
+        $resultado = self::evaluarRegla(
+            $ip ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+            $ahora ?? time(),
+            $directorio ?? self::obtenerDirectorioAlmacenamiento(),
+            $regla['nombre'],
+            $regla['limite'],
+            $regla['ventana']
+        );
+
+        return array_merge(
+            $regla,
+            $resultado
+        );
+    }
+
 }
