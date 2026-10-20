@@ -82,8 +82,8 @@ if ($method === 'OPTIONS') {
     exit;
 }
 
-// Hacemos la variable $path global para que esté disponible en los routers
-$GLOBALS['path'] = $path;
+    // Hacemos la variable $path global para que esté disponible en los routers
+    $GLOBALS['path'] = $path;
 
 // Health
 if ($method === 'GET' && $path === '/api/health') {
@@ -98,15 +98,15 @@ $router = new Router();
 
 require_once SRC_PATH . 'Routes/api.php';
 
-// Rutas de depuración: solo se montan (y por tanto responden)
-// en entorno de desarrollo.
-if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
-    require_once SRC_PATH . 'Routes/debug_router.php';
-}
+    // Rutas de depuración: solo se montan (y por tanto responden)
+    // en entorno de desarrollo.
+    if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
+        require_once SRC_PATH . 'Routes/debug_router.php';
+    }
 
-$limit = RateLimitMiddleware::verificar();
-if ($limit !== null) {
-    $limit->emit();
+    RateLimitMiddleware::verificar();
+
+    $router->dispatch($method, $path);
     exit;
 }
 
