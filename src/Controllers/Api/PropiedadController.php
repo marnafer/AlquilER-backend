@@ -4,98 +4,93 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\PropiedadService;
 
 class PropiedadController
 {
     public function __construct(
-        private readonly PropiedadService $service
+        private readonly PropiedadService $service,
+        private readonly Authenticator $auth
     ) {
     }
 
     // GET /api/propiedades
-    public function index(): void
+    public function index(Request $request): Response
     {
-        Response::success(
-            $this->service->listar(
-                $_GET ?? []
-            )
+        return Response::success(
+            $this->service->listar($request->queryParams())
         );
     }
 
     // GET /api/propiedades/destacadas
-    public function destacadas(): void
+    public function destacadas(Request $request): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->listarDestacadas()
         );
     }
 
     // GET /api/admin/propiedades
-    public function adminIndex(): void
+    public function adminIndex(Request $request): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        Response::success(
-            $this->service->listarParaAdmin(
-                $_GET ?? []
-            )
+        return Response::success(
+            $this->service->listarParaAdmin($request->queryParams())
         );
     }
 
     // GET /api/propiedades/mis-propiedades
-    public function misPropiedades(): void
+    public function misPropiedades(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
-        Response::success(
-            $this->service->misPropiedades(
-                (int) $user->sub
-            )
+        return Response::success(
+            $this->service->misPropiedades((int) $user->sub)
         );
     }
 
     // GET /api/propiedades/{id}
-    public function show($id): void
+    public function show(Request $request, $id): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->obtener($id)
         );
     }
 
     // POST /api/propiedades
-    public function store(): void
+    public function store(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $propiedad = $this->service->crear(
-            Request::json(),
+            $request->json(),
             (int) $user->sub,
             (int) $user->rol_id
         );
 
-        Response::created(
+        return Response::created(
             $propiedad,
             'Propiedad creada exitosamente'
         );
     }
 
     // PUT /api/propiedades/{id}
-    public function update($id): void
+    public function update(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->actualizar(
             (int) $user->sub,
             (int) $user->rol_id,
             $id,
-            Request::json()
+            $request->json()
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Propiedad actualizada exitosamente'
@@ -103,9 +98,9 @@ class PropiedadController
     }
 
     // DELETE /api/propiedades/{id}
-    public function delete($id): void
+    public function delete(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->eliminar(
             (int) $user->sub,
@@ -113,7 +108,7 @@ class PropiedadController
             $id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Propiedad eliminada exitosamente'
@@ -121,9 +116,9 @@ class PropiedadController
     }
 
     // PATCH /api/propiedades/{id}/restaurar
-    public function restore($id): void
+    public function restore(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->restaurar(
             (int) $user->sub,
@@ -131,7 +126,7 @@ class PropiedadController
             $id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Propiedad restaurada exitosamente'

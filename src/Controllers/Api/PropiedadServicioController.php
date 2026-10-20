@@ -4,78 +4,67 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\PropiedadServicioService;
 
 class PropiedadServicioController
 {
     public function __construct(
-        private readonly PropiedadServicioService $service
+        private readonly PropiedadServicioService $service,
+        private readonly Authenticator $auth
     ) {
     }
 
     // GET /api/propiedades/{propiedadId}/servicios
-    public function index(
-        $request,
-        $propiedadId
-    ): void {
-        $servicios = $this->service->listar(
-            $propiedadId
-        );
+    public function index(Request $request, $propiedadId): Response
+    {
+        $servicios = $this->service->listar($propiedadId);
 
-        Response::success([
+        return Response::success([
             'items' => $servicios,
             'total' => count($servicios),
         ]);
     }
 
     // GET /api/servicios/{servicioId}/propiedades
-    public function getPropiedadesByServicio(
-        $request,
-        $servicioId
-    ): void {
-        $propiedades = $this->service->listarPorServicio(
-            $servicioId
-        );
+    public function getPropiedadesByServicio(Request $request, $servicioId): Response
+    {
+        $propiedades = $this->service->listarPorServicio($servicioId);
 
-        Response::success([
+        return Response::success([
             'items' => $propiedades,
             'total' => count($propiedades),
         ]);
     }
 
     // POST /api/propiedades/{propiedadId}/servicios
-    public function store(
-        $request,
-        $propiedadId
-    ): void {
-        $user = AutenticadorMiddleware::verificar();
+    public function store(Request $request, $propiedadId): Response
+    {
+        $user = $this->auth->verificar($request);
 
-        $data = Request::json();
+        $data = $request->json();
 
-       $resultado = $this->service->asignar(
+        $resultado = $this->service->asignar(
             $propiedadId,
             $data['servicio_id'] ?? null,
             (int) $user->sub,
             (int) $user->rol_id
         );
 
-        Response::created(
+        return Response::created(
             $resultado,
             'Servicio asignado correctamente'
         );
     }
 
     // POST /api/propiedades/{propiedadId}/servicios/multiple
-    public function storeMultiple(
-        $request,
-        $propiedadId
-    ): void {
-        $user = AutenticadorMiddleware::verificar();
+    public function storeMultiple(Request $request, $propiedadId): Response
+    {
+        $user = $this->auth->verificar($request);
 
-        $data = Request::json();
+        $data = $request->json();
 
         $resultados = $this->service->asignarMultiples(
             $propiedadId,
@@ -84,7 +73,7 @@ class PropiedadServicioController
             (int) $user->rol_id
         );
 
-        Response::success(
+        return Response::success(
             $resultados,
             200,
             'Servicios asignados correctamente'
@@ -92,13 +81,11 @@ class PropiedadServicioController
     }
 
     // PUT /api/propiedades/{propiedadId}/servicios
-    public function update(
-        $request,
-        $propiedadId
-    ): void {
-        $user = AutenticadorMiddleware::verificar();
+    public function update(Request $request, $propiedadId): Response
+    {
+        $user = $this->auth->verificar($request);
 
-        $data = Request::json();
+        $data = $request->json();
 
         $resultados = $this->service->sincronizar(
             $propiedadId,
@@ -107,7 +94,7 @@ class PropiedadServicioController
             (int) $user->rol_id
         );
 
-        Response::success(
+        return Response::success(
             $resultados,
             200,
             'Servicios sincronizados correctamente'
@@ -115,12 +102,9 @@ class PropiedadServicioController
     }
 
     // DELETE /api/propiedades/{propiedadId}/servicios/{servicioId}
-    public function delete(
-        $request,
-        $propiedadId,
-        $servicioId
-    ): void {
-        $user = AutenticadorMiddleware::verificar();
+    public function delete(Request $request, $propiedadId, $servicioId): Response
+    {
+        $user = $this->auth->verificar($request);
 
         $this->service->desasignar(
             $propiedadId,
@@ -129,7 +113,7 @@ class PropiedadServicioController
             (int) $user->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Servicio desasignado correctamente'

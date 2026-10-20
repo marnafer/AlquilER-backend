@@ -44,18 +44,14 @@ class ResenaPolicy
     /**
      * Eliminar una reseña.
      *
-     * El autor puede eliminar su propia reseña.
-     * El administrador puede eliminar cualquier reseña.
+     * Solo el administrador puede eliminar reseñas.
      */
     public function eliminar(
         Resena $resena,
         int $usuarioId,
         int $rolId
     ): void {
-        if (
-            $rolId === Rol::ADMIN ||
-            (int) $resena->calificador_id === $usuarioId
-        ) {
+        if ($rolId === Rol::ADMIN) {
             return;
         }
 

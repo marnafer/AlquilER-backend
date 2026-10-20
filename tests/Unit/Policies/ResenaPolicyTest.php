@@ -74,14 +74,14 @@ final class ResenaPolicyTest extends TestCase
     }
 
 
-    public function test_permite_al_autor_eliminar_su_propia_resena(): void
+    public function test_deniega_al_autor_eliminar_su_propia_resena(): void
     {
         $resena = new Resena();
         $resena->calificador_id = 5;
 
-        $this->policy->eliminar($resena, 5, 1);
+        $this->expectException(ForbiddenException::class);
 
-        $this->addToAssertionCount(1);
+        $this->policy->eliminar($resena, 5, 1);
     }
 
     public function test_permite_al_administrador_eliminar_cualquier_resena(): void

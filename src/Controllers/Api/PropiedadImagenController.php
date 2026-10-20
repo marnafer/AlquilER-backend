@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\PropiedadImagenService;
 
 class PropiedadImagenController
 {
-    private readonly PropiedadImagenService $service;
-
-    public function __construct(PropiedadImagenService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly PropiedadImagenService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     /**
      * GET /api/propiedad-imagenes
      */
-    public function index(): void
+    public function index(Request $request): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->listar()
         );
     }
@@ -30,9 +30,9 @@ class PropiedadImagenController
     /**
      * GET /api/propiedad-imagenes/{id}
      */
-    public function show($id): void
+    public function show(Request $request, $id): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->obtener($id)
         );
     }
@@ -40,18 +40,18 @@ class PropiedadImagenController
     /**
      * POST /api/propiedad-imagenes
      */
-    public function store(): void
+    public function store(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $imagen = $this->service->crear(
-            $_POST,
-            $_FILES['imagen'] ?? null,
+            $request->postParams(),
+            $request->file('imagen'),
             (int) $user->sub,
             (int) $user->rol_id
         );
 
-        Response::created(
+        return Response::created(
             $imagen,
             'Imagen guardada correctamente'
         );
@@ -60,9 +60,9 @@ class PropiedadImagenController
     /**
      * PUT /api/propiedad-imagenes/{id}/principal
      */
-    public function setPrincipal($id): void
+    public function setPrincipal(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $imagen = $this->service->establecerPrincipal(
             $id,
@@ -70,7 +70,7 @@ class PropiedadImagenController
             (int) $user->rol_id
         );
 
-        Response::success(
+        return Response::success(
             $imagen,
             200,
             'Imagen principal actualizada'
@@ -80,9 +80,9 @@ class PropiedadImagenController
     /**
      * DELETE /api/propiedad-imagenes/{id}
      */
-    public function delete($id): void
+    public function delete(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->eliminar(
             $id,
@@ -90,7 +90,7 @@ class PropiedadImagenController
             (int) $user->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Imagen eliminada correctamente'

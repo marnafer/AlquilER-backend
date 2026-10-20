@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use App\Helpers\Request;
-use App\Helpers\TokenProviderInterface;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
-use App\Exceptions\GlobalExceptionHandler;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
+/**
+ * Base de los tests del proyecto.
+ *
+ * Solo aísla el entorno y ofrece helpers para construir `Request`s. Ya no
+ * hay estado global que clavar: los controladores reciben la petición por
+ * parámetro y devuelven un `Response`, así que un test simplemente construye
+ * el objeto y lee el resultado.
+ */
 abstract class TestCase extends BaseTestCase
 {
     /** @var TokenProviderInterface&MockObject */
-    protected TokenProviderInterface $tokenProvider;
+    protected \App\Helpers\TokenProviderInterface $tokenProvider;
 
     protected function setUp(): void
     {
@@ -23,6 +28,7 @@ abstract class TestCase extends BaseTestCase
         // 0. Aislar superglobals entre tests.
         $_GET = [];
         $_POST = [];
+        $_FILES = [];
         unset(
             $_SERVER['HTTP_AUTHORIZATION'],
             $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
@@ -44,146 +50,94 @@ abstract class TestCase extends BaseTestCase
             define('APP_ENV', 'testing');
         }
 
-        // 2. Middleware de auth: provider por defecto que rechaza todo.
-        $this->tokenProvider = $this->createMock(TokenProviderInterface::class);
+        $this->tokenProvider = $this->createMock(
+            \App\Helpers\TokenProviderInterface::class
+        );
         $this->tokenProvider->method('validate')->willReturn(null);
-        AutenticadorMiddleware::configure($this->tokenProvider);
-
-        // 3. Limpiar body de test por si quedó sucio de un test anterior.
-        Request::setTestBody(null);
-    }
-
-    protected function tearDown(): void
-    {
-        Request::setTestBody(null);
-
-        parent::tearDown();
     }
 
     /**
-     * Simula una sesión autenticada para los tests de controladores
+     * Usuario falso autenticado, como lo devuelve JwtProvider::validate().
+     *
+     * @return object{sub:int, rol_id:int, email:string}
      */
-    protected function actingAs(int $id = 5, int $rolId = 1): object
+    protected function usuarioFalso(int $id = 5, int $rolId = 1): object
     {
-        $usuarioFalso = (object) [
+        return (object) [
             'sub' => $id,
             'rol_id' => $rolId,
             'email' => 'test@test.com',
         ];
-
-        $tokenProvider = $this->createMock(TokenProviderInterface::class);
-        $tokenProvider->method('validate')->willReturn($usuarioFalso);
-
-        AutenticadorMiddleware::configure($tokenProvider);
-        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token_falso_para_test';
-
-        return $usuarioFalso;
     }
 
     /**
-     * Crear un request mock para los controladores
+     * Un Authenticator cuyo provider devuelve el usuario dado.
+     *
+     * Si no se pasa usuario, el provider rechaza todo (no autenticado).
      */
-    protected function autenticarComo(int $usuarioId = 1, int $rolId = 1): void
-    {
-        $this->tokenProvider
+    protected function authenticator(
+        ?object $usuario = null
+    ): \App\Security\Authenticator {
+        $provider = $this->createMock(
+            \App\Helpers\TokenProviderInterface::class
+        );
+
+        $provider
             ->method('validate')
-            ->willReturn((object) [
-                'sub' => $usuarioId,
-                'rol_id' => $rolId,
-                'email' => 'test@test.com',
-            ]);
+            ->willReturn($usuario);
+
+        return new \App\Security\Authenticator($provider);
     }
 
     /**
-     * Configura el provider para que devuelva un admin.
-     * AutenticadorMiddleware::soloAdmin() exige rol_id === 2.
+     * Construye un Request a partir de un array plano.
+     *
+     * Acepta: method, path, query, body (array → JSON), post, files,
+     * headers y rawBody (string crudo, para probar JSON malformado).
+     *
+     * Por defecto agrega un header Authorization para que el Authenticator
+     * inyectado en el test acepte la petición. Usa `'auth' => false` para
+     * simular un visitante sin sesión.
      */
-    protected function autenticarComoAdmin(int $usuarioId = 1): void
+    protected function makeRequest(array $config = []): Request
     {
-        $this->autenticarComo($usuarioId, 2);
-    }
+        $body = null;
 
-    /**
-     * Inyecta un body JSON para que Request::json() lo lea durante $fn.
-     */
-    protected function withJsonBody(string $json, callable $fn): void
-    {
-        Request::setTestBody($json);
-        try {
-            $fn();
-        } finally {
-            Request::setTestBody(null);
-        }
-    }
-
-    /**
-     * Captura la respuesta de un controlador durante $fn.
-     * 
-     */
-    protected function captureResponse(callable $fn): string
-    {
-        ob_start();
-
-        try {
-            $fn();
-        } catch (\Error $e) {
-            if ($e->getMessage() !== '__RESPONSE_SENT__') {
-                ob_end_clean();
-                throw $e;
-            }
-        } catch (\Throwable $e) {
-            try {
-                GlobalExceptionHandler::handle($e);
-            } catch (\Error $responseError) {
-                if ($responseError->getMessage() !== '__RESPONSE_SENT__') {
-                    ob_end_clean();
-                    throw $responseError;
-                }
-            }
+        if (array_key_exists('rawBody', $config)) {
+            $body = $config['rawBody'];
+        } elseif (isset($config['body'])) {
+            $body = is_string($config['body'])
+                ? $config['body']
+                : json_encode($config['body']);
         }
 
-        return ob_get_clean() ?: '';
-    }
+        $headers = $config['headers'] ?? [];
 
-    /**
-     * Igual que captureResponse pero devuelve el JSON decodificado.
-     */
-    protected function captureJson(callable $fn): array
-    {
-        $body = $this->captureResponse($fn);
-        $decoded = json_decode($body, true);
-        return is_array($decoded) ? $decoded : [];
-    }
+        if (($config['auth'] ?? true) !== false) {
+            $headers['Authorization'] = 'Bearer token_falso_para_test';
+        }
 
-    protected function captureJsonWithBody(
-        string $json,
-        callable $fn
-    ): array {
-        return $this->captureJson(
-            fn() => $this->withJsonBody($json, $fn)
+        return new Request(
+            method: $config['method'] ?? 'GET',
+            path: $config['path'] ?? '/',
+            query: $config['query'] ?? [],
+            body: $body,
+            post: $config['post'] ?? [],
+            files: $config['files'] ?? [],
+            headers: $headers,
         );
     }
 
     /**
-     * Crea una "request" configurando el tokenProvider.
-     * Si se pasa usuario_id, autentica como ese usuario.
-     * Si se pasa un array vacío, no autentica.
-     *
-     * @param array $config Configuración con claves como 'usuario_id'
-     * @return null (Solo configura el estado del tokenProvider)
+     * Un Request con un cuerpo JSON y (por defecto) un token de sesión.
      */
-    protected function createRequest(array $config = []): ?object
-    {
-        if (!empty($config) && isset($config['usuario_id'])) {
-            $usuarioId = $config['usuario_id'];
-            $rolId = $config['rol_id'] ?? 1;
-            $this->autenticarComo($usuarioId, $rolId);
-        } else {
-            // Resetear a no autenticado (rechaza todo)
-            $this->tokenProvider->method('validate')->willReturn(null);
-        }
-
-        // Retornar null ya que los controladores no realmente usan el parámetro $request
-        return null;
+    protected function makeJsonRequest(
+        array $body,
+        array $extra = []
+    ): Request {
+        return $this->makeRequest(array_merge([
+            'method' => 'POST',
+            'body' => $body,
+        ], $extra));
     }
 }

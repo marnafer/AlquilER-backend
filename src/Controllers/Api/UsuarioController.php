@@ -4,62 +4,39 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\UsuarioService;
 
 class UsuarioController
 {
-    private readonly UsuarioService $service;
-
-    public function __construct(UsuarioService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly UsuarioService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     /**
      * GET /api/usuarios
      */
-    public function index(): void
+    public function index(Request $request): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        Response::success(
-            $this->service->listar($this->filtrosPapelera())
+        return Response::success(
+            $this->service->listar($this->filtrosPapelera($request))
         );
-    }
-
-    private function filtrosPapelera(): array
-    {
-        $filtros = [];
-
-        if (isset($_GET['solo_eliminados'])) {
-            $filtros['solo_eliminados'] = filter_var(
-                $_GET['solo_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        if (isset($_GET['incluir_eliminados'])) {
-            $filtros['incluir_eliminados'] = filter_var(
-                $_GET['incluir_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        return $filtros;
     }
 
     /**
      * GET /api/usuarios/{id}
      */
-    
-    public function show($id): void
+    public function show(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
-        Response::success(
+        return Response::success(
             $this->service->obtenerAutorizado(
                 $id,
                 (int) $user->sub,
@@ -68,15 +45,14 @@ class UsuarioController
         );
     }
 
-
     /**
      * GET /api/usuarios/me
      */
-    public function profile(): void
+    public function profile(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
-        Response::success(
+        return Response::success(
             $this->service->obtenerConRol((int) $user->sub)
         );
     }
@@ -84,11 +60,11 @@ class UsuarioController
     /**
      * GET /api/usuarios/{id}/perfil-publico
      */
-    public function publicProfile($id): void
+    public function publicProfile(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
-        Response::success(
+        return Response::success(
             $this->service->obtenerPerfilPublico(
                 $id,
                 (int) $user->sub,
@@ -100,16 +76,16 @@ class UsuarioController
     /**
      * POST /api/admin/usuarios
      */
-    public function storeAdmin(): void
+    public function storeAdmin(Request $request): Response
     {
-        $admin = AutenticadorMiddleware::soloAdmin();
+        $admin = $this->auth->soloAdmin($request);
 
         $usuario = $this->service->crearDesdeAdmin(
-            Request::json(),
+            $request->json(),
             (int) $admin->sub
         );
 
-        Response::created(
+        return Response::created(
             $usuario,
             'Usuario creado correctamente'
         );
@@ -118,26 +94,26 @@ class UsuarioController
     /**
      * PUT /api/usuarios/{id}
      */
-    public function update($id): void
+    public function update(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->actualizar(
             $id,
-            Request::json(),
+            $request->json(),
             (int) $user->sub,
             (int) $user->rol_id
         );
 
-        Response::success([], 200, 'Usuario actualizado correctamente');
+        return Response::success([], 200, 'Usuario actualizado correctamente');
     }
 
     /**
      * DELETE /api/usuarios/{id}
      */
-    public function delete($id): void
+    public function delete(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->eliminar(
             $id,
@@ -145,22 +121,43 @@ class UsuarioController
             (int) $user->rol_id
         );
 
-        Response::success([], 200, 'Usuario eliminado');
+        return Response::success([], 200, 'Usuario eliminado');
     }
 
     /**
      * POST /api/usuarios/{id}/restaurar
      */
-    public function restore($id): void
+    public function restore(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
         $this->service->restaurar($id);
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Usuario restaurado correctamente'
         );
+    }
+
+    private function filtrosPapelera(Request $request): array
+    {
+        $filtros = [];
+
+        if (($valor = $request->query('solo_eliminados')) !== null) {
+            $filtros['solo_eliminados'] = filter_var(
+                $valor,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        if (($valor = $request->query('incluir_eliminados')) !== null) {
+            $filtros['incluir_eliminados'] = filter_var(
+                $valor,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        return $filtros;
     }
 }

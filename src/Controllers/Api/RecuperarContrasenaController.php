@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
+use App\Http\Request;
+use App\Http\Response;
 use App\Services\RecuperarContrasenaService;
 
 class RecuperarContrasenaController
@@ -18,13 +18,13 @@ class RecuperarContrasenaController
     /**
      * POST /api/autenticador/recuperar
      */
-    public function solicitar(): void
+    public function solicitar(Request $request): Response
     {
         $this->service->solicitar(
-            Request::json()
+            $request->json()
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Si el correo existe, recibirás un enlace para restablecer tu contraseña'
@@ -34,13 +34,13 @@ class RecuperarContrasenaController
     /**
      * POST /api/autenticador/restablecer
      */
-    public function restablecer(): void
+    public function restablecer(Request $request): Response
     {
         $this->service->restablecer(
-            Request::json()
+            $request->json()
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Contraseña restablecida correctamente'

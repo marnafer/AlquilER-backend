@@ -1,107 +1,113 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
-use App\Middlewares\PapeleraMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\LocalidadService;
 
 class LocalidadController
 {
-    private readonly LocalidadService $service;
-
-    public function __construct(LocalidadService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly LocalidadService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
-    public function index()
+    // GET /api/localidades
+    public function index(Request $request): Response
     {
-        PapeleraMiddleware::verificarSiPidePapelera();
+        $this->auth->verificarSiPidePapelera($request);
 
-        Response::success(
-            $this->service->listar($this->filtrosPapelera())
+        return Response::success(
+            $this->service->listar($this->filtrosPapelera($request))
         );
     }
 
-    private function filtrosPapelera(): array
+    // GET /api/localidades/{id}
+    public function show(Request $request, $id): Response
     {
-        $filtros = [];
-
-        if (isset($_GET['solo_eliminados'])) {
-            $filtros['solo_eliminados'] = filter_var(
-                $_GET['solo_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        if (isset($_GET['incluir_eliminados'])) {
-            $filtros['incluir_eliminados'] = filter_var(
-                $_GET['incluir_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        return $filtros;
-    }
-
-    public function show($id)
-    {
-        Response::success(
+        return Response::success(
             $this->service->obtener($id)
         );
     }
 
-    public function store()
+    // POST /api/localidades
+    public function store(Request $request): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        $localidad = $this->service->crear(Request::json());
+        $localidad = $this->service->crear($request->json());
 
-        Response::created(
+        return Response::created(
             $localidad,
             'Localidad creada exitosamente'
         );
     }
 
-    public function update($id)
+    // PUT /api/localidades/{id}
+    public function update(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        $this->service->actualizar($id, Request::json());
+        $this->service->actualizar($id, $request->json());
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Localidad actualizada exitosamente'
         );
     }
 
-    public function delete($id)
+    // DELETE /api/localidades/{id}
+    public function delete(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
         $this->service->eliminar($id);
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Localidad eliminada exitosamente'
         );
     }
 
-    public function restore($id)
+    // POST /api/localidades/{id}/restaurar
+    public function restore(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
         $this->service->restaurar($id);
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Localidad restaurada exitosamente'
         );
+    }
+
+    private function filtrosPapelera(Request $request): array
+    {
+        $filtros = [];
+
+        if (($valor = $request->query('solo_eliminados')) !== null) {
+            $filtros['solo_eliminados'] = filter_var(
+                $valor,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        if (($valor = $request->query('incluir_eliminados')) !== null) {
+            $filtros['incluir_eliminados'] = filter_var(
+                $valor,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        return $filtros;
     }
 }

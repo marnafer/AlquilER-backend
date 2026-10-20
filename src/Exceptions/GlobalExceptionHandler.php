@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Exceptions;
 
 use App\Helpers\ErrorLog;
-use App\Helpers\Response;
+use App\Http\Response;
 use Throwable;
 
 class GlobalExceptionHandler
 {
-    public static function handle(Throwable $exception): void
+    public static function handle(Throwable $exception): Response
     {
         $esExcepcionControlada =
             $exception instanceof BadRequestException
@@ -45,15 +45,15 @@ class GlobalExceptionHandler
             ErrorLog::registrar($exception);
         }
 
-        $response = [
+        $payload = [
             'success' => false,
             'error' => $mensaje,
         ];
 
         if ($exception instanceof ValidationException) {
-            $response['validation_errors'] = $exception->errors();
+            $payload['validation_errors'] = $exception->errors();
         }
 
-        Response::json($response, $status);
+        return Response::json($payload, $status);
     }
 }

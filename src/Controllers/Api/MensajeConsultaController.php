@@ -1,44 +1,43 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
-use App\Helpers\Request;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\MensajeConsultaService;
-use App\Middlewares\AutenticadorMiddleware;
 
 class MensajeConsultaController
 {
-    private readonly MensajeConsultaService $service;
-
-    public function __construct(MensajeConsultaService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly MensajeConsultaService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
-    public function index($consultaId): void
+    public function index(Request $request, $consultaId): Response
     {
-        $user = AutenticadorMiddleware::verificar();
-
-        $parametros = $_GET ?? [];
+        $user = $this->auth->verificar($request);
 
         $resultado = $this->service->obtenerHistorial(
             (int) $consultaId,
             (int) $user->sub,
             (int) $user->rol_id,
-            $parametros['antes_de_id'] ?? null,
-            $parametros['despues_de_id'] ?? null,
-            $parametros['limite'] ?? null
+            $request->query('antes_de_id'),
+            $request->query('despues_de_id'),
+            $request->query('limite')
         );
 
-        Response::success($resultado);
+        return Response::success($resultado);
     }
 
-    public function store($consultaId)
+    public function store(Request $request, $consultaId): Response
     {
-        $user = AutenticadorMiddleware::verificar();
-        
-        $data = Request::json();
+        $user = $this->auth->verificar($request);
+
+        $data = $request->json();
         $data['consulta_id'] = (int) $consultaId;
 
         $mensaje = $this->service->crearMensaje(
@@ -47,7 +46,7 @@ class MensajeConsultaController
             (int) $user->rol_id
         );
 
-        Response::created(
+        return Response::created(
             $mensaje,
             'Mensaje enviado correctamente'
         );

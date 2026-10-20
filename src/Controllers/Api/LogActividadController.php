@@ -1,26 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\LogActividadService;
 
 class LogActividadController
 {
     public function __construct(
-        private readonly LogActividadService $service
+        private readonly LogActividadService $service,
+        private readonly Authenticator $auth
     ) {
     }
 
     /**
      * GET /api/logs-actividad
      */
-    public function index()
+    public function index(Request $request): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        Response::success(
+        return Response::success(
             $this->service->listar(),
             200,
             'Lista de logs obtenida correctamente'
@@ -30,11 +34,11 @@ class LogActividadController
     /**
      * GET /api/logs-actividad/{id}
      */
-    public function show($id)
+    public function show(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        Response::success(
+        return Response::success(
             $this->service->obtener($id)
         );
     }

@@ -4,35 +4,29 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
-use App\Helpers\Request;
+use App\Http\Request;
+use App\Http\Response;
 use App\Services\AutenticadorService;
 
 class AutenticadorController
 {
-    private ?AutenticadorService $service = null;
-
-    public function __construct(AutenticadorService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly AutenticadorService $service
+    ) {
     }
 
-    public function login(): void
+    public function login(Request $request): Response
     {
-        $data = Request::json();
-
-        Response::success(
-            $this->service->login($data)
+        return Response::success(
+            $this->service->login($request->json())
         );
     }
 
-    public function register(): void
+    public function register(Request $request): Response
     {
-        $data = Request::json();
+        $this->service->registrar($request->json());
 
-        $this->service->registrar($data);
-
-        Response::created(
+        return Response::created(
             [],
             'Usuario registrado'
         );
@@ -43,26 +37,22 @@ class AutenticadorController
      * POST /api/autenticador/refresh
      * Body: { "refresh_token": "..." }
      */
-    public function refresh(): void
+    public function refresh(Request $request): Response
     {
-        $data = Request::json();
+        $result = $this->service->refresh($request->json());
 
-        $result = $this->service->refresh($data);
-
-        Response::success(
+        return Response::success(
             $result,
             200,
             'Token refrescado correctamente'
         );
     }
 
-    public function logout(): void
+    public function logout(Request $request): Response
     {
-        $data = Request::json();
+        $this->service->logout($request->json());
 
-        $this->service->logout($data);
-
-        Response::success(
+        return Response::success(
             [],
             200,
             'Sesión cerrada correctamente'
