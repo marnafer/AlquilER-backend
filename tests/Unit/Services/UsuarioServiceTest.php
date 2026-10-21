@@ -1143,4 +1143,43 @@ final class UsuarioServiceTest extends TestCase
             99
         );
     }
+
+    public function test_actualizar_contrasena_propia_sin_servicio_de_recuperacion_falla(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $servicio = $this->crearServicio(null, null);
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage("No se pudo procesar el cambio de contrase\u{00F1}a");
+
+        $servicio->actualizar(
+            1,
+            [
+                'contrasena' => 'secreto',
+                'contrasena_actual' => 'actual',
+            ],
+            1,
+            Rol::USUARIO
+        );
+    }
 }
