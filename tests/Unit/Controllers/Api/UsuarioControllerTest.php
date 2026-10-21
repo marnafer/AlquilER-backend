@@ -56,6 +56,21 @@ final class UsuarioControllerTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_index_pasa_el_filtro_incluir_eliminados(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('listar')
+            ->with(['incluir_eliminados' => false])
+            ->willReturn([]);
+
+        $this->controller->index($this->makeRequest([
+            'query' => ['incluir_eliminados' => '0'],
+        ]));
+
+        $this->addToAssertionCount(1);
+    }
+
     public function test_index_rechaza_a_un_no_administrador(): void
     {
         $controller = new UsuarioController(

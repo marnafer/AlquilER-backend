@@ -56,6 +56,22 @@ final class ServicioControllerTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_index_pasa_el_filtro_solo_eliminados(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('listar')
+            ->with(['solo_eliminados' => false])
+            ->willReturn([]);
+
+        $this->controller->index($this->makeRequest([
+            'query' => ['solo_eliminados' => '0'],
+        ]));
+
+        $this->addToAssertionCount(1);
+    }
+
+
     public function test_index_rechaza_a_un_no_administrador_en_papelera(): void
     {
         $controller = new ServicioController(

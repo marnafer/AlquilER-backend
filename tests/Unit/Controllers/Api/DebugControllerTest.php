@@ -5,21 +5,57 @@ declare(strict_types=1);
 namespace Tests\Unit\Controllers\Api;
 
 use App\Controllers\Api\DebugController;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Tests\TestCase;
 
 /**
- * DebugController usa Eloquent de fondo, así que solo se prueban las rutas
- * que no tocan la base de datos ni los modelos.
+ * DebugController usa Eloquent de fondo, as�� que solo se prueban las rutas
+ * que no tocan la base de datos ni los modelos, m�s stats y testDB cuando
+ * la base de datos est� disponible.
  */
 final class DebugControllerTest extends TestCase
 {
     private DebugController $controller;
 
+    private static bool $baseDeDatosLista = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        if (!self::$baseDeDatosLista) {
+            try {
+                $raiz = dirname(__DIR__, 4);
+
+                if (file_exists($raiz . '/.env')) {
+                    $dotenv = \Dotenv\Dotenv::createImmutable($raiz);
+                    $dotenv->safeLoad();
+                }
+
+                if (!file_exists($raiz . '/src/database.php')) {
+                    throw new \RuntimeException('No existe database.php');
+                }
+
+                require $raiz . '/src/database.php';
+
+                Capsule::connection()->getPdo();
+
+                self::$baseDeDatosLista = true;
+            } catch (\Throwable $e) {
+                self::$baseDeDatosLista = false;
+            }
+        }
+
         $this->controller = new DebugController();
+    }
+
+    private function omitirSiSinBaseDeDatos(): void
+    {
+        if (!self::$baseDeDatosLista) {
+            $this->markTestSkipped(
+                'La base de datos no est� disponible'
+            );
+        }
     }
 
     public function test_logs_devuelve_un_arreglo(): void
@@ -62,5 +98,26 @@ final class DebugControllerTest extends TestCase
         $this->assertSame(200, $response->status());
         $this->assertArrayHasKey('phpinfo', $response->payload());
         $this->assertNotEmpty($response->payload()['phpinfo']);
+    }
+
+    public function test_stats_devuelve_un_arreglo(): void
+    {
+        $this->omitirSiSinBaseDeDatos();
+
+        $response = $this->controller->stats($this->makeRequest());
+
+        $this->assertSame(200, $response->status());
+        $this->assertArrayHasKey('total_entidades', $response->payload()['data']);
+        $this->assertArrayHasKey('total_registros', $response->payload()['data']);
+    }
+
+    public function test_test_db_devuelve_ok(): void
+    {
+        $this->omitirSiSinBaseDeDatos();
+
+        $response = $this->controller->testDB($this->makeRequest());
+
+        $this->assertSame(200, $response->status());
+        $this->assertArrayHasKey('test', $response->payload()['data']);
     }
 }

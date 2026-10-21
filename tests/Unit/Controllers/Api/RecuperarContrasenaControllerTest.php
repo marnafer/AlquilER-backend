@@ -77,4 +77,20 @@ final class RecuperarContrasenaControllerTest extends TestCase
             $response->payload()['message']
         );
     }
+
+    public function test_confirmar_cambio_devuelve_200(): void
+    {
+        $datos = ['email' => 'ana@example.com', 'token' => 'abc'];
+
+        $this->service
+            ->expects($this->once())
+            ->method('confirmarCambio')
+            ->with('ana@example.com', 'abc');
+
+        $response = $this->controller->confirmarCambio(
+            $this->makeJsonRequest($datos)
+        );
+
+        $this->assertSame(200, $response->status());
+    }
 }

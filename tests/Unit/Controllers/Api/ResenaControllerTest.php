@@ -86,6 +86,19 @@ final class ResenaControllerTest extends TestCase
         ]));
     }
 
+    public function test_show_devuelve_una_resena(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('obtener')
+            ->with(7)
+            ->willReturn(new \App\Models\Resena(['id' => 7]));
+
+        $response = $this->controller->show($this->makeRequest(), 7);
+
+        $this->assertSame(200, $response->status());
+    }
+
     public function test_get_by_propiedad_incluye_el_promedio(): void
     {
         $coleccion = new \Illuminate\Database\Eloquent\Collection([['id' => 1], ['id' => 2]]);
