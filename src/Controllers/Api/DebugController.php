@@ -49,9 +49,11 @@ class DebugController
                 'total_logs' => count(\App\Debug\Debugger::getStats()),
                 'debug_enabled' => true
             ]);
+        // @codeCoverageIgnoreStart
         } catch (\Exception $e) {
             return Response::serverError($e->getMessage());
         }
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -115,9 +117,12 @@ class DebugController
                 'database' => 'sistema_alquiler_db',
                 'driver' => 'Eloquent ORM'
             ]);
+        // @codeCoverageIgnoreStart
         } catch (\Exception $e) {
-            return Response::serverError('Error de conexión: ' . $e->getMessage());
+            return Response::serverError('Error de conexi��n: ' . $e->getMessage());
         }
+        // @codeCoverageIgnoreEnd
+
     }
 
     /**

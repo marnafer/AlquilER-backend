@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace Tests\Unit\Controllers\Api;
@@ -9,9 +8,9 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use Tests\TestCase;
 
 /**
- * DebugController usa Eloquent de fondo, as�� que solo se prueban las rutas
- * que no tocan la base de datos ni los modelos, m�s stats y testDB cuando
- * la base de datos est� disponible.
+ * DebugController usa Eloquent de fondo, asï¿½ï¿½ que solo se prueban las rutas
+ * que no tocan la base de datos ni los modelos, mï¿½s stats y testDB cuando
+ * la base de datos estï¿½ disponible.
  */
 final class DebugControllerTest extends TestCase
 {
@@ -53,7 +52,7 @@ final class DebugControllerTest extends TestCase
     {
         if (!self::$baseDeDatosLista) {
             $this->markTestSkipped(
-                'La base de datos no est� disponible'
+                'La base de datos no estï¿½ disponible'
             );
         }
     }
@@ -119,5 +118,85 @@ final class DebugControllerTest extends TestCase
 
         $this->assertSame(200, $response->status());
         $this->assertArrayHasKey('test', $response->payload()['data']);
+    }
+
+    public function test_logs_sin_archivo_devuelve_mensaje(): void
+    {
+        $archivo = \App\Debug\Debugger::getLogFile();
+        $existia = file_exists($archivo);
+        $respaldo = $existia ? file_get_contents($archivo) : null;
+
+        if ($existia) {
+            unlink($archivo);
+        }
+
+        try {
+            $response = $this->controller->logs($this->makeRequest());
+
+            $this->assertSame(200, $response->status());
+            $this->assertSame([], $response->payload()['data']);
+            $this->assertSame(
+                'No hay archivo de logs',
+                $response->payload()['message']
+            );
+        } finally {
+            if ($existia) {
+                file_put_contents($archivo, $respaldo);
+            } elseif (file_exists($archivo)) {
+                unlink($archivo);
+            }
+        }
+    }
+
+    public function test_logs_ignora_lineas_json_invalidas(): void
+    {
+        $archivo = \App\Debug\Debugger::getLogFile();
+        $existia = file_exists($archivo);
+        $respaldo = $existia ? file_get_contents($archivo) : null;
+
+        file_put_contents(
+            $archivo,
+            "linea invalida" . PHP_EOL . json_encode(['type' => 'INFO']) . PHP_EOL
+        );
+
+        try {
+            $response = $this->controller->logs($this->makeRequest());
+
+            $this->assertSame(200, $response->status());
+            $this->assertCount(1, $response->payload()['data']);
+        } finally {
+            if ($existia) {
+                file_put_contents($archivo, $respaldo);
+            } else {
+                unlink($archivo);
+            }
+        }
+    }
+
+    public function test_clear_log_sin_archivo_devuelve_mensaje(): void
+    {
+        $archivo = \App\Debug\Debugger::getLogFile();
+        $existia = file_exists($archivo);
+        $respaldo = $existia ? file_get_contents($archivo) : null;
+
+        if ($existia) {
+            unlink($archivo);
+        }
+
+        try {
+            $response = $this->controller->clearLog($this->makeRequest());
+
+            $this->assertSame(200, $response->status());
+            $this->assertSame(
+                'No existe archivo de log para limpiar',
+                $response->payload()['message']
+            );
+        } finally {
+            if ($existia) {
+                file_put_contents($archivo, $respaldo);
+            } elseif (file_exists($archivo)) {
+                unlink($archivo);
+            }
+        }
     }
 }
