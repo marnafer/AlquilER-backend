@@ -64,6 +64,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
     {
         $usuario = new Usuario();
         $usuario->id = 10;
+        $usuario->email = 'usuario@test.com';
 
         $usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
         $usuarioRepository
@@ -96,13 +97,15 @@ final class RecuperarContrasenaServiceTest extends TestCase
         $mailService = $this->createMock(MailService::class);
 
         $mailService
-            ->expects($this->once())
+            ->expects($this->exactly(2))
             ->method('enviar')
-            ->with(
-                'usuario@test.com',
-                'Recuperación de contraseña',
-                $this->callback(
-                    function (string $html) use (&$tokenOriginal): bool {
+            ->willReturnCallback(
+                function (
+                    string $to,
+                    string $subject,
+                    string $html
+                ) use (&$tokenOriginal): bool {
+                    if ($subject === 'Recuperación de contraseña') {
                         if (
                             preg_match(
                                 '/[?&]token=([^&"]+)/',
@@ -114,12 +117,10 @@ final class RecuperarContrasenaServiceTest extends TestCase
                         }
 
                         $tokenOriginal = urldecode($matches[1]);
-
-                        return true;
                     }
-                ),
-                $this->anything(),
-                null
+
+                    return $to === 'usuario@test.com';
+                }
             );
 
         $logActividadService = $this->createMock(LogActividadService::class);
@@ -214,6 +215,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
     {
         $usuario = new Usuario();
         $usuario->id = 10;
+        $usuario->email = 'usuario@test.com';
 
         $registro = new PasswordReset([
             'email' => 'usuario@test.com',
@@ -266,10 +268,21 @@ final class RecuperarContrasenaServiceTest extends TestCase
             ->method('registrar')
             ->with(10, 'Restablecimiento de contraseña');
 
+        $mailService = $this->createMock(MailService::class);
+
+        $mailService->expects($this->once())
+            ->method('enviar')
+            ->with(
+                'usuario@test.com',
+                'Tu contraseña fue restablecida',
+                $this->anything(),
+                $this->anything()
+            );
+
         $servicio = $this->crearServicio(
             $usuarioRepository,
             $passwordResetRepository,
-            $this->createMock(MailService::class),
+            $mailService,
             $logService
         );
 

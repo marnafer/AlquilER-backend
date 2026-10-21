@@ -82,6 +82,24 @@ class RecuperarContrasenaService
                 . "\n\nEl enlace es válido por " . self::MINUTOS_VIGENCIA . ' minutos.'
                 . "\n\nSi no solicitaste este cambio, podés ignorar este correo."
         );
+
+        $this->mailService->enviar(
+            $email,
+            'Solicitud de cambio de contraseña',
+            '<p>Hola,</p>'
+                . '<p>Registramos una solicitud de recuperación de contraseña '
+                . 'para tu cuenta.</p>'
+                . '<p>Si fuiste vos, revisá tu correo y usá el enlace que te '
+                . 'enviamos para restablecerla (válido por '
+                . self::MINUTOS_VIGENCIA . ' minutos).</p>'
+                . '<p>Si <strong>no</strong> solicitaste este cambio, tu '
+                . 'contraseña actual sigue siendo válida: te recomendamos '
+                . 'ignorar este correo y, por seguridad, cambiá tu contraseña.</p>',
+            'Hola,'
+                . "\n\nRegistramos una solicitud de recuperación de contraseña para tu cuenta."
+                . "\n\nSi fuiste vos, revisá tu correo y usá el enlace que te enviamos para restablecerla (válido por " . self::MINUTOS_VIGENCIA . ' minutos).'
+                . "\n\nSi no solicitaste este cambio, tu contraseña actual sigue siendo válida: te recomendamos ignorar este correo y, por seguridad, cambiá tu contraseña."
+        );
     }
 
     /**
@@ -151,6 +169,20 @@ class RecuperarContrasenaService
         $this->logActividadService->registrar(
             $usuario->id,
             'Restablecimiento de contraseña'
+        );
+
+        $this->mailService->enviar(
+            $usuario->email,
+            'Tu contraseña fue restablecida',
+            '<p>Hola,</p>'
+                . '<p>Tu contraseña se <strong>restableció correctamente</strong>.</p>'
+                . '<p>Ya podés iniciar sesión con tu nueva contraseña.</p>'
+                . '<p>Si no realizaste este cambio, contactanos de inmediato '
+                . 'respondiendo a este correo.</p>',
+            'Hola,'
+                . "\n\nTu contraseña se restableció correctamente."
+                . "\n\nYa podés iniciar sesión con tu nueva contraseña."
+                . "\n\nSi no realizaste este cambio, contactanos de inmediato respondiendo a este correo."
         );
     }
 }
