@@ -426,6 +426,7 @@ final class UsuarioServiceTest extends TestCase
         $usuario = new Usuario([
             'nombre' => 'Ana',
             'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
         ]);
         $usuario->id = 1;
 
@@ -459,9 +460,126 @@ final class UsuarioServiceTest extends TestCase
 
         $this->crearServicio()->actualizar(
             1,
+            [
+                'contrasena' => 'secreto',
+                'contrasena_actual' => 'actual',
+            ],
+            1,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_contrasena_sin_actual_falla(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio()->actualizar(
+            1,
             ['contrasena' => 'secreto'],
             1,
             Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_contrasena_actual_incorrecta_falla(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio()->actualizar(
+            1,
+            [
+                'contrasena' => 'secreto',
+                'contrasena_actual' => 'incorrecta',
+            ],
+            1,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_administrador_actualiza_contrasena_sin_actual(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 5;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->once())
+            ->method('update')
+            ->with(
+                $usuario,
+                $this->callback(
+                    static function (array $data): bool {
+                        return isset($data['contrasena'])
+                            && password_verify(
+                                'nueva123',
+                                $data['contrasena']
+                            );
+                    }
+                )
+            )
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'Actualización de usuario');
+
+        $this->crearServicio()->actualizar(
+            5,
+            ['contrasena' => 'nueva123'],
+            99,
+            Rol::ADMIN
         );
     }
 

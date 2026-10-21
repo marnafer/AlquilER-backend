@@ -225,12 +225,47 @@ class UsuarioService
             'telefono',
             'domicilio',
             'contrasena',
+            'contrasena_actual',
         ];
 
         $datosRecibidos = array_intersect_key(
             $rawData,
             array_flip($camposPermitidos)
         );
+
+        $contrasenaActual = $datosRecibidos['contrasena_actual'] ?? null;
+
+        unset($datosRecibidos['contrasena_actual']);
+
+        if (
+            array_key_exists('contrasena', $datosRecibidos)
+            && (int) $usuario->id === $usuarioId
+            && $rolId !== Rol::ADMIN
+        ) {
+            if (
+                $contrasenaActual === null
+                || $contrasenaActual === ''
+            ) {
+                throw new ValidationException([
+                    'contrasena_actual' => [
+                        'Debés ingresar tu contraseña actual',
+                    ],
+                ]);
+            }
+
+            if (
+                !password_verify(
+                    (string) $contrasenaActual,
+                    (string) $usuario->contrasena
+                )
+            ) {
+                throw new ValidationException([
+                    'contrasena_actual' => [
+                        'La contraseña actual no es correcta',
+                    ],
+                ]);
+            }
+        }
 
         if ($datosRecibidos === []) {
             throw new BadRequestException(
