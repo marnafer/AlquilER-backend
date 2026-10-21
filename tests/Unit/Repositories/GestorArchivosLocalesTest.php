@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Unit\Repositories;
 
 use Tests\TestCase;
 use App\Repositories\GestorArchivosLocales;
