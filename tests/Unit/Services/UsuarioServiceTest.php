@@ -18,6 +18,8 @@ use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Services\MailService;
+use App\Services\RecuperarContrasenaService;
 use App\Services\UsuarioService;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
@@ -76,8 +78,10 @@ final class UsuarioServiceTest extends TestCase
         $this->policy = new UsuarioPolicy();
     }
 
-    private function crearServicio(): UsuarioService
-    {
+    private function crearServicio(
+        ?MailService $mailService = null,
+        ?RecuperarContrasenaService $recuperarContrasenaService = null
+    ): UsuarioService {
         return new UsuarioService(
             $this->repository,
             $this->logService,
@@ -85,7 +89,9 @@ final class UsuarioServiceTest extends TestCase
             $this->consultaRepository,
             $this->reservaRepository,
             $this->propiedadRepository,
-            $this->resenaRepository
+            $this->resenaRepository,
+            $mailService,
+            $recuperarContrasenaService
         );
     }
 
@@ -421,7 +427,7 @@ final class UsuarioServiceTest extends TestCase
         );
     }
 
-    public function test_actualizar_encripta_la_contrasena(): void
+    public function test_actualizar_contrasena_propia_delega_en_solicitud_de_cambio(): void
     {
         $usuario = new Usuario([
             'nombre' => 'Ana',
@@ -437,28 +443,25 @@ final class UsuarioServiceTest extends TestCase
             ->willReturn($usuario);
 
         $this->repository
-            ->expects($this->once())
-            ->method('update')
-            ->with(
-                $usuario,
-                $this->callback(
-                    static function (array $data): bool {
-                        return isset($data['contrasena'])
-                            && password_verify(
-                                'secreto',
-                                $data['contrasena']
-                            );
-                    }
-                )
-            )
-            ->willReturn(true);
+            ->expects($this->never())
+            ->method('update');
 
         $this->logService
-            ->expects($this->once())
-            ->method('registrar')
-            ->with(1, 'Actualización de usuario');
+            ->expects($this->never())
+            ->method('registrar');
 
-        $this->crearServicio()->actualizar(
+        $recuperar = $this->createMock(RecuperarContrasenaService::class);
+
+        $recuperar
+            ->expects($this->once())
+            ->method('solicitarCambioDesdePerfil')
+            ->with(
+                $usuario,
+                'actual',
+                'secreto'
+            );
+
+        $this->crearServicio(null, $recuperar)->actualizar(
             1,
             [
                 'contrasena' => 'secreto',
@@ -580,6 +583,43 @@ final class UsuarioServiceTest extends TestCase
             ['contrasena' => 'nueva123'],
             99,
             Rol::ADMIN
+        );
+    }
+
+    public function test_actualizar_otros_datos_no_envia_correo(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->once())
+            ->method('update')
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar');
+
+        $mailService = $this->createMock(MailService::class);
+
+        $mailService
+            ->expects($this->never())
+            ->method('enviar');
+
+        $this->crearServicio($mailService)->actualizar(
+            1,
+            ['nombre' => 'Ana Maria'],
+            1,
+            Rol::USUARIO
         );
     }
 

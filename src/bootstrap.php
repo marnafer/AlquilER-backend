@@ -131,6 +131,16 @@ $autenticadorService = new AutenticadorService(
     $logActividadService
 );
 
+$mailService = MailService::desdeEntorno();
+
+$recuperarContrasenaService = new RecuperarContrasenaService(
+    $usuarioRepository,
+    $passwordResetRepository,
+    $mailService,
+    $logActividadService,
+    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
+);
+
 $usuarioService = new UsuarioService(
     $usuarioRepository,
     $logActividadService,
@@ -138,7 +148,9 @@ $usuarioService = new UsuarioService(
     $consultaRepository,
     $reservaRepository,
     $propiedadRepository,
-    $resenaRepository
+    $resenaRepository,
+    $mailService,
+    $recuperarContrasenaService
 );
 
 $categoriaService = new CategoriaService(
@@ -234,16 +246,6 @@ $mensajeConsultaService = new MensajeConsultaService(
     $consultaService,
     $logActividadService,
     $notificacionService
-);
-
-$mailService = MailService::desdeEntorno();
-
-$recuperarContrasenaService = new RecuperarContrasenaService(
-    $usuarioRepository,
-    $passwordResetRepository,
-    $mailService,
-    $logActividadService,
-    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
 );
 
 $contactoService = new ContactoService(

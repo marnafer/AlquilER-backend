@@ -18,6 +18,7 @@ $router->post('/api/autenticador/logout', [$autenticadorController, 'logout']);
 $router->post('/api/autenticador/refresh', [$autenticadorController, 'refresh']);
 $router->post('/api/autenticador/recuperar', [$recuperarContrasenaController, 'solicitar']);
 $router->post('/api/autenticador/restablecer', [$recuperarContrasenaController, 'restablecer']);
+$router->post('/api/autenticador/confirmar-cambio', [$recuperarContrasenaController, 'confirmarCambio']);
 
 /*
 |--------------------------------------------------------------------------

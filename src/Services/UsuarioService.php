@@ -29,7 +29,9 @@ class UsuarioService
         private readonly ConsultaRepositoryInterface $consultaRepository,
         private readonly ReservaRepositoryInterface $reservaRepository,
         private readonly PropiedadRepositoryInterface $propiedadRepository,
-        private readonly ResenaRepositoryInterface $resenaRepository
+        private readonly ResenaRepositoryInterface $resenaRepository,
+        private readonly ?MailService $mailService = null,
+        private readonly ?RecuperarContrasenaService $recuperarContrasenaService = null
     ) {
     }
 
@@ -237,11 +239,14 @@ class UsuarioService
 
         unset($datosRecibidos['contrasena_actual']);
 
-        if (
-            array_key_exists('contrasena', $datosRecibidos)
+        $esCambioPropioDeContrasena = array_key_exists(
+            'contrasena',
+            $datosRecibidos
+        )
             && (int) $usuario->id === $usuarioId
-            && $rolId !== Rol::ADMIN
-        ) {
+            && $rolId !== Rol::ADMIN;
+
+        if ($esCambioPropioDeContrasena) {
             if (
                 $contrasenaActual === null
                 || $contrasenaActual === ''
@@ -265,6 +270,20 @@ class UsuarioService
                     ],
                 ]);
             }
+
+            if ($this->recuperarContrasenaService === null) {
+                throw new BadRequestException(
+                    'No se pudo procesar el cambio de contraseña'
+                );
+            }
+
+            $this->recuperarContrasenaService->solicitarCambioDesdePerfil(
+                $usuario,
+                (string) $contrasenaActual,
+                (string) $datosRecibidos['contrasena']
+            );
+
+            return;
         }
 
         if ($datosRecibidos === []) {

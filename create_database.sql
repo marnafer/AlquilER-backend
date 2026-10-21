@@ -159,7 +159,8 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
   `email` varchar(190) NOT NULL,
   `token` varchar(100) NOT NULL,
   `expiracion` datetime NOT NULL,
-  `usado` tinyint(1) NOT NULL DEFAULT 0
+  `usado` tinyint(1) NOT NULL DEFAULT 0,
+  `contrasena_temporal` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

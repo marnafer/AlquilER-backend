@@ -46,4 +46,23 @@ class RecuperarContrasenaController
             'Contraseña restablecida correctamente'
         );
     }
+
+    /**
+     * POST /api/autenticador/confirmar-cambio
+     */
+    public function confirmarCambio(Request $request): Response
+    {
+        $data = $request->json();
+
+        $this->service->confirmarCambio(
+            (string) ($data['email'] ?? ''),
+            (string) ($data['token'] ?? '')
+        );
+
+        return Response::success(
+            [],
+            200,
+            'Contraseña actualizada correctamente'
+        );
+    }
 }
