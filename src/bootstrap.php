@@ -47,6 +47,7 @@ use App\Repositories\EloquentMensajeConsultaRepository;
 use App\Repositories\EloquentNotificacionRepository;
 use App\Repositories\EloquentPasswordResetRepository;
 use App\Repositories\GestorArchivosLocales;
+use App\Repositories\ProcesadorImagenes;
 
 // SERVICES
 use App\Services\AutenticadorService;
@@ -105,6 +106,8 @@ $refreshTokenRepository = new EloquentRefreshTokenRepository();
 $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
 $notificacionRepository = new EloquentNotificacionRepository();
 $passwordResetRepository = new EloquentPasswordResetRepository();
+$gestorArchivos = new GestorArchivosLocales();
+$procesadorImagenes = new ProcesadorImagenes();
 
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
@@ -114,6 +117,9 @@ $propiedadImagenPolicy = new PropiedadImagenPolicy();
 $resenaPolicy = new ResenaPolicy();
 $reservaPolicy = new ReservaPolicy();
 $usuarioPolicy = new UsuarioPolicy();
+
+//INSTANCIAR VALIDATORS
+$cargaImagenValidator = new CargaImagenValidator();
 
 // INSTANCIAR SERVICES
 $notificacionService = new NotificacionService(
@@ -186,14 +192,12 @@ $propiedadService = new PropiedadService(
     $propiedadServicioRepository
 );
 
-$gestorArchivos = new GestorArchivosLocales();
-$cargaImagenValidator = new CargaImagenValidator();
-
 $propiedadImagenService = new PropiedadImagenService(
     $propiedadImagenRepository,
     $propiedadService,
     $logActividadService,
     $gestorArchivos,
+    $procesadorImagenes,
     $cargaImagenValidator,
     $propiedadImagenPolicy
 );

@@ -12,6 +12,7 @@ use App\Models\PropiedadImagen;
 use App\Policies\PropiedadImagenPolicy;
 use App\Repositories\PropiedadImagenRepositoryInterface;
 use App\Repositories\GestorArchivosInterface;
+use App\Repositories\ProcesadorImagenesInterface;
 use App\Services\LogActividadService;
 use App\Services\PropiedadImagenService;
 use App\Services\PropiedadService;
@@ -67,7 +68,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
-
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
         $repository
             ->expects($this->once())
             ->method('all')
@@ -78,6 +81,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         ))->listar();
@@ -105,7 +109,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
-
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
         $repository
             ->expects($this->once())
             ->method('findById')
@@ -117,6 +123,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         ))->obtener(1);
@@ -138,7 +145,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
-
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
         $repository
             ->expects($this->never())
             ->method('findById');
@@ -148,6 +157,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -171,7 +181,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
-
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
         $repository
             ->expects($this->once())
             ->method('findById')
@@ -183,6 +195,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -207,7 +220,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
-
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
         $propiedadService
             ->expects($this->never())
             ->method('obtener');
@@ -221,11 +236,16 @@ final class PropiedadImagenServiceTest extends TestCase
             ->method('validate')
             ->willReturn('Debe enviar una imagen');
 
+        $procesadorImagenes
+            ->expects($this->never())
+            ->method('procesar');
+
         $service = new PropiedadImagenService(
             $repository,
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -254,7 +274,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
-
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
         $rawData = [
             'propiedad_id' => 1,
             'descripcion' => 'Imagen de prueba',
@@ -314,11 +336,16 @@ final class PropiedadImagenServiceTest extends TestCase
             ->expects($this->never())
             ->method('registrar');
 
+        $procesadorImagenes
+            ->expects($this->never())
+            ->method('procesar');
+
         $service = new PropiedadImagenService(
             $repository,
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -358,6 +385,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $propiedadService
             ->expects($this->once())
@@ -375,6 +405,11 @@ final class PropiedadImagenServiceTest extends TestCase
             ->expects($this->once())
             ->method('validate')
             ->willReturn(null);
+
+        $procesadorImagenes
+            ->expects($this->once())
+            ->method('procesar')
+            ->willReturn(sys_get_temp_dir() . '/imagen_procesada_test.jpg');
 
         $policy
             ->expects($this->once())
@@ -416,6 +451,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         ))->crear(
@@ -449,6 +485,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $propiedadService
             ->expects($this->once())
@@ -495,6 +534,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -549,6 +589,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $repository
             ->expects($this->once())
@@ -581,6 +624,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         ))->establecerPrincipal(
@@ -610,6 +654,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $repository
             ->expects($this->once())
@@ -640,6 +687,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -674,6 +722,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class
+        );
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
         );
 
         $repository
@@ -710,6 +761,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         ))->eliminar(
@@ -739,6 +791,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $repository
             ->expects($this->once())
@@ -773,6 +828,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -796,6 +852,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $cargaImagenValidator
             ->expects($this->never())
@@ -806,6 +865,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -814,12 +874,18 @@ final class PropiedadImagenServiceTest extends TestCase
 
         $service->crear([], [], 1, 2);
     }
-
+ 
     public function test_crear_elimina_la_imagen_subida_si_falla_la_persistencia(): void
     {
         $propiedad = new Propiedad();
         $propiedad->id = 1;
         $propiedad->usuario_id = 7;
+
+        $rutaTemporal = tempnam(sys_get_temp_dir(), 'test_imagen_procesada_');
+
+        $this->assertNotFalse($rutaTemporal);
+
+        file_put_contents($rutaTemporal, 'imagen procesada de prueba');
 
         $repository = $this->createMock(
             PropiedadImagenRepositoryInterface::class
@@ -833,6 +899,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $propiedadService
             ->expects($this->once())
@@ -844,6 +913,11 @@ final class PropiedadImagenServiceTest extends TestCase
             ->expects($this->once())
             ->method('validate')
             ->willReturn(null);
+
+        $procesadorImagenes
+            ->expects($this->once())
+            ->method('procesar')
+            ->willReturn($rutaTemporal);
 
         $propiedadService
             ->expects($this->once())
@@ -860,6 +934,7 @@ final class PropiedadImagenServiceTest extends TestCase
         $gestorArchivos
             ->expects($this->once())
             ->method('upload')
+            ->with($rutaTemporal, $this->anything())
             ->willReturn('imagen.jpg');
 
         $repository
@@ -883,19 +958,30 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Falla de persistencia');
+        try {
+            $service->crear(
+                ['propiedad_id' => 1],
+                ['tmp_name' => '/tmp/php123', 'size' => 1024],
+                7,
+                1
+            );
 
-        $service->crear(
-            ['propiedad_id' => 1],
-            ['tmp_name' => '/tmp/php123', 'size' => 1024],
-            7,
-            1
-        );
+            $this->fail('Se esperaba una excepción por falla de persistencia.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Falla de persistencia', $e->getMessage());
+        } finally {
+            // Limpieza defensiva si el servicio no llegó a eliminarlo.
+            if (is_file($rutaTemporal)) {
+                unlink($rutaTemporal);
+            }
+        }
+
+        $this->assertFileDoesNotExist($rutaTemporal);
     }
 
     public function test_eliminar_imagen_principal_reasigna_nueva_principal(): void
@@ -924,6 +1010,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $repository
             ->expects($this->once())
@@ -961,6 +1050,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -991,6 +1081,9 @@ final class PropiedadImagenServiceTest extends TestCase
             CargaImagenValidatorInterface::class
         );
         $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
 
         $repository
             ->expects($this->once())
@@ -1027,6 +1120,7 @@ final class PropiedadImagenServiceTest extends TestCase
             $propiedadService,
             $logService,
             $gestorArchivos,
+            $procesadorImagenes,
             $cargaImagenValidator,
             $policy
         );
@@ -1035,4 +1129,92 @@ final class PropiedadImagenServiceTest extends TestCase
 
         $this->addToAssertionCount(1);
     }
+
+    public function test_crear_no_guarda_archivos_si_falla_el_procesamiento(): void
+    {
+        $propiedad = new Propiedad();
+        $propiedad->id = 1;
+        $propiedad->usuario_id = 7;
+
+        $repository = $this->createMock(
+            PropiedadImagenRepositoryInterface::class
+        );
+        $propiedadService = $this->createMock(PropiedadService::class);
+        $logService = $this->createMock(LogActividadService::class);
+        $gestorArchivos = $this->createMock(
+            GestorArchivosInterface::class
+        );
+        $cargaImagenValidator = $this->createMock(
+            CargaImagenValidatorInterface::class
+        );
+        $policy = $this->createMock(PropiedadImagenPolicy::class);
+        $procesadorImagenes = $this->createMock(
+            ProcesadorImagenesInterface::class
+        );
+
+        $propiedadService
+            ->expects($this->once())
+            ->method('obtener')
+            ->with(1)
+            ->willReturn($propiedad);
+
+        $cargaImagenValidator
+            ->expects($this->once())
+            ->method('validate')
+            ->willReturn(null);
+
+        $policy
+            ->expects($this->once())
+            ->method('gestionarPropiedad')
+            ->with(7, 1, $propiedad);
+
+        $procesadorImagenes
+            ->expects($this->once())
+            ->method('procesar')
+            ->willThrowException(
+                new \RuntimeException('Falla el procesamiento')
+            );
+
+        $gestorArchivos
+            ->expects($this->never())
+            ->method('upload');
+
+        $gestorArchivos
+            ->expects($this->never())
+            ->method('delete');
+
+        $repository
+            ->expects($this->never())
+            ->method('countByPropiedadId');
+
+        $repository
+            ->expects($this->never())
+            ->method('create');
+
+        $logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $service = new PropiedadImagenService(
+            $repository,
+            $propiedadService,
+            $logService,
+            $gestorArchivos,
+            $procesadorImagenes,
+            $cargaImagenValidator,
+            $policy
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Falla el procesamiento');
+
+        $service->crear(
+            ['propiedad_id' => 1],
+            ['tmp_name' => '/tmp/php123', 'size' => 1024],
+            7,
+            1
+        );
+    }
+
+
 }
