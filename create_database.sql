@@ -455,6 +455,9 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `domicilio` varchar(100) NOT NULL,
   `contrasena` varchar(255) NOT NULL,
   `rol_id` int(11) UNSIGNED NOT NULL,
+  `email_verified_at` timestamp NULL DEFAULT NULL,
+  `email_verification_token` varchar(64) NULL DEFAULT NULL,
+  `email_verification_expires_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

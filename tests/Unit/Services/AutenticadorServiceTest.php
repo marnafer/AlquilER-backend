@@ -32,6 +32,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $usuario->id = 7;
         $usuario->rol_id = 1;
+        $usuario->email_verified_at = '2026-01-01 00:00:00';
 
         $usuarioRepository = $this->createMock(
             UsuarioRepositoryInterface::class
@@ -116,6 +117,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $usuario->id = 2;
         $usuario->rol_id = 2;
+        $usuario->email_verified_at = '2026-01-01 00:00:00';
 
         $usuarioRepository = $this->createMock(
             UsuarioRepositoryInterface::class
@@ -318,6 +320,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $usuario->id = 7;
         $usuario->rol_id = 1;
+        $usuario->email_verified_at = '2026-01-01 00:00:00';
 
         $usuarioRepository = $this->createMock(
             UsuarioRepositoryInterface::class
@@ -431,6 +434,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $usuario->id = 7;
         $usuario->rol_id = 1;
+        $usuario->email_verified_at = '2026-01-01 00:00:00';
 
         $usuarioRepository = $this->createMock(
             UsuarioRepositoryInterface::class

@@ -58,4 +58,16 @@ class AutenticadorController
             'Sesión cerrada correctamente'
         );
     }
+
+    public function verificar(Request $request): Response
+    {
+        $this->service->verificarEmail($request->queryParams());
+
+        return Response::success(
+            [],
+            200,
+            'Correo verificado correctamente'
+        );
+    }
 }
+

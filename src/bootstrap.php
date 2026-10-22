@@ -134,7 +134,9 @@ $autenticadorService = new AutenticadorService(
     $usuarioRepository,
     $refreshTokenRepository,
     $tokenProvider,
-    $logActividadService
+    $logActividadService,
+    MailService::desdeEntorno(),
+    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
 );
 
 $mailService = MailService::desdeEntorno();

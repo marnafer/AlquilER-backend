@@ -29,6 +29,7 @@ final class BootstrapTest extends TestCase
             $total += count($methodRoutes);
         }
 
-        $this->assertSame(112, $total);
+        $this->assertSame(113, $total);
     }
 }
+
