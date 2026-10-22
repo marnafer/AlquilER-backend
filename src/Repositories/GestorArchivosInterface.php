@@ -6,7 +6,7 @@ namespace App\Repositories;
 
 interface GestorArchivosInterface
 {
-    public function upload(array $file, string $directory): string;
+    public function upload(string $rutaTemporal, string $directory): string;
 
     public function delete(string $path): void;
 }

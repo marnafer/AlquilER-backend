@@ -8,62 +8,70 @@ use App\Exceptions\BadRequestException;
 
 final class GestorArchivosLocales implements GestorArchivosInterface
 {
-    public function upload(array $file, string $directory): string
+    public function upload(string $rutaTemporal, string $directory): string
     {
         if (
-            !is_dir($directory)
-            && !@mkdir($directory, 0755, true)
-            && !is_dir($directory)
+            $rutaTemporal === ''
+            || !is_file($rutaTemporal)
+            || !is_readable($rutaTemporal)
         ) {
             throw new BadRequestException(
-                'No se pudo crear el directorio de imágenes'
+                'No se puede leer la imagen procesada'
             );
         }
 
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if (!is_dir($directory)) {
+            if (!@mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new BadRequestException(
+                    'No se pudo crear el directorio de imágenes'
+                );
+            }
+        }
 
-        if ($finfo === false) {
-            // @codeCoverageIgnoreStart
+        if (!is_writable($directory)) {
             throw new BadRequestException(
-                'No se pudo determinar el formato de la imagen'
+                'No se puede escribir en el directorio de imágenes'
             );
-            // @codeCoverageIgnoreEnd
         }
 
-        $mime = finfo_file($finfo, $file['tmp_name']);
+        // El procesador debe entregar un JPEG válido.
+        $informacion = @getimagesize($rutaTemporal);
 
-        finfo_close($finfo);
-
-        $extensiones = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-        ];
-
-        if ($mime === false || !isset($extensiones[$mime])) {
+        if (
+            $informacion === false
+            || ($informacion['mime'] ?? null) !== 'image/jpeg'
+        ) {
             throw new BadRequestException(
-                'Formato de imagen no permitido'
+                'El archivo procesado no es un JPEG válido'
             );
         }
 
-        $extension = $extensiones[$mime];
+        $nombreArchivo = bin2hex(random_bytes(16)) . '.jpg';
+        $destino = rtrim($directory, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR
+            . $nombreArchivo;
 
-        $nombreArchivo = time()
-            . '_'
-            . bin2hex(random_bytes(6))
-            . '.'
-            . $extension;
-
-        $destino = $directory . '/' . $nombreArchivo;
-
-        if (!move_uploaded_file($file['tmp_name'], $destino)) {
+        if (!@copy($rutaTemporal, $destino)) {
             throw new BadRequestException(
-                'Error al guardar la imagen'
+                'Error al guardar la imagen procesada'
             );
         }
 
-        // @codeCoverageIgnoreStart
+        clearstatcache(true, $destino);
+
+        if (
+            !is_file($destino)
+            || filesize($destino) === false
+            || filesize($destino) <= 0
+        ) {
+            @unlink($destino);
+
+            throw new BadRequestException(
+                'No se pudo verificar la imagen guardada'
+            );
+        }
+
         return $nombreArchivo;
-        // @codeCoverageIgnoreEnd
     }
 
     public function delete(string $path): void
@@ -75,11 +83,9 @@ final class GestorArchivosLocales implements GestorArchivosInterface
         }
 
         if (!unlink($rutaFisica)) {
-            // @codeCoverageIgnoreStart
             throw new BadRequestException(
                 'No se pudo eliminar la imagen'
             );
-            // @codeCoverageIgnoreEnd
         }
     }
 }
