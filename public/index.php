@@ -101,7 +101,11 @@ require_once SRC_PATH . 'Routes/api.php';
 // Rutas de depuración: solo se montan (y por tanto responden)
 // en entorno de desarrollo.
 if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
-    require_once SRC_PATH . 'Routes/debug_router.php';
+    $debugHandled = require_once SRC_PATH . 'Routes/debug_router.php';
+
+    if ($debugHandled) {
+        exit;
+    }
 }
 
 RateLimitMiddleware::verificar();

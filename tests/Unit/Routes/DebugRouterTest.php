@@ -118,4 +118,102 @@ final class DebugRouterTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertSame('', $stderr);
     }
+
+    public function test_debug_router_directo_404_en_produccion(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'production';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/debug/stats';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertTrue($handled);
+    }
+
+    public function test_debug_router_directo_stats_en_desarrollo(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'development';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/debug/stats';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertTrue($handled);
+    }
+
+    public function test_debug_router_directo_logs_en_desarrollo(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'development';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/debug/logs';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertTrue($handled);
+    }
+
+    public function test_debug_router_directo_clear_log_en_desarrollo(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'development';
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/api/debug/clear-log';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertTrue($handled);
+    }
+
+    public function test_debug_router_directo_test_db_en_desarrollo(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'development';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/debug/test-db';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertTrue($handled);
+    }
+
+    public function test_debug_router_directo_phpinfo_en_desarrollo(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'development';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/debug/phpinfo';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertTrue($handled);
+    }
+
+    public function test_debug_router_directo_sin_ruta_coincidente(): void
+    {
+        if (!defined('SRC_PATH')) {
+            define('SRC_PATH', dirname(__DIR__, 3) . '/src/');
+        }
+        $_ENV['APP_ENV'] = 'development';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/api/debug/inexistente';
+
+        $handled = require SRC_PATH . 'Routes/debug_router.php';
+
+        $this->assertFalse($handled);
+    }
 }
