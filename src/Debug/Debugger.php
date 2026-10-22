@@ -62,10 +62,12 @@ class Debugger {
     /**
      * Debug de una variable y detiene ejecución
      */
+    // @codeCoverageIgnoreStart
     public static function dd($var, $label = null) {
         self::dump($var, $label);
         die();
     }
+    // @codeCoverageIgnoreEnd
     
     /**
      * Medir tiempo de ejecución
@@ -93,6 +95,7 @@ class Debugger {
     /**
      * Debug de petición HTTP
      */
+    // @codeCoverageIgnoreStart
     public static function request() {
         if (!self::$enabled) return;
         
@@ -105,6 +108,7 @@ class Debugger {
             'input' => file_get_contents('php://input')
         ]);
     }
+    // @codeCoverageIgnoreEnd
     
     /**
      * Debug de API response

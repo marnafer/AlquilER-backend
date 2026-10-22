@@ -20,7 +20,7 @@ class DebugController
     /**
      * GET /api/debug/stats
      */
-    public function stats(Request $request): Response
+    public function stats(?Request $request = null): Response
     {
         try {
             $stats = [
@@ -50,7 +50,7 @@ class DebugController
                 'debug_enabled' => true
             ]);
         // @codeCoverageIgnoreStart
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return Response::serverError($e->getMessage());
         }
         // @codeCoverageIgnoreEnd
@@ -59,7 +59,7 @@ class DebugController
     /**
      * GET /api/debug/logs
      */
-    public function logs(Request $request): Response
+    public function logs(?Request $request = null): Response
     {
         $logFile = \App\Debug\Debugger::getLogFile();
 
@@ -90,7 +90,7 @@ class DebugController
     /**
      * POST /api/debug/clear-log
      */
-    public function clearLog(Request $request): Response
+    public function clearLog(?Request $request = null): Response
     {
         $logFile = \App\Debug\Debugger::getLogFile();
 
@@ -107,7 +107,7 @@ class DebugController
     /**
      * GET /api/debug/test-db
      */
-    public function testDB(Request $request): Response
+    public function testDB(?Request $request = null): Response
     {
         try {
             $test = \App\Models\Categoria::first();
@@ -118,7 +118,7 @@ class DebugController
                 'driver' => 'Eloquent ORM'
             ]);
         // @codeCoverageIgnoreStart
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return Response::serverError('Error de conexi��n: ' . $e->getMessage());
         }
         // @codeCoverageIgnoreEnd
@@ -128,7 +128,7 @@ class DebugController
     /**
      * GET /api/debug/phpinfo
      */
-    public function phpinfo(Request $request): Response
+    public function phpinfo(?Request $request = null): Response
     {
         ob_start();
         phpinfo();
@@ -137,3 +137,6 @@ class DebugController
         return new Response(200, ['phpinfo' => $info]);
     }
 }
+
+
+

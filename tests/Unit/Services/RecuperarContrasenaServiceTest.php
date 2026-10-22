@@ -700,4 +700,142 @@ final class RecuperarContrasenaServiceTest extends TestCase
 
         $servicio->confirmarCambio('usuario@test.com', 'token-invalido');
     }
+
+    public function test_solicitar_cambio_desde_perfil_falla_si_la_nueva_es_invalida(): void
+    {
+        $usuario = new Usuario();
+        $usuario->id = 10;
+        $usuario->email = 'usuario@test.com';
+        $usuario->contrasena = password_hash('actual123', PASSWORD_DEFAULT);
+
+        $usuarioRepository = $this->createMock(UsuarioRepositoryInterface::class);
+
+        $servicio = $this->crearServicio(
+            $usuarioRepository,
+            $this->createMock(PasswordResetRepositoryInterface::class),
+            $this->createMock(MailService::class),
+            $this->createMock(LogActividadService::class)
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $servicio->solicitarCambioDesdePerfil($usuario, 'actual123', 'abc');
+    }
+
+    public function test_confirmar_cambio_falla_si_el_token_expiro(): void
+    {
+        $registro = new PasswordReset([
+            'email' => 'usuario@test.com',
+            'token' => 'token-valido',
+            'expiracion' => date('Y-m-d H:i:s', time() - 3600),
+            'usado' => 0,
+            'contrasena_temporal' => password_hash('nueva123', PASSWORD_DEFAULT),
+        ]);
+        $registro->id = 1;
+
+        $passwordResetRepository = $this->createMock(
+            PasswordResetRepositoryInterface::class
+        );
+
+        $passwordResetRepository->expects($this->once())
+            ->method('findByTokenAndEmail')
+            ->willReturn($registro);
+
+        $passwordResetRepository->expects($this->never())
+            ->method('marcarUsado');
+
+        $servicio = $this->crearServicio(
+            $this->createMock(UsuarioRepositoryInterface::class),
+            $passwordResetRepository,
+            $this->createMock(MailService::class),
+            $this->createMock(LogActividadService::class)
+        );
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage('El enlace de confirmación expiró');
+
+        $servicio->confirmarCambio('usuario@test.com', 'token-valido');
+    }
+
+    public function test_confirmar_cambio_falla_si_falta_la_contrasena_temporal(): void
+    {
+        $registro = new PasswordReset([
+            'email' => 'usuario@test.com',
+            'token' => 'token-valido',
+            'expiracion' => date('Y-m-d H:i:s', time() + 3600),
+            'usado' => 0,
+            'contrasena_temporal' => null,
+        ]);
+        $registro->id = 1;
+
+        $passwordResetRepository = $this->createMock(
+            PasswordResetRepositoryInterface::class
+        );
+
+        $passwordResetRepository->expects($this->once())
+            ->method('findByTokenAndEmail')
+            ->willReturn($registro);
+
+        $passwordResetRepository->expects($this->never())
+            ->method('marcarUsado');
+
+        $servicio = $this->crearServicio(
+            $this->createMock(UsuarioRepositoryInterface::class),
+            $passwordResetRepository,
+            $this->createMock(MailService::class),
+            $this->createMock(LogActividadService::class)
+        );
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage('El enlace de confirmación es inválido');
+
+        $servicio->confirmarCambio('usuario@test.com', 'token-valido');
+    }
+
+    public function test_confirmar_cambio_falla_si_el_usuario_no_existe(): void
+    {
+        $registro = new PasswordReset([
+            'email' => 'usuario@test.com',
+            'token' => 'token-valido',
+            'expiracion' => date('Y-m-d H:i:s', time() + 3600),
+            'usado' => 0,
+            'contrasena_temporal' => password_hash('nueva123', PASSWORD_DEFAULT),
+        ]);
+        $registro->id = 1;
+
+        $usuarioRepository = $this->createMock(
+            UsuarioRepositoryInterface::class
+        );
+
+        $usuarioRepository->expects($this->once())
+            ->method('findByEmail')
+            ->with('usuario@test.com')
+            ->willReturn(null);
+
+        $usuarioRepository->expects($this->never())
+            ->method('update');
+
+        $passwordResetRepository = $this->createMock(
+            PasswordResetRepositoryInterface::class
+        );
+
+        $passwordResetRepository->expects($this->once())
+            ->method('findByTokenAndEmail')
+            ->willReturn($registro);
+
+        $passwordResetRepository->expects($this->never())
+            ->method('marcarUsado');
+
+        $servicio = $this->crearServicio(
+            $usuarioRepository,
+            $passwordResetRepository,
+            $this->createMock(MailService::class),
+            $this->createMock(LogActividadService::class)
+        );
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage('El enlace de confirmación es inválido');
+
+        $servicio->confirmarCambio('usuario@test.com', 'token-valido');
+    }
 }

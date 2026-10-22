@@ -309,4 +309,28 @@ final class DebuggerTest extends TestCase
 
         $this->assertFileDoesNotExist($this->archivo);
     }
+
+    public function test_sql_registra_la_consulta_y_los_parametros(): void
+    {
+        Debugger::sql('SELECT * FROM usuarios WHERE id = ?', [1]);
+
+        $lineas = $this->lineasDelLog();
+
+        $this->assertCount(1, $lineas);
+        $this->assertSame('SQL Query', $lineas[0]['message']);
+        $this->assertSame(
+            'SELECT * FROM usuarios WHERE id = ?',
+            $lineas[0]['data']['query']
+        );
+        $this->assertSame([1], $lineas[0]['data']['params']);
+    }
+
+    public function test_sql_no_escribe_si_esta_deshabilitado(): void
+    {
+        Debugger::setEnabled(false);
+
+        Debugger::sql('SELECT 1');
+
+        $this->assertFileDoesNotExist($this->archivo);
+    }
 }
