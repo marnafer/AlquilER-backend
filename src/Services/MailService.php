@@ -262,7 +262,6 @@ class MailService
 
         // STARTTLS opcional
         if (!$esSsl && $this->encryption === 'tls') {
-            $leer();
             $respuesta = $enviar('STARTTLS');
 
             if (str_starts_with($respuesta, '220')) {
@@ -279,7 +278,6 @@ class MailService
                     );
                 }
 
-                $leer();
                 $respuesta = $enviar('EHLO alquiler.local');
                 // @codeCoverageIgnoreEnd
             }
@@ -291,19 +289,13 @@ class MailService
             && $this->username !== ''
             && str_contains($respuesta, 'AUTH')
         ) {
-            $leer();
             $enviar('AUTH LOGIN');
-            $leer();
             $enviar(base64_encode($this->username));
-            $leer();
             $respuesta = $enviar(base64_encode((string) $this->password));
         }
 
-        $leer();
         $respuesta = $enviar('MAIL FROM:<' . ($this->from ?: self::DEFAULT_FROM) . '>');
-        $leer();
         $respuesta = $enviar('RCPT TO:<' . $to . '>');
-        $leer();
         $respuesta = $enviar('DATA');
 
         if (!str_starts_with($respuesta, '354')) {

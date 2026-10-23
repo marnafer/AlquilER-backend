@@ -61,18 +61,18 @@ while (($linea = $leerLinea($conexion)) !== '') {
     if (str_starts_with($comando, 'EHLO') || str_starts_with($comando, 'HELO')) {
         fwrite(
             $conexion,
-            "250-alquiler.local\r\n250-AUTH LOGIN PLAIN\r\n250 HELP\r\n250 OK\r\n"
+            "250-alquiler.local\r\n250-AUTH LOGIN PLAIN\r\n250 HELP\r\n"
         );
         continue;
     }
 
     if (str_starts_with($comando, 'MAIL FROM')) {
-        fwrite($conexion, "250 OK\r\n250 OK\r\n");
+        fwrite($conexion, "250 OK\r\n");
         continue;
     }
 
     if (str_starts_with($comando, 'RCPT TO')) {
-        fwrite($conexion, "250 OK\r\n250 OK\r\n");
+        fwrite($conexion, "250 OK\r\n");
         continue;
     }
 
@@ -99,7 +99,7 @@ while (($linea = $leerLinea($conexion)) !== '') {
         break;
     }
 
-    fwrite($conexion, "250 OK\r\n250 OK\r\n");
+    fwrite($conexion, "250 OK\r\n");
 }
 
 fclose($conexion);
