@@ -56,11 +56,27 @@ class MailService
         string $textPlain,
         ?string $replyTo = null
     ): bool {
+        return $this->enviarConEstado(
+            $to,
+            $subject,
+            $htmlBody,
+            $textPlain,
+            $replyTo
+        )->esExitoso();
+    }
+
+    public function enviarConEstado(
+        string $to,
+        string $subject,
+        string $htmlBody,
+        string $textPlain,
+        ?string $replyTo = null
+    ): EstadoEnvio {
         $destinatario = trim($to);
         $asunto = trim($subject);
 
         if ($destinatario === '' || $asunto === '') {
-            return false;
+            return EstadoEnvio::Fallido;
         }
 
         $mensaje = $this->construirMime(
@@ -75,28 +91,38 @@ class MailService
             return $this->guardarEnLog(
                 $destinatario,
                 $asunto,
-                $mensaje
-            );
+                $mensaje,
+                'sin SMTP configurado'
+            )
+                ? EstadoEnvio::GuardadoLocalmente
+                : EstadoEnvio::Fallido;
         }
 
         try {
-            return $this->enviarSmtp(
+            $this->enviarSmtp(
                 $destinatario,
                 $asunto,
                 $mensaje
             );
+
+            return EstadoEnvio::Enviado;
         } catch (\Throwable $e) {
             Debugger::log(
                 'Error al enviar email por SMTP',
                 ['error' => $e->getMessage()],
                 'ERROR'
             );
-            $this->guardarEnLog(
+
+            $guardado = $this->guardarEnLog(
                 $destinatario,
                 $asunto,
-                $mensaje
+                $mensaje,
+                'fallo SMTP: ' . $e->getMessage()
             );
-            return false;
+
+            return $guardado
+                ? EstadoEnvio::GuardadoTrasFallo
+                : EstadoEnvio::Fallido;
         }
     }
 
@@ -164,7 +190,8 @@ class MailService
     private function guardarEnLog(
         string $to,
         string $subject,
-        string $mensaje
+        string $mensaje,
+        string $motivo = 'sin SMTP configurado'
     ): bool {
         $linea = json_encode(
             [
@@ -190,18 +217,22 @@ class MailService
             // @codeCoverageIgnoreEnd
         }
 
-        @file_put_contents($archivo, $linea, FILE_APPEND);
+        $guardado = @file_put_contents($archivo, $linea, FILE_APPEND) !== false;
 
         Debugger::log(
-            'Email generado (sin SMTP configurado)',
+            $guardado
+                ? 'Email guardado localmente'
+                : 'No se pudo guardar el email localmente',
             [
+                'motivo' => $motivo,
                 'para' => $to,
                 'asunto' => $subject,
                 'archivo' => $archivo,
-            ]
+            ],
+            $guardado ? 'INFO' : 'ERROR'
         );
 
-        return true;
+        return $guardado;
     }
 
     private function enviarSmtp(

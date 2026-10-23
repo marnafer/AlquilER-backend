@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Debug\Debugger;
+use App\Services\EstadoEnvio;
 use App\Services\MailService;
 use PHPUnit\Framework\TestCase;
 
@@ -338,6 +339,108 @@ final class MailServiceTest extends TestCase
 
             $this->assertFalse($resultado, 'Modo: ' . $modo);
         }
+    }
+
+    public function test_enviar_con_estado_sin_host_indica_guardado_local(): void
+    {
+        $mail = new MailService();
+
+        $estado = $mail->enviarConEstado(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+        $this->assertTrue($estado->fueGuardadoLocalmente());
+        $this->assertFalse($estado->fueEnviado());
+        $this->assertTrue($estado->esExitoso());
+    }
+
+    public function test_enviar_con_estado_smtp_exitoso_indica_enviado(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto);
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $estado = $mail->enviarConEstado(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::Enviado, $estado);
+        $this->assertTrue($estado->fueEnviado());
+        $this->assertFalse($estado->fueGuardadoLocalmente());
+        $this->assertTrue($estado->esExitoso());
+    }
+
+    public function test_enviar_con_estado_fallo_smtp_guarda_local_pero_no_es_exitoso(): void
+    {
+        $puerto = $this->puertoLibre();
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $estado = $mail->enviarConEstado(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::GuardadoTrasFallo, $estado);
+        $this->assertTrue($estado->fueGuardadoLocalmente());
+        $this->assertFalse($estado->fueEnviado());
+        $this->assertFalse($estado->esExitoso());
+
+        $emails = (string) file_get_contents(
+            dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+                . DIRECTORY_SEPARATOR . 'emails.log'
+        );
+
+        $this->assertStringContainsString('destino@test.com', $emails);
+        $this->assertStringContainsString(
+            'Email guardado localmente',
+            (string) file_get_contents(Debugger::getLogFile())
+        );
+        $this->assertStringContainsString(
+            'fallo SMTP',
+            (string) file_get_contents(Debugger::getLogFile())
+        );
+    }
+
+    public function test_enviar_con_estado_invalido_es_fallido(): void
+    {
+        $mail = new MailService();
+
+        $estado = $mail->enviarConEstado(
+            '   ',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::Fallido, $estado);
+        $this->assertFalse($estado->esExitoso());
     }
 
     public function test_autentica_cuando_starttls_no_esta_disponible(): void
