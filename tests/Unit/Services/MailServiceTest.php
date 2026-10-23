@@ -145,7 +145,18 @@ final class MailServiceTest extends TestCase
 
     public function test_desde_entorno_usa_valores_por_defecto_cuando_faltan(): void
     {
-        $mail = MailService::desdeEntorno();
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $_ENV['APP_ENV'] = 'production';
+
+        try {
+            $mail = MailService::desdeEntorno();
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
 
         $reflexion = new \ReflectionClass($mail);
 
@@ -154,6 +165,29 @@ final class MailServiceTest extends TestCase
         $this->assertSame('no-responder@alquiler.local', $reflexion->getProperty('from')->getValue($mail));
         $this->assertSame('AlquilER', $reflexion->getProperty('fromName')->getValue($mail));
         $this->assertSame('tls', $reflexion->getProperty('encryption')->getValue($mail));
+    }
+
+    public function test_desde_entorno_desarrollo_usa_mailpit_sin_cifrado(): void
+    {
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $_ENV['APP_ENV'] = 'development';
+        unset($_ENV['MAIL_HOST']);
+
+        try {
+            $mail = MailService::desdeEntorno();
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
+
+        $reflexion = new \ReflectionClass($mail);
+
+        $this->assertSame('127.0.0.1', $reflexion->getProperty('host')->getValue($mail));
+        $this->assertSame(1025, $reflexion->getProperty('port')->getValue($mail));
+        $this->assertSame('none', $reflexion->getProperty('encryption')->getValue($mail));
     }
 
     public function test_enviar_sin_host_con_reply_to_y_cuerpo_solo_html(): void

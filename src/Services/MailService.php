@@ -32,7 +32,21 @@ class MailService
 
     public static function desdeEntorno(): self
     {
+        $entorno = strtolower(trim((string) ($_ENV['APP_ENV'] ?? 'development')));
         $host = self::env('MAIL_HOST');
+
+        if ($host === '' && $entorno === 'development') {
+            // Mailpit local sin cifrado ni autenticación.
+            $host = '127.0.0.1';
+            $_ENV['MAIL_PORT'] = $_ENV['MAIL_PORT'] ?? '1025';
+            $_ENV['MAIL_ENCRYPTION'] = 'none';
+        }
+
+        $encryption = strtolower(self::env('MAIL_ENCRYPTION', 'tls'));
+
+        if ($entorno === 'production') {
+            $encryption = 'tls';
+        }
 
         return new self(
             $host !== '' ? $host : null,
@@ -41,7 +55,7 @@ class MailService
             (string) ($_ENV['MAIL_PASSWORD'] ?? ''),
             self::env('MAIL_FROM', self::DEFAULT_FROM),
             self::env('MAIL_FROM_NAME', self::DEFAULT_FROM_NAME),
-            strtolower(self::env('MAIL_ENCRYPTION', 'tls'))
+            $encryption
         );
     }
 
