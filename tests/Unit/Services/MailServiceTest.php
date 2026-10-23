@@ -394,6 +394,91 @@ final class MailServiceTest extends TestCase
         $this->assertTrue($estado->esExitoso());
     }
 
+    public function test_no_persiste_el_mensaje_mime_en_produccion(): void
+    {
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $rutaEmails = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'emails.log';
+        $emailsAnteriores = is_file($rutaEmails)
+            ? (string) file_get_contents($rutaEmails)
+            : '';
+
+        $_ENV['APP_ENV'] = 'production';
+
+        try {
+            $token = 'token-secreto-123';
+            $mail = new MailService();
+
+            $estado = $mail->enviarConEstado(
+                'destino@test.com',
+                'Recuperación de contraseña',
+                '<p>Enlace: https://app.test/reset?token=' . $token . '</p>',
+                'Enlace: https://app.test/reset?token=' . $token
+            );
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
+
+        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+
+        $emails = substr(
+            (string) file_get_contents($rutaEmails),
+            strlen($emailsAnteriores)
+        );
+
+        $this->assertStringContainsString('destino@test.com', $emails);
+        $this->assertStringNotContainsString('"mensaje"', $emails);
+        $this->assertStringNotContainsString($token, $emails);
+        $this->assertStringNotContainsString(
+            $token,
+            (string) file_get_contents(Debugger::getLogFile())
+        );
+    }
+
+    public function test_persiste_el_mensaje_mime_fuera_de_produccion(): void
+    {
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $rutaEmails = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'emails.log';
+        $emailsAnteriores = is_file($rutaEmails)
+            ? (string) file_get_contents($rutaEmails)
+            : '';
+
+        $_ENV['APP_ENV'] = 'development';
+
+        try {
+            $token = 'token-secreto-123';
+            $mail = new MailService();
+
+            $estado = $mail->enviarConEstado(
+                'destino@test.com',
+                'Recuperación de contraseña',
+                '<p>Enlace: https://app.test/reset?token=' . $token . '</p>',
+                'Enlace: https://app.test/reset?token=' . $token
+            );
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
+
+        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+
+        $emails = substr(
+            (string) file_get_contents($rutaEmails),
+            strlen($emailsAnteriores)
+        );
+
+        $this->assertStringContainsString('"mensaje"', $emails);
+        $this->assertStringContainsString($token, $emails);
+    }
+
     public function test_enviar_con_estado_smtp_exitoso_indica_enviado(): void
     {
         $puerto = $this->puertoLibre();

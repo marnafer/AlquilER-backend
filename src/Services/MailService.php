@@ -11,7 +11,8 @@ use App\Debug\Debugger;
  *
  * Si no hay servidor SMTP configurado (MAIL_HOST vacío) los mensajes se
  * persisten en storage/emails.log y se registran en debug.log, de modo que
- * en desarrollo el flujo funciona sin depender de un relay.
+ * en desarrollo el flujo funciona sin depender de un relay. En producción
+ * solo se guardan metadatos, nunca el MIME completo con enlaces o tokens.
  */
 class MailService
 {
@@ -59,6 +60,14 @@ class MailService
     private function tieneSaltosDeLinea(string $valor): bool
     {
         return str_contains($valor, "\r") || str_contains($valor, "\n");
+    }
+
+    private function esProduccion(): bool
+    {
+        $entorno = $_ENV['APP_ENV']
+            ?? (defined('APP_ENV') ? APP_ENV : 'development');
+
+        return strtolower(trim((string) $entorno)) === 'production';
     }
 
     public function enviar(
@@ -214,13 +223,20 @@ class MailService
         string $mensaje,
         string $motivo = 'sin SMTP configurado'
     ): bool {
+        $registro = [
+            'fecha' => date('Y-m-d H:i:s'),
+            'para' => $to,
+            'asunto' => $subject,
+        ];
+
+        // El MIME puede contener enlaces de recuperación y tokens en texto
+        // plano: solo se persiste fuera de producción.
+        if (!$this->esProduccion()) {
+            $registro['mensaje'] = $mensaje;
+        }
+
         $linea = json_encode(
-            [
-                'fecha' => date('Y-m-d H:i:s'),
-                'para' => $to,
-                'asunto' => $subject,
-                'mensaje' => $mensaje,
-            ],
+            $registro,
             JSON_UNESCAPED_UNICODE
         ) . PHP_EOL;
 
