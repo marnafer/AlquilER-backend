@@ -51,6 +51,7 @@ final class MailServiceTest extends TestCase
 
         foreach ($this->banderasSmtp as $bandera) {
             @unlink($bandera);
+            @unlink($bandera . '.cerrado');
         }
 
         parent::tearDown();
@@ -299,6 +300,41 @@ final class MailServiceTest extends TestCase
         );
 
         $this->assertFalse($resultado);
+    }
+
+    public function test_cierra_la_conexion_cuando_falla_el_envio(): void
+    {
+        $puerto = $this->puertoLibre();
+        $bandera = $this->iniciarServidorSmtp($puerto, 'rechaza-ehlo');
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertFalse($resultado);
+
+        $archivoCerrado = $bandera . '.cerrado';
+        $intentos = 0;
+
+        while (!is_file($archivoCerrado) && $intentos < 100) {
+            usleep(50000);
+            $intentos++;
+        }
+
+        $this->assertFileExists($archivoCerrado);
     }
 
     public function test_enviar_devuelve_false_cuando_el_servidor_rechaza_una_etapa(): void
@@ -627,7 +663,7 @@ final class MailServiceTest extends TestCase
         return (int) substr($nombre, strrpos($nombre, ':') + 1);
     }
 
-    private function iniciarServidorSmtp(int $puerto, string $modo = ''): void
+    private function iniciarServidorSmtp(int $puerto, string $modo = ''): string
     {
         $script = dirname(__DIR__, 2)
             . DIRECTORY_SEPARATOR . 'Support'
@@ -673,5 +709,7 @@ final class MailServiceTest extends TestCase
         if (!is_file($bandera)) {
             $this->fail('El servidor SMTP falso no quedó disponible.');
         }
+
+        return $bandera;
     }
 }

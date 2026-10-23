@@ -322,79 +322,84 @@ class MailService
             }
         };
 
-        $respuesta = $leer();
-        $validar($respuesta, ['220'], 'la conexión');
+        try {
+            $respuesta = $leer();
+            $validar($respuesta, ['220'], 'la conexión');
 
-        // Iniciar conversación SIEMPRE con EHLO (STARTTLS requiere EHLO)
-        $respuesta = $enviar('EHLO alquiler.local');
-        $validar($respuesta, ['250'], 'EHLO');
+            // Iniciar conversación SIEMPRE con EHLO (STARTTLS requiere EHLO)
+            $respuesta = $enviar('EHLO alquiler.local');
+            $validar($respuesta, ['250'], 'EHLO');
 
-        // Las capacidades del EHLO siguen siendo válidas si STARTTLS no
-        // está disponible y la conexión continúa en texto plano.
-        $capacidades = $respuesta;
+            // Las capacidades del EHLO siguen siendo válidas si STARTTLS no
+            // está disponible y la conexión continúa en texto plano.
+            $capacidades = $respuesta;
 
-        // STARTTLS opcional
-        if (!$esSsl && $this->encryption === 'tls') {
-            $respuesta = $enviar('STARTTLS');
+            // STARTTLS opcional
+            if (!$esSsl && $this->encryption === 'tls') {
+                $respuesta = $enviar('STARTTLS');
 
-            if (str_starts_with($respuesta, '220')) {
-                // @codeCoverageIgnoreStart
-                $tls = stream_socket_enable_crypto(
-                    $socket,
-                    true,
-                    STREAM_CRYPTO_METHOD_TLS_CLIENT
-                );
+                if (str_starts_with($respuesta, '220')) {
+                    // @codeCoverageIgnoreStart
+                    $tls = stream_socket_enable_crypto(
+                        $socket,
+                        true,
+                        STREAM_CRYPTO_METHOD_TLS_CLIENT
+                    );
 
-                if (!$tls) {
+                    if (!$tls) {
+                        throw new \RuntimeException(
+                            'No se pudo iniciar TLS con el servidor SMTP'
+                        );
+                    }
+
+                    $respuesta = $enviar('EHLO alquiler.local');
+                    $validar($respuesta, ['250'], 'EHLO tras STARTTLS');
+                    $capacidades = $respuesta;
+                    // @codeCoverageIgnoreEnd
+                } elseif (!str_starts_with($respuesta, '5')) {
                     throw new \RuntimeException(
-                        'No se pudo iniciar TLS con el servidor SMTP'
+                        'El servidor SMTP respondió de forma inesperada a STARTTLS: '
+                        . $respuesta
                     );
                 }
+            }
 
-                $respuesta = $enviar('EHLO alquiler.local');
-                $validar($respuesta, ['250'], 'EHLO tras STARTTLS');
-                $capacidades = $respuesta;
-                // @codeCoverageIgnoreEnd
-            } elseif (!str_starts_with($respuesta, '5')) {
-                throw new \RuntimeException(
-                    'El servidor SMTP respondió de forma inesperada a STARTTLS: '
-                    . $respuesta
-                );
+            // Autenticación si hay credenciales
+            if (
+                $this->username !== null
+                && $this->username !== ''
+                && str_contains($capacidades, 'AUTH')
+            ) {
+                $respuesta = $enviar('AUTH LOGIN');
+                $validar($respuesta, ['334'], 'AUTH LOGIN');
+
+                $respuesta = $enviar(base64_encode($this->username));
+                $validar($respuesta, ['334'], 'el usuario de autenticación');
+
+                $respuesta = $enviar(base64_encode((string) $this->password));
+                $validar($respuesta, ['235'], 'la autenticación');
+            }
+
+            $respuesta = $enviar('MAIL FROM:<' . ($this->from ?: self::DEFAULT_FROM) . '>');
+            $validar($respuesta, ['250'], 'MAIL FROM');
+
+            $respuesta = $enviar('RCPT TO:<' . $to . '>');
+            $validar($respuesta, ['250', '251'], 'RCPT TO');
+
+            $respuesta = $enviar('DATA');
+            $validar($respuesta, ['354'], 'el inicio del mensaje');
+
+            fwrite($socket, $mensaje . "\r\n.\r\n");
+            $respuesta = $leer();
+            $validar($respuesta, ['250'], 'el mensaje');
+
+            $enviar('QUIT');
+
+            return true;
+        } finally {
+            if (is_resource($socket)) {
+                fclose($socket);
             }
         }
-
-        // Autenticación si hay credenciales
-        if (
-            $this->username !== null
-            && $this->username !== ''
-            && str_contains($capacidades, 'AUTH')
-        ) {
-            $respuesta = $enviar('AUTH LOGIN');
-            $validar($respuesta, ['334'], 'AUTH LOGIN');
-
-            $respuesta = $enviar(base64_encode($this->username));
-            $validar($respuesta, ['334'], 'el usuario de autenticación');
-
-            $respuesta = $enviar(base64_encode((string) $this->password));
-            $validar($respuesta, ['235'], 'la autenticación');
-        }
-
-        $respuesta = $enviar('MAIL FROM:<' . ($this->from ?: self::DEFAULT_FROM) . '>');
-        $validar($respuesta, ['250'], 'MAIL FROM');
-
-        $respuesta = $enviar('RCPT TO:<' . $to . '>');
-        $validar($respuesta, ['250', '251'], 'RCPT TO');
-
-        $respuesta = $enviar('DATA');
-        $validar($respuesta, ['354'], 'el inicio del mensaje');
-
-        fwrite($socket, $mensaje . "\r\n.\r\n");
-        $respuesta = $leer();
-        $validar($respuesta, ['250'], 'el mensaje');
-
-        $enviar('QUIT');
-        fclose($socket);
-
-        return true;
     }
 }

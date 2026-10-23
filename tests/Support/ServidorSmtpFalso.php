@@ -41,6 +41,8 @@ if ($conexion === false) {
     exit(2);
 }
 
+stream_set_timeout($conexion, 5);
+
 $leerLinea = static function ($conexion): string {
     $linea = '';
 
@@ -181,6 +183,12 @@ while (($linea = $leerLinea($conexion)) !== '') {
     }
 
     fwrite($conexion, "250 OK\r\n");
+}
+
+$meta = stream_get_meta_data($conexion);
+
+if ($bandera !== '' && empty($meta['timed_out'])) {
+    @file_put_contents($bandera . '.cerrado', '1');
 }
 
 fclose($conexion);
