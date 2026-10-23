@@ -300,6 +300,44 @@ final class MailServiceTest extends TestCase
         $this->assertFalse($resultado);
     }
 
+    public function test_enviar_devuelve_false_cuando_el_servidor_rechaza_una_etapa(): void
+    {
+        $casos = [
+            'rechaza-saludo' => ['none', null],
+            'rechaza-ehlo' => ['none', null],
+            'starttls-inesperado' => ['tls', null],
+            'rechaza-auth' => ['none', 'usuario'],
+            'rechaza-mail' => ['none', null],
+            'rechaza-rcpt' => ['none', null],
+            'rechaza-data' => ['none', null],
+            'rechaza-fin-data' => ['none', null],
+        ];
+
+        foreach ($casos as $modo => [$encryption, $usuario]) {
+            $puerto = $this->puertoLibre();
+            $this->iniciarServidorSmtp($puerto, $modo);
+
+            $mail = new MailService(
+                '127.0.0.1',
+                $puerto,
+                $usuario,
+                $usuario !== null ? 'secreto' : null,
+                'emisor@test.com',
+                'Emisor',
+                $encryption
+            );
+
+            $resultado = $mail->enviar(
+                'destino@test.com',
+                'Asunto',
+                '<p>Hola</p>',
+                'Hola'
+            );
+
+            $this->assertFalse($resultado, 'Modo: ' . $modo);
+        }
+    }
+
     private function puertoLibre(): int
     {
         $socket = stream_socket_server('tcp://127.0.0.1:0', $codigo, $mensaje);

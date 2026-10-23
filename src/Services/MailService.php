@@ -255,10 +255,26 @@ class MailService
             return $leer();
         };
 
-        $leer();
+        $validar = function (
+            string $respuesta,
+            array $codigos,
+            string $etapa
+        ): void {
+            $codigo = substr($respuesta, 0, 3);
+
+            if (!in_array($codigo, $codigos, true)) {
+                throw new \RuntimeException(
+                    'El servidor SMTP rechazó ' . $etapa . ': ' . $respuesta
+                );
+            }
+        };
+
+        $respuesta = $leer();
+        $validar($respuesta, ['220'], 'la conexión');
 
         // Iniciar conversación SIEMPRE con EHLO (STARTTLS requiere EHLO)
         $respuesta = $enviar('EHLO alquiler.local');
+        $validar($respuesta, ['250'], 'EHLO');
 
         // STARTTLS opcional
         if (!$esSsl && $this->encryption === 'tls') {
@@ -279,7 +295,13 @@ class MailService
                 }
 
                 $respuesta = $enviar('EHLO alquiler.local');
+                $validar($respuesta, ['250'], 'EHLO tras STARTTLS');
                 // @codeCoverageIgnoreEnd
+            } elseif (!str_starts_with($respuesta, '5')) {
+                throw new \RuntimeException(
+                    'El servidor SMTP respondió de forma inesperada a STARTTLS: '
+                    . $respuesta
+                );
             }
         }
 
@@ -289,27 +311,32 @@ class MailService
             && $this->username !== ''
             && str_contains($respuesta, 'AUTH')
         ) {
-            $enviar('AUTH LOGIN');
-            $enviar(base64_encode($this->username));
+            $respuesta = $enviar('AUTH LOGIN');
+            $validar($respuesta, ['334'], 'AUTH LOGIN');
+
+            $respuesta = $enviar(base64_encode($this->username));
+            $validar($respuesta, ['334'], 'el usuario de autenticación');
+
             $respuesta = $enviar(base64_encode((string) $this->password));
+            $validar($respuesta, ['235'], 'la autenticación');
         }
 
         $respuesta = $enviar('MAIL FROM:<' . ($this->from ?: self::DEFAULT_FROM) . '>');
-        $respuesta = $enviar('RCPT TO:<' . $to . '>');
-        $respuesta = $enviar('DATA');
+        $validar($respuesta, ['250'], 'MAIL FROM');
 
-        if (!str_starts_with($respuesta, '354')) {
-            throw new \RuntimeException(
-                'El servidor SMTP rechazó el inicio del mensaje: ' . $respuesta
-            );
-        }
+        $respuesta = $enviar('RCPT TO:<' . $to . '>');
+        $validar($respuesta, ['250', '251'], 'RCPT TO');
+
+        $respuesta = $enviar('DATA');
+        $validar($respuesta, ['354'], 'el inicio del mensaje');
 
         fwrite($socket, $mensaje . "\r\n.\r\n");
         $respuesta = $leer();
+        $validar($respuesta, ['250'], 'el mensaje');
 
         $enviar('QUIT');
         fclose($socket);
 
-        return str_starts_with($respuesta, '250');
+        return true;
     }
 }

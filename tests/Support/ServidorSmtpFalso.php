@@ -9,8 +9,9 @@ declare(strict_types=1);
  *
  * Escribe "1" en <archivo-bandera> cuando el socket queda escuchando para
  * que el test sepa que puede conectarse, acepta una unica conexion y
- * responde una conversacion SMTP minima. El modo "rechaza-data" hace que
- * el comando DATA responda con un error.
+ * responde una conversacion SMTP minima. El modo permite simular rechazos:
+ * rechaza-saludo, rechaza-ehlo, starttls-inesperado, rechaza-auth,
+ * rechaza-mail, rechaza-rcpt, rechaza-data y rechaza-fin-data.
  */
 
 $puerto = (int) ($argv[1] ?? 0);
@@ -53,12 +54,36 @@ $leerLinea = static function ($conexion): string {
     return $linea;
 };
 
-fwrite($conexion, "220 alquiler.local ESMTP\r\n");
+fwrite(
+    $conexion,
+    $modo === 'rechaza-saludo'
+        ? "554 Servicio no disponible\r\n"
+        : "220 alquiler.local ESMTP\r\n"
+);
+
+$autenticando = 0;
 
 while (($linea = $leerLinea($conexion)) !== '') {
     $comando = strtoupper(trim($linea));
 
+    if ($autenticando === 1) {
+        $autenticando = 2;
+        fwrite($conexion, "334 UGFzc3dvcmQ6\r\n");
+        continue;
+    }
+
+    if ($autenticando === 2) {
+        $autenticando = 0;
+        fwrite($conexion, "235 Autenticación correcta\r\n");
+        continue;
+    }
+
     if (str_starts_with($comando, 'EHLO') || str_starts_with($comando, 'HELO')) {
+        if ($modo === 'rechaza-ehlo') {
+            fwrite($conexion, "554 EHLO rechazado\r\n");
+            continue;
+        }
+
         fwrite(
             $conexion,
             "250-alquiler.local\r\n250-AUTH LOGIN PLAIN\r\n250 HELP\r\n"
@@ -66,12 +91,43 @@ while (($linea = $leerLinea($conexion)) !== '') {
         continue;
     }
 
+    if ($comando === 'STARTTLS') {
+        if ($modo === 'starttls-inesperado') {
+            fwrite($conexion, "250 STARTTLS aceptado\r\n");
+            continue;
+        }
+
+        fwrite($conexion, "502 STARTTLS no disponible\r\n");
+        continue;
+    }
+
+    if ($comando === 'AUTH LOGIN') {
+        if ($modo === 'rechaza-auth') {
+            fwrite($conexion, "535 Autenticación rechazada\r\n");
+            continue;
+        }
+
+        $autenticando = 1;
+        fwrite($conexion, "334 VXNlcm5hbWU6\r\n");
+        continue;
+    }
+
     if (str_starts_with($comando, 'MAIL FROM')) {
+        if ($modo === 'rechaza-mail') {
+            fwrite($conexion, "550 Remitente rechazado\r\n");
+            continue;
+        }
+
         fwrite($conexion, "250 OK\r\n");
         continue;
     }
 
     if (str_starts_with($comando, 'RCPT TO')) {
+        if ($modo === 'rechaza-rcpt') {
+            fwrite($conexion, "550 Destinatario rechazado\r\n");
+            continue;
+        }
+
         fwrite($conexion, "250 OK\r\n");
         continue;
     }
@@ -88,6 +144,11 @@ while (($linea = $leerLinea($conexion)) !== '') {
             if (trim($cuerpo) === '.') {
                 break;
             }
+        }
+
+        if ($modo === 'rechaza-fin-data') {
+            fwrite($conexion, "554 Mensaje rechazado\r\n");
+            continue;
         }
 
         fwrite($conexion, "250 OK queued\r\n");
