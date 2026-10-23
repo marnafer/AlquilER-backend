@@ -97,7 +97,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
         $mailService = $this->createMock(MailService::class);
 
         $mailService
-            ->expects($this->exactly(2))
+            ->expects($this->once())
             ->method('enviar')
             ->willReturnCallback(
                 function (

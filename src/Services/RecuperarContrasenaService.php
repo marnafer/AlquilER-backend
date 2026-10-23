@@ -75,31 +75,17 @@ class RecuperarContrasenaService
                 . '<p><a href="' . htmlspecialchars($enlace, ENT_QUOTES, 'UTF-8') . '">'
                 . 'Hacé clic acá para restablecerla</a></p>'
                 . '<p>El enlace es válido por ' . self::MINUTOS_VIGENCIA . ' minutos.</p>'
-                . '<p>Si no solicitaste este cambio, podés ignorar este correo.</p>',
+                . '<p>Si no solicitaste este cambio, podés ignorar este correo. '
+                . 'Tu contraseña actual sigue siendo válida; por seguridad, '
+                . 'cambiá tu contraseña si sospechás que alguien más la conoce.</p>',
             'Hola,'
                 . "\n\nRecibimos una solicitud para restablecer tu contraseña."
                 . "\n\nPara restablecerla, ingresá en el siguiente enlace:\n"
                 . $enlace
                 . "\n\nEl enlace es válido por " . self::MINUTOS_VIGENCIA . ' minutos.'
-                . "\n\nSi no solicitaste este cambio, podés ignorar este correo."
-        );
-
-        $this->mailService->enviar(
-            $email,
-            'Solicitud de cambio de contraseña',
-            '<p>Hola,</p>'
-                . '<p>Registramos una solicitud de recuperación de contraseña '
-                . 'para tu cuenta.</p>'
-                . '<p>Si fuiste vos, revisá tu correo y usá el enlace que te '
-                . 'enviamos para restablecerla (válido por '
-                . self::MINUTOS_VIGENCIA . ' minutos).</p>'
-                . '<p>Si <strong>no</strong> solicitaste este cambio, tu '
-                . 'contraseña actual sigue siendo válida: te recomendamos '
-                . 'ignorar este correo y, por seguridad, cambiá tu contraseña.</p>',
-            'Hola,'
-                . "\n\nRegistramos una solicitud de recuperación de contraseña para tu cuenta."
-                . "\n\nSi fuiste vos, revisá tu correo y usá el enlace que te enviamos para restablecerla (válido por " . self::MINUTOS_VIGENCIA . ' minutos).'
-                . "\n\nSi no solicitaste este cambio, tu contraseña actual sigue siendo válida: te recomendamos ignorar este correo y, por seguridad, cambiá tu contraseña."
+                . "\n\nSi no solicitaste este cambio, podés ignorar este correo. "
+                . 'Tu contraseña actual sigue siendo válida; por seguridad, '
+                . 'cambiá tu contraseña si sospechás que alguien más la conoce.'
         );
     }
 
