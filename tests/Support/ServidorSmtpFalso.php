@@ -11,7 +11,8 @@ declare(strict_types=1);
  * que el test sepa que puede conectarse, acepta una unica conexion y
  * responde una conversacion SMTP minima. El modo permite simular rechazos:
  * rechaza-saludo, rechaza-ehlo, starttls-inesperado, rechaza-auth,
- * rechaza-mail, rechaza-rcpt, rechaza-data y rechaza-fin-data.
+ * rechaza-usuario, rechaza-clave, requiere-auth, rechaza-mail,
+ * rechaza-rcpt, rechaza-data y rechaza-fin-data.
  */
 
 $puerto = (int) ($argv[1] ?? 0);
@@ -62,11 +63,18 @@ fwrite(
 );
 
 $autenticando = 0;
+$autenticado = false;
 
 while (($linea = $leerLinea($conexion)) !== '') {
     $comando = strtoupper(trim($linea));
 
     if ($autenticando === 1) {
+        if ($modo === 'rechaza-usuario') {
+            $autenticando = 0;
+            fwrite($conexion, "535 Usuario rechazado\r\n");
+            continue;
+        }
+
         $autenticando = 2;
         fwrite($conexion, "334 UGFzc3dvcmQ6\r\n");
         continue;
@@ -74,6 +82,13 @@ while (($linea = $leerLinea($conexion)) !== '') {
 
     if ($autenticando === 2) {
         $autenticando = 0;
+
+        if ($modo === 'rechaza-clave') {
+            fwrite($conexion, "535 Contraseña rechazada\r\n");
+            continue;
+        }
+
+        $autenticado = true;
         fwrite($conexion, "235 Autenticación correcta\r\n");
         continue;
     }
@@ -113,6 +128,11 @@ while (($linea = $leerLinea($conexion)) !== '') {
     }
 
     if (str_starts_with($comando, 'MAIL FROM')) {
+        if ($modo === 'requiere-auth' && !$autenticado) {
+            fwrite($conexion, "530 Autenticación requerida\r\n");
+            continue;
+        }
+
         if ($modo === 'rechaza-mail') {
             fwrite($conexion, "550 Remitente rechazado\r\n");
             continue;

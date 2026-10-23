@@ -276,6 +276,10 @@ class MailService
         $respuesta = $enviar('EHLO alquiler.local');
         $validar($respuesta, ['250'], 'EHLO');
 
+        // Las capacidades del EHLO siguen siendo válidas si STARTTLS no
+        // está disponible y la conexión continúa en texto plano.
+        $capacidades = $respuesta;
+
         // STARTTLS opcional
         if (!$esSsl && $this->encryption === 'tls') {
             $respuesta = $enviar('STARTTLS');
@@ -296,6 +300,7 @@ class MailService
 
                 $respuesta = $enviar('EHLO alquiler.local');
                 $validar($respuesta, ['250'], 'EHLO tras STARTTLS');
+                $capacidades = $respuesta;
                 // @codeCoverageIgnoreEnd
             } elseif (!str_starts_with($respuesta, '5')) {
                 throw new \RuntimeException(
@@ -309,7 +314,7 @@ class MailService
         if (
             $this->username !== null
             && $this->username !== ''
-            && str_contains($respuesta, 'AUTH')
+            && str_contains($capacidades, 'AUTH')
         ) {
             $respuesta = $enviar('AUTH LOGIN');
             $validar($respuesta, ['334'], 'AUTH LOGIN');

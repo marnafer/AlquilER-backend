@@ -307,6 +307,8 @@ final class MailServiceTest extends TestCase
             'rechaza-ehlo' => ['none', null],
             'starttls-inesperado' => ['tls', null],
             'rechaza-auth' => ['none', 'usuario'],
+            'rechaza-usuario' => ['none', 'usuario'],
+            'rechaza-clave' => ['none', 'usuario'],
             'rechaza-mail' => ['none', null],
             'rechaza-rcpt' => ['none', null],
             'rechaza-data' => ['none', null],
@@ -336,6 +338,31 @@ final class MailServiceTest extends TestCase
 
             $this->assertFalse($resultado, 'Modo: ' . $modo);
         }
+    }
+
+    public function test_autentica_cuando_starttls_no_esta_disponible(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto, 'requiere-auth');
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            'usuario',
+            'secreto',
+            'emisor@test.com',
+            'Emisor',
+            'tls'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertTrue($resultado);
     }
 
     private function puertoLibre(): int
