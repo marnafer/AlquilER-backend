@@ -443,6 +443,151 @@ final class MailServiceTest extends TestCase
         $this->assertFalse($estado->esExitoso());
     }
 
+    public function test_enviar_rechaza_direcciones_invalidas(): void
+    {
+        $casos = [
+            'destinatario' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino-sin-arroba',
+                null,
+            ],
+            'remitente' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'remitente-invalido'
+                ),
+                'destino@test.com',
+                null,
+            ],
+            'reply-to' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino@test.com',
+                'reply-invalido',
+            ],
+        ];
+
+        foreach ($casos as $nombre => [$mail, $destino, $replyTo]) {
+            $estado = $mail->enviarConEstado(
+                $destino,
+                'Asunto',
+                '<p>Hola</p>',
+                'Hola',
+                $replyTo
+            );
+
+            $this->assertSame(EstadoEnvio::Fallido, $estado, $nombre);
+        }
+    }
+
+    public function test_enviar_rechaza_inyeccion_de_encabezados(): void
+    {
+        $casos = [
+            'destinatario' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                "destino@test.com\r\nBcc: copia@test.com",
+                'Asunto',
+                null,
+            ],
+            'remitente' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    "emisor@test.com\r\nBcc: copia@test.com"
+                ),
+                'destino@test.com',
+                'Asunto',
+                null,
+            ],
+            'reply-to' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino@test.com',
+                'Asunto',
+                "reply@test.com\r\nBcc: copia@test.com",
+            ],
+            'asunto' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino@test.com',
+                "Asunto\r\nBcc: copia@test.com",
+                null,
+            ],
+        ];
+
+        foreach ($casos as $nombre => [$mail, $destino, $asunto, $replyTo]) {
+            $estado = $mail->enviarConEstado(
+                $destino,
+                $asunto,
+                '<p>Hola</p>',
+                'Hola',
+                $replyTo
+            );
+
+            $this->assertSame(EstadoEnvio::Fallido, $estado, $nombre);
+        }
+    }
+
+    public function test_construir_mime_elimina_saltos_de_linea_del_nombre_remitente(): void
+    {
+        $mail = new MailService(
+            null,
+            null,
+            null,
+            null,
+            'emisor@test.com',
+            "Emisor\r\nBcc: copia@test.com"
+        );
+
+        $metodo = new \ReflectionMethod($mail, 'construirMime');
+        $mime = (string) $metodo->invoke(
+            $mail,
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola',
+            null
+        );
+
+        $this->assertStringNotContainsString("\r\nBcc:", $mime);
+        $this->assertStringContainsString(
+            'From: EmisorBcc: copia@test.com <emisor@test.com>',
+            $mime
+        );
+    }
+
     public function test_autentica_cuando_starttls_no_esta_disponible(): void
     {
         $puerto = $this->puertoLibre();

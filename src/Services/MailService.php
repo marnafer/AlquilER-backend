@@ -49,6 +49,18 @@ class MailService
         return trim((string) ($_ENV[$clave] ?? $default));
     }
 
+    private function direccionValida(string $direccion): bool
+    {
+        return $direccion !== ''
+            && !$this->tieneSaltosDeLinea($direccion)
+            && filter_var($direccion, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    private function tieneSaltosDeLinea(string $valor): bool
+    {
+        return str_contains($valor, "\r") || str_contains($valor, "\n");
+    }
+
     public function enviar(
         string $to,
         string $subject,
@@ -74,8 +86,17 @@ class MailService
     ): EstadoEnvio {
         $destinatario = trim($to);
         $asunto = trim($subject);
+        $remitente = trim($this->from ?: self::DEFAULT_FROM);
+        $responderA = $replyTo !== null ? trim($replyTo) : '';
 
-        if ($destinatario === '' || $asunto === '') {
+        if (
+            $destinatario === ''
+            || $asunto === ''
+            || !$this->direccionValida($destinatario)
+            || !$this->direccionValida($remitente)
+            || $this->tieneSaltosDeLinea($asunto)
+            || ($responderA !== '' && !$this->direccionValida($responderA))
+        ) {
             return EstadoEnvio::Fallido;
         }
 
@@ -84,7 +105,7 @@ class MailService
             $asunto,
             $htmlBody,
             $textPlain,
-            $replyTo
+            $responderA !== '' ? $responderA : null
         );
 
         if (!$this->host) {
