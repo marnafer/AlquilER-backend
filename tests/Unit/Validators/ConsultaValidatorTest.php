@@ -123,6 +123,10 @@ final class ConsultaValidatorTest extends TestCase
                 str_repeat('a', 5001),
                 'El mensaje no puede superar los 5000 caracteres',
             ],
+            'profanidad' => [
+                'esto es una puta mierda larga',
+                'El mensaje contiene lenguaje inapropiado y no puede ser publicado',
+            ],
         ];
     }
 

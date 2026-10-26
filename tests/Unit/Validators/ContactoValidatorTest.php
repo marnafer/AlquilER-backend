@@ -230,4 +230,36 @@ final class ContactoValidatorTest extends TestCase
             $resultado['errors']
         );
     }
+    public function test_validar_con_asunto_con_profanidad_falla(): void
+    {
+        $resultado = ContactoValidator::validar([
+            'nombre' => 'Juan Perez',
+            'email' => 'juan@correo.com',
+            'asunto' => 'puta',
+            'mensaje' => 'Hola, me gustaria coordinar una visita.',
+        ]);
+
+        $this->assertFalse($resultado['success']);
+        $this->assertSame(
+            ['asunto' => 'El asunto contiene lenguaje inapropiado'],
+            $resultado['errors']
+        );
+    }
+
+    public function test_validar_con_mensaje_con_profanidad_falla(): void
+    {
+        $resultado = ContactoValidator::validar([
+            'nombre' => 'Juan Perez',
+            'email' => 'juan@correo.com',
+            'asunto' => 'Consulta sobre la propiedad',
+            'mensaje' => 'esto es una puta mierda larga ok',
+        ]);
+
+        $this->assertFalse($resultado['success']);
+        $this->assertSame(
+            ['mensaje' => 'El mensaje contiene lenguaje inapropiado y no puede ser enviado'],
+            $resultado['errors']
+        );
+    }
+
 }
