@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\Helpers\ProfanityFilter;
+
 class ResenaValidator
 {
     /**
@@ -230,6 +232,13 @@ class ResenaValidator
             return [
                 'success' => false,
                 'error' => 'El comentario no puede superar los 1000 caracteres'
+            ];
+        }
+
+        if (ProfanityFilter::contiene($comentario)) {
+            return [
+                'success' => false,
+                'error' => 'El comentario contiene lenguaje inapropiado y no puede ser publicado'
             ];
         }
 

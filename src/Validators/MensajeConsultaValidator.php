@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\Helpers\ProfanityFilter;
+
 class MensajeConsultaValidator
 {
     /**
@@ -40,6 +42,8 @@ class MensajeConsultaValidator
                 $errores['mensaje'] = 'El mensaje debe tener al menos 1 caracter';
             } elseif ($longitud > 2000) {
                 $errores['mensaje'] = 'El mensaje no puede superar los 2000 caracteres';
+            } elseif (ProfanityFilter::contiene($mensaje)) {
+                $errores['mensaje'] = 'El mensaje contiene lenguaje inapropiado y no puede ser publicado';
             }
         }
 

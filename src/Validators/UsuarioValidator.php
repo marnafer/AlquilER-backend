@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\Helpers\ProfanityFilter;
+
 class UsuarioValidator
 {
     /**
@@ -75,6 +77,10 @@ class UsuarioValidator
             ];
         }
 
+        if (ProfanityFilter::contiene($nombre)) {
+            return ['success' => false, 'error' => 'El nombre contiene lenguaje inapropiado'];
+        }
+
         return [
             'success' => true,
             'error' => null
@@ -118,6 +124,10 @@ class UsuarioValidator
                 'success' => false,
                 'error' => 'El apellido solo puede contener letras y espacios'
             ];
+        }
+
+        if (ProfanityFilter::contiene($apellido)) {
+            return ['success' => false, 'error' => 'El apellido contiene lenguaje inapropiado'];
         }
 
         return [
@@ -243,6 +253,10 @@ class UsuarioValidator
                 'success' => false,
                 'error' => 'El domicilio no puede exceder los 100 caracteres'
             ];
+        }
+
+        if (ProfanityFilter::contiene($domicilio)) {
+            return ['success' => false, 'error' => 'El domicilio contiene lenguaje inapropiado'];
         }
 
         return [

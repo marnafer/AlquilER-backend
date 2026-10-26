@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\Helpers\ProfanityFilter;
+
 class PropiedadValidator
 {
     public static function validarId($id): ?string
@@ -40,6 +42,10 @@ class PropiedadValidator
 
         if (mb_strlen($titulo) > 150) {
             return 'El título no puede superar los 150 caracteres';
+
+        if (ProfanityFilter::contiene($titulo)) {
+            return 'El titulo contiene lenguaje inapropiado';
+        }
         }
 
         return null;
@@ -54,7 +60,10 @@ class PropiedadValidator
 
         if (mb_strlen($descripcion) > 5000) {
             return 'La descripción no puede superar los 5000 caracteres';
-        }
+
+        if (ProfanityFilter::contiene($descripcion)) {
+            return 'La descripcion contiene lenguaje inapropiado';
+        }        }
 
         return null;
     }
