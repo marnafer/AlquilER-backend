@@ -3,8 +3,26 @@
 // 1. Cargar el bootstrap y recibir los controladores ya instanciados
 $controllers = require __DIR__ . '/../bootstrap.php';
 
-// 2. Extraer las variables de los controladores para usarlas limpiamente en las rutas
-extract($controllers);
+// 2. Dependencias explicitas
+$autenticadorController = $controllers['autenticadorController'];
+$recuperarContrasenaController = $controllers['recuperarContrasenaController'];
+$contactoController = $controllers['contactoController'];
+$usuarioController = $controllers['usuarioController'];
+$categoriaController = $controllers['categoriaController'];
+$provinciaController = $controllers['provinciaController'];
+$localidadController = $controllers['localidadController'];
+$rolController = $controllers['rolController'];
+$propiedadImagenController = $controllers['propiedadImagenController'];
+$favoritoController = $controllers['favoritoController'];
+$reservaController = $controllers['reservaController'];
+$consultaController = $controllers['consultaController'];
+$propiedadController = $controllers['propiedadController'];
+$resenaController = $controllers['resenaController'];
+$servicioController = $controllers['servicioController'];
+$propiedadServicioController = $controllers['propiedadServicioController'];
+$logActividadController = $controllers['logActividadController'];
+$notificacionController = $controllers['notificacionController'];
+$mensajeConsultaController = $controllers['mensajeConsultaController'];
 
 /*
 |--------------------------------------------------------------------------
