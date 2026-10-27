@@ -12,7 +12,7 @@ use App\Validators\ContactoValidator;
 class ContactoService
 {
     public function __construct(
-        private readonly MailService $mailService,
+        private readonly EnviadorCorreoInterface $mailService,
         private readonly string $destino
     ) {
     }

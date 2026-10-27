@@ -14,7 +14,7 @@ use App\Debug\Debugger;
  * en desarrollo el flujo funciona sin depender de un relay. En producción
  * solo se guardan metadatos, nunca el MIME completo con enlaces o tokens.
  */
-class MailService
+class MailService implements EnviadorCorreoInterface
 {
     private const DEFAULT_FROM = 'no-responder@alquiler.local';
     private const DEFAULT_FROM_NAME = 'AlquilER';
