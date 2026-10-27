@@ -155,127 +155,25 @@ class PropiedadService
         int $rolId = Rol::USUARIO,
         ?int $propietarioId = null
     ): Propiedad {
-        if (array_key_exists('requisitos_interesados', $rawData)) {
-            $erroresRequisitos =
-                PropiedadValidator::validarRequisitosInteresados(
-                    $rawData['requisitos_interesados']
-                );
-            if ($erroresRequisitos !== []) {
-                throw new ValidationException([
-                    'requisitos_interesados' => $erroresRequisitos,
-                ]);
-            }
-        }
+        
+        $this->validarRequisitosInteresados($rawData);
 
-        $servicioIds = $rawData['servicios'] ?? [];
-        $propietarioId = $rawData['propietario_id'] ?? null;
-
-        if (!is_array($servicioIds)) {
-            throw new ValidationException([
-                'servicios' => [
-                    'Los servicios deben enviarse como un arreglo'
-                ],
-            ]);
-        }
-
-        $servicioIds = array_values(
-            array_unique($servicioIds)
+        $servicioIds = $this->validarServiciosSeleccionados(
+            $rawData['servicios'] ?? []
         );
 
-        foreach ($servicioIds as $servicioId) {
-            $error = ServicioValidator::validarId($servicioId);
-
-            if ($error !== null) {
-                throw new ValidationException([
-                    'servicios' => [$error],
-                ]);
-            }
-        }
-
-        $servicioIds = array_map('intval', $servicioIds);
-
-        if ($servicioIds !== []) {
-            $servicios = $this->servicioRepository->findByIds(
-                $servicioIds
-            );
-
-            if ($servicios->count() !== count($servicioIds)) {
-                throw new ValidationException([
-                    'servicios' => [
-                        'Uno o más servicios seleccionados no existen'
-                    ],
-                ]);
-            }
-        }
+        $propietarioId = $rawData['propietario_id'] ?? null;
 
         $data = PropiedadSanitizer::sanitizarCrear($rawData);
 
-        $data['usuario_id'] = $usuarioId;
+        $data = $this->aplicarReglasDeAsignacion(
+            $data,
+            $usuarioId,
+            $rolId,
+            $propietarioId
+        );
 
-        if ($rolId !== Rol::ADMIN) {
-            $data['destacada'] = 0;
-        }
-
-        if (
-            $rolId === Rol::ADMIN
-            && $propietarioId !== null
-        ) {
-            $idPropietario = PropiedadSanitizer::sanitizarId(
-                $propietarioId
-            );
-
-            if ($idPropietario === null) {
-                throw new ValidationException([
-                    'propietario_id' => [
-                        'El ID del propietario no es válido',
-                    ],
-                ]);
-            }
-
-            if (
-                !$this->usuarioRepository->findById(
-                    $idPropietario
-                )
-            ) {
-                throw new NotFoundException(
-                    'El propietario no existe'
-                );
-            }
-
-            $data['usuario_id'] = $idPropietario;
-        }
-
-        $validacion = PropiedadValidator::validar($data);
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        if (
-            !$this->categoriaRepository->findById(
-                (int) $data['categoria_id']
-            )
-        ) {
-            throw new ValidationException([
-                'categoria_id' => [
-                    'La categoría seleccionada no existe'
-                ],
-            ]);
-        }
-
-        if (
-            !$this->localidadRepository->findById(
-                (int) $data['localidad_id']
-            )
-        ) {
-            throw new ValidationException([
-                'localidad_id' => [
-                    'La localidad seleccionada no existe'
-                ],
-            ]);
-        }
+        $this->validarDatosDeCreacion($data);
 
         $propiedad = $this->repository->create($data);
 
@@ -356,85 +254,18 @@ class PropiedadService
             );
         }
 
-        if (array_key_exists('requisitos_interesados', $datosRecibidos)) {
-            $erroresRequisitos =
-                PropiedadValidator::validarRequisitosInteresados(
-                    $datosRecibidos['requisitos_interesados']
-                );
-            if ($erroresRequisitos !== []) {
-                throw new ValidationException([
-                    'requisitos_interesados' => $erroresRequisitos,
-                ]);
-            }
-        }
+        $this->validarRequisitosInteresados($datosRecibidos);
 
         $data = PropiedadSanitizer::sanitizarActualizar(
             $datosRecibidos
         );
 
-        $estadoFinal = [
-            'titulo' => $propiedad->titulo,
-            'descripcion' => $propiedad->descripcion,
-            'precio' => $propiedad->precio,
-            'expensas' => $propiedad->expensas,
-            'direccion' => $propiedad->direccion,
-            'cantidad_ambientes' =>
-                $propiedad->cantidad_ambientes,
-            'cantidad_dormitorios' =>
-                $propiedad->cantidad_dormitorios,
-            'cantidad_banos' =>
-                $propiedad->cantidad_banos,
-            'capacidad' => $propiedad->capacidad,
-            'acepta_mascotas' =>
-                (int) $propiedad->acepta_mascotas,
-            'acepta_hijos' =>
-                (int) $propiedad->acepta_hijos,
-            'disponible' => (int) $propiedad->disponible,
-            'destacada' => (int) $propiedad->destacada,
-            'categoria_id' => $propiedad->categoria_id,
-            'localidad_id' => $propiedad->localidad_id,
-        ];
-
-        $estadoFinal = array_merge(
-            $estadoFinal,
+        $estadoFinal = $this->construirEstadoFinal(
+            $propiedad,
             $data
         );
 
-        $validacion = PropiedadValidator::validar(
-            $estadoFinal
-        );
-
-        if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
-        }
-
-        if (
-            array_key_exists('categoria_id', $data)
-            && !$this->categoriaRepository->findById(
-                (int) $estadoFinal['categoria_id']
-            )
-        ) {
-            throw new ValidationException([
-                'categoria_id' => [
-                    'La categoría seleccionada no existe'
-                ],
-            ]);
-        }
-
-        if (
-            array_key_exists('localidad_id', $data)
-            && !$this->localidadRepository->findById(
-                (int) $estadoFinal['localidad_id']
-            )
-        ) {
-            throw new ValidationException([
-                'localidad_id' => [
-                    'La localidad seleccionada no existe'
-                ],
-            ]);
-        }
+        $this->validarEstadoFinal($estadoFinal, $data);
 
         $this->repository->update(
             $propiedad,
@@ -525,5 +356,204 @@ class PropiedadService
             $usuarioId,
             'Restauración de propiedad'
         );
+    }
+
+    private function validarRequisitosInteresados(array $datos): void
+    {
+        if (!array_key_exists('requisitos_interesados', $datos)) {
+            return;
+        }
+
+        $errores = PropiedadValidator::validarRequisitosInteresados(
+            $datos['requisitos_interesados']
+        );
+
+        if ($errores !== []) {
+            throw new ValidationException([
+                'requisitos_interesados' => $errores,
+            ]);
+        }
+    }
+
+    private function validarEstadoFinal(
+        array $estadoFinal,
+        array $data
+    ): void {
+        $validacion = PropiedadValidator::validar($estadoFinal);
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        if (
+            array_key_exists('categoria_id', $data)
+            && !$this->categoriaRepository->findById(
+                (int) $estadoFinal['categoria_id']
+            )
+        ) {
+            throw new ValidationException([
+                'categoria_id' => [
+                    'La categoría seleccionada no existe'
+                ],
+            ]);
+        }
+
+        if (
+            array_key_exists('localidad_id', $data)
+            && !$this->localidadRepository->findById(
+                (int) $estadoFinal['localidad_id']
+            )
+        ) {
+            throw new ValidationException([
+                'localidad_id' => [
+                    'La localidad seleccionada no existe'
+                ],
+            ]);
+        }
+    }
+
+    private function construirEstadoFinal(
+        Propiedad $propiedad,
+        array $data
+    ): array {
+        $estadoFinal = [
+            'titulo' => $propiedad->titulo,
+            'descripcion' => $propiedad->descripcion,
+            'precio' => $propiedad->precio,
+            'expensas' => $propiedad->expensas,
+            'direccion' => $propiedad->direccion,
+            'cantidad_ambientes' => $propiedad->cantidad_ambientes,
+            'cantidad_dormitorios' => $propiedad->cantidad_dormitorios,
+            'cantidad_banos' => $propiedad->cantidad_banos,
+            'capacidad' => $propiedad->capacidad,
+            'acepta_mascotas' => (int) $propiedad->acepta_mascotas,
+            'acepta_hijos' => (int) $propiedad->acepta_hijos,
+            'disponible' => (int) $propiedad->disponible,
+            'destacada' => (int) $propiedad->destacada,
+            'categoria_id' => $propiedad->categoria_id,
+            'localidad_id' => $propiedad->localidad_id,
+        ];
+
+        return array_merge($estadoFinal, $data);
+    }
+
+    private function validarDatosDeCreacion(array $data): void
+    {
+        $validacion = PropiedadValidator::validar($data);
+
+        if (!$validacion['success']) {
+            throw new ValidationException(
+                $validacion['errors']
+            );
+        }
+
+        if (
+            !$this->categoriaRepository->findById(
+                (int) $data['categoria_id']
+            )
+        ) {
+            throw new ValidationException([
+                'categoria_id' => [
+                    'La categoría seleccionada no existe'
+                ],
+            ]);
+        }
+
+        if (
+            !$this->localidadRepository->findById(
+                (int) $data['localidad_id']
+            )
+        ) {
+            throw new ValidationException([
+                'localidad_id' => [
+                    'La localidad seleccionada no existe'
+                ],
+            ]);
+        }
+    }
+
+    private function aplicarReglasDeAsignacion(
+        array $data,
+        int $usuarioId,
+        int $rolId,
+        mixed $propietarioId
+    ): array {
+        $data['usuario_id'] = $usuarioId;
+
+        if ($rolId !== Rol::ADMIN) {
+            $data['destacada'] = 0;
+        }
+
+        if (
+            $rolId === Rol::ADMIN
+            && $propietarioId !== null
+        ) {
+            $idPropietario = PropiedadSanitizer::sanitizarId(
+                $propietarioId
+            );
+
+            if ($idPropietario === null) {
+                throw new ValidationException([
+                    'propietario_id' => [
+                        'El ID del propietario no es válido',
+                    ],
+                ]);
+            }
+
+            if (!$this->usuarioRepository->findById($idPropietario)) {
+                throw new NotFoundException(
+                    'El propietario no existe'
+                );
+            }
+
+            $data['usuario_id'] = $idPropietario;
+        }
+
+        return $data;
+    }
+
+    private function validarServiciosSeleccionados(mixed $servicioIds): array
+    {
+        if (!is_array($servicioIds)) {
+            throw new ValidationException([
+                'servicios' => [
+                    'Los servicios deben enviarse como un arreglo'
+                ],
+            ]);
+        }
+
+        $servicioIds = array_values(
+            array_unique($servicioIds)
+        );
+
+        foreach ($servicioIds as $servicioId) {
+            $error = ServicioValidator::validarId($servicioId);
+
+            if ($error !== null) {
+                throw new ValidationException([
+                    'servicios' => [$error],
+                ]);
+            }
+        }
+
+        $servicioIds = array_map('intval', $servicioIds);
+
+        if ($servicioIds !== []) {
+            $servicios = $this->servicioRepository->findByIds(
+                $servicioIds
+            );
+
+            if ($servicios->count() !== count($servicioIds)) {
+                throw new ValidationException([
+                    'servicios' => [
+                        'Uno o más servicios seleccionados no existen'
+                    ],
+                ]);
+            }
+        }
+
+        return $servicioIds;
     }
 }
