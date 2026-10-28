@@ -115,7 +115,7 @@ class PropiedadController
         );
     }
 
-    // PATCH /api/propiedades/{id}/restaurar
+    // POST /api/propiedades/{id}/restaurar
     public function restore(Request $request, $id): Response
     {
         $user = $this->auth->verificar($request);
