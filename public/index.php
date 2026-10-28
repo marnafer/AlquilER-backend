@@ -85,15 +85,6 @@ if ($method === 'OPTIONS') {
 // Hacemos la variable $path global para que esté disponible en los routers
 $GLOBALS['path'] = $path;
 
-// Health
-if ($method === 'GET' && $path === '/api/health') {
-    Response::success([
-        'status' => 'ok',
-        'timestamp' => date('Y-m-d H:i:s')
-    ], 200, 'API funcionando correctamente')->emit();
-    exit;
-}
-
 $router = new Router();
 
 require_once SRC_PATH . 'Routes/api.php';
@@ -109,6 +100,15 @@ if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
 }
 
 RateLimitMiddleware::verificar();
+
+// Health
+if ($method === 'GET' && $path === '/api/health') {
+    Response::success([
+        'status' => 'ok',
+        'timestamp' => date('Y-m-d H:i:s')
+    ], 200, 'API funcionando correctamente')->emit();
+    exit;
+}
 
 $router->dispatch($request)->emit();
 exit;
