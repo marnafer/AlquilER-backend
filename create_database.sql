@@ -178,13 +178,16 @@ CREATE TABLE IF NOT EXISTS `propiedades` (
   `cantidad_dormitorios` tinyint(2) UNSIGNED NOT NULL,
   `cantidad_banos` tinyint(2) UNSIGNED NOT NULL,
   `capacidad` tinyint(3) UNSIGNED DEFAULT NULL,
-  `requisitos_interesados` JSON DEFAULT NULL,
+  `acepta_mascotas` tinyint(1) NOT NULL DEFAULT 1,
+  `acepta_hijos` tinyint(1) NOT NULL DEFAULT 1,
   `disponible` tinyint(1) NOT NULL DEFAULT 1,
   `destacada` tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
   `categoria_id` int(11) UNSIGNED NOT NULL,
   `usuario_id` int(11) UNSIGNED NOT NULL,
   `localidad_id` int(11) UNSIGNED NOT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `fecha_publicacion` datetime NOT NULL DEFAULT current_timestamp(),
+  `requisitos_interesados` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`requisitos_interesados`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -364,21 +367,6 @@ INSERT INTO `reservas` (`id`, `propiedad_id`, `usuario_id`, `fecha_inicio_alquil
 (3, 1, 2, '2026-07-01', '2027-07-01', 'rechazada', '2026-06-13 22:19:33', NULL),
 (4, 1, 2, '2026-07-01', '2027-07-01', 'cancelada', '2026-06-13 22:24:21', NULL),
 (5, 1, 2, '2026-05-01', NULL, 'finalizada', '2026-06-15 03:51:20', NULL);
-
--- --------------------------------------------------------
-
-DROP EVENT IF EXISTS `finalizar_reservas_vencidas`;
-
-CREATE EVENT `finalizar_reservas_vencidas`
-ON SCHEDULE EVERY 1 DAY
-STARTS '2026-09-21 00:05:00'
-DO
-    UPDATE `reservas`
-    SET `estado` = 'finalizada'
-    WHERE `estado` IN ('pendiente', 'confirmada')
-      AND `fecha_fin_alquiler` IS NOT NULL
-      AND `fecha_fin_alquiler` < CURDATE()
-      AND `deleted_at` IS NULL;
 
 -- --------------------------------------------------------
 
