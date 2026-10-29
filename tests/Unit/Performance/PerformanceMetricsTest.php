@@ -19,6 +19,7 @@ final class PerformanceMetricsTest extends TestCase
             requestId: 'request-1',
             method: 'GET',
             route: '/api/propiedades',
+            sessionId: 'capture-1',
             monotonicClock: static function () use (&$clockReads, $times): int {
                 return $times[$clockReads++];
             },
@@ -28,6 +29,7 @@ final class PerformanceMetricsTest extends TestCase
 
         $this->assertSame(123.46, $event['duration_ms']);
         $this->assertSame('request-1', $event['request_id']);
+        $this->assertSame('capture-1', $event['session_id']);
         $this->assertSame('GET', $event['method']);
         $this->assertSame('/api/propiedades', $event['route']);
         $this->assertSame(200, $event['status_code']);

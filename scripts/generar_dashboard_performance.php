@@ -7,6 +7,27 @@ const PERFORMANCE_DASHBOARD_PATH = 'storage/performance-dashboard/index.html';
 const PERFORMANCE_P95_TARGET_MS = 500.0;
 const PERFORMANCE_ERROR_TARGET_PERCENT = 1.0;
 
+$sessionFilter = null;
+$openBrowser = true;
+
+foreach (($argv ?? []) as $argument) {
+    if ($argument === '--no-open') {
+        $openBrowser = false;
+        continue;
+    }
+
+    if (!str_starts_with($argument, '--session=')) {
+        continue;
+    }
+
+    $sessionFilter = substr($argument, strlen('--session='));
+
+    if (!preg_match('/^[a-f0-9]{32}$/', $sessionFilter)) {
+        fwrite(STDERR, "Error: el identificador de sesión no es válido.\n");
+        exit(1);
+    }
+}
+
 /**
  * @return list<float>
  */
@@ -261,6 +282,16 @@ try {
         ];
     }
 
+    if ($sessionFilter !== null) {
+        $events = array_values(
+            array_filter(
+                $events,
+                static fn (array $event): bool =>
+                    ($event['session_id'] ?? null) === $sessionFilter
+            )
+        );
+    }
+
     foreach ($events as $event) {
         $route = $event['route'] ?? null;
         $routeLabel = is_string($route) ? $route : '(ruta no determinada)';
@@ -405,6 +436,12 @@ h1 { margin-bottom: .3rem; }
 .card strong { display: block; font-size: 1.5rem; }
 section { margin: 1rem 0; overflow-x: auto; }
 input { padding: .65rem; width: min(100%, 28rem); border: 1px solid #bac4d3; border-radius: .35rem; }
+button, select { padding: .6rem .8rem; border: 1px solid #bac4d3; border-radius: .35rem; background: white; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.capture-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.capture-actions button:first-child { color: white; border-color: #166534; background: #166534; }
+.capture-actions button:nth-child(2) { color: white; border-color: #991b1b; background: #991b1b; }
 table { border-collapse: collapse; width: 100%; margin-top: 1rem; white-space: nowrap; }
 th, td { padding: .65rem; border-bottom: 1px solid #e3e7ed; text-align: left; }
 th { background: #f7f8fa; }
@@ -415,11 +452,22 @@ small { color: #596579; }
 <body>
 <main>
 <h1>Métricas locales de AlquilER</h1>
-<p class="note">Generado: {$generatedAt}. Eventos analizados: {$totalRequests}; rutas registradas: {$routeCount}. Solo datos locales.</p>
+<p class="note" id="dashboard-summary">Generado: {$generatedAt}. Eventos analizados: {$totalRequests}; rutas registradas: {$routeCount}. Solo datos locales.</p>
+<section class="capture-controls">
+<h2>Captura por sesión</h2>
+<p id="capture-status" class="note">Conecta el dashboard al servidor local para iniciar una captura.</p>
+<div class="capture-actions">
+<button id="capture-start" type="button">Iniciar captura</button>
+<button id="capture-stop" type="button" disabled>Detener captura</button>
+<label for="capture-session">Sesión:</label>
+<select id="capture-session"><option value="">Historial general</option></select>
+</div>
+<small>La captura registra solo peticiones que la API atiende mientras está activa. La actualización es periódica, no instantánea.</small>
+</section>
 <div class="cards">
-<div class="card">Solicitudes<strong>{$totalRequests}</strong></div>
+<div class="card">Solicitudes<strong id="request-count">{$totalRequests}</strong></div>
 <div class="card">Rutas registradas<strong>{$routeCount}</strong></div>
-<div class="card">Respuestas HTTP de error<strong>{$errorCount}</strong></div>
+<div class="card">Respuestas HTTP de error<strong id="error-count">{$errorCount}</strong></div>
 </div>
 <p class="note">“Sin datos” indica que todavía no se midieron solicitudes para esa ruta y método. Las filas resaltadas superan los objetivos orientativos: p95 &gt; 500 ms o errores &gt; 1 %. No son un SLA.</p>
 <section>
@@ -431,17 +479,17 @@ small { color: #596579; }
 <th>HTTP p50 (ms)</th><th>HTTP p95 (ms)</th><th>HTTP máximo (ms)</th>
 <th>Errores</th><th>Consultas SQL</th><th>SQL p95 (ms)</th><th>Consultas lentas</th>
 </tr></thead>
-<tbody>{$routeRows}</tbody>
+<tbody id="route-summary">{$routeRows}</tbody>
 </table>
 </section>
 <section>
 <h2>Últimas 50 solicitudes</h2>
-<table>
+<table id="recent-table">
 <thead><tr>
 <th>Fecha UTC</th><th>Método</th><th>Ruta</th><th>Estado</th>
 <th>HTTP (ms)</th><th>Consultas</th><th>SQL total (ms)</th>
 </tr></thead>
-<tbody>{$recentRows}</tbody>
+<tbody id="recent-requests">{$recentRows}</tbody>
 </table>
 </section>
 <small>HTTP incluye el tiempo total de la petición. SQL total es la suma informada por Illuminate; comparar ambas medidas en varias ejecuciones antes de concluir cuál es el cuello de botella.</small>
@@ -453,6 +501,236 @@ document.getElementById('route-filter').addEventListener('input', function () {
         row.hidden = !row.textContent.toLowerCase().includes(filter);
     });
 });
+
+(() => {
+    const statusNode = document.getElementById('capture-status');
+    const startButton = document.getElementById('capture-start');
+    const stopButton = document.getElementById('capture-stop');
+    const sessionSelect = document.getElementById('capture-session');
+    const routeBody = document.getElementById('route-summary');
+    const recentBody = document.getElementById('recent-requests');
+    const requestCount = document.getElementById('request-count');
+    const errorCount = document.getElementById('error-count');
+    const summaryNode = document.getElementById('dashboard-summary');
+    const routeInventory = Array.from(routeBody.rows).map(row => ({
+        method: row.cells[0].textContent,
+        route: row.cells[1].textContent
+    }));
+    const historicRouteRows = Array.from(routeBody.rows, row => row.cloneNode(true));
+    const historicRecentRows = Array.from(recentBody.rows, row => row.cloneNode(true));
+    const historicRequestCount = requestCount.textContent;
+    const historicErrorCount = errorCount.textContent;
+    const historicSummary = summaryNode.textContent;
+    let csrfToken = '';
+    let selectedSessionId = '';
+    let activeSessionId = '';
+    let metricsEnabled = false;
+    let historySelected = false;
+
+    const percentile = (values, percent) => {
+        if (!values.length) return 0;
+        const sorted = [...values].sort((a, b) => a - b);
+        return sorted[Math.max(0, Math.ceil(percent / 100 * sorted.length) - 1)];
+    };
+
+    const addCell = (row, value) => {
+        const cell = document.createElement('td');
+        cell.textContent = String(value);
+        row.appendChild(cell);
+    };
+
+    const renderEvents = (events) => {
+        const groups = new Map();
+        let errors = 0;
+
+        events.forEach(event => {
+            const route = event.route || '(ruta no determinada)';
+            const key = `\${event.method} \${route}`;
+            const group = groups.get(key) || {
+                method: event.method,
+                route,
+                durations: [],
+                sqlDurations: [],
+                requests: 0,
+                errors: 0,
+                queries: 0,
+                slowQueries: 0
+            };
+            const isError = Number(event.status_code) >= 400;
+            group.requests += 1;
+            group.errors += isError ? 1 : 0;
+            group.durations.push(Number(event.duration_ms));
+            group.sqlDurations.push(Number(event.sql.total_ms));
+            group.queries += Number(event.sql.query_count);
+            group.slowQueries += Number(event.sql.slow_query_count);
+            groups.set(key, group);
+            errors += isError ? 1 : 0;
+        });
+
+        const allRoutes = new Map();
+        routeInventory.forEach(route => {
+            allRoutes.set(`\${route.method} \${route.route}`, route);
+        });
+        groups.forEach((group, key) => allRoutes.set(key, group));
+
+        const rows = Array.from(allRoutes.entries()).map(([key, route]) => {
+            const group = groups.get(key);
+            if (!group) return { ...route, requests: 0, p95: null };
+            const errorPercent = group.errors / group.requests * 100;
+            const p95 = percentile(group.durations, 95);
+            return { ...group, errorPercent, p95 };
+        });
+
+        rows.sort((a, b) => {
+            if (a.requests === 0 || b.requests === 0) {
+                if (a.requests !== b.requests) return b.requests - a.requests;
+                return `\${a.route} \${a.method}`.localeCompare(`\${b.route} \${b.method}`);
+            }
+            return b.p95 - a.p95;
+        });
+
+        routeBody.replaceChildren();
+        rows.forEach(group => {
+            const row = document.createElement('tr');
+            if (group.requests > 0 && (group.p95 > 500 || group.errorPercent > 1)) {
+                row.className = 'review';
+            }
+            addCell(row, group.method);
+            addCell(row, group.route);
+            addCell(row, group.requests || 'Sin datos');
+            addCell(row, group.requests ? percentile(group.durations, 50).toFixed(2) : '—');
+            addCell(row, group.requests ? group.p95.toFixed(2) : '—');
+            addCell(row, group.requests ? Math.max(...group.durations).toFixed(2) : '—');
+            addCell(row, group.requests ? `\${group.errorPercent.toFixed(2)}%` : '—');
+            addCell(row, group.queries || 0);
+            addCell(row, group.requests ? percentile(group.sqlDurations, 95).toFixed(2) : '—');
+            addCell(row, group.slowQueries || 0);
+            routeBody.appendChild(row);
+        });
+
+        const recent = [...events].reverse().slice(0, 50);
+        recentBody.replaceChildren();
+        recent.forEach(event => {
+            const row = document.createElement('tr');
+            addCell(row, event.timestamp_utc);
+            addCell(row, event.method);
+            addCell(row, event.route || '(ruta no determinada)');
+            addCell(row, event.status_code);
+            addCell(row, Number(event.duration_ms).toFixed(2));
+            addCell(row, event.sql.query_count);
+            addCell(row, Number(event.sql.total_ms).toFixed(2));
+            recentBody.appendChild(row);
+        });
+
+        requestCount.textContent = String(events.length);
+        errorCount.textContent = String(errors);
+        const selected = sessionSelect.value;
+        const sessionLabel = selected ? `Captura \${selected}` : 'Historial general';
+        summaryNode.textContent = `\${sessionLabel}. Actualizado: \${new Date().toLocaleTimeString()}. Eventos analizados: \${events.length}; rutas registradas: \${rows.length}.`;
+    };
+
+    const restoreHistory = () => {
+        routeBody.replaceChildren(...historicRouteRows.map(row => row.cloneNode(true)));
+        recentBody.replaceChildren(...historicRecentRows.map(row => row.cloneNode(true)));
+        requestCount.textContent = historicRequestCount;
+        errorCount.textContent = historicErrorCount;
+        summaryNode.textContent = historicSummary;
+    };
+
+    const refresh = async () => {
+        if (location.protocol === 'file:') {
+            statusNode.textContent = 'Para usar los controles, inicia el servidor local del dashboard y abre http://127.0.0.1:8765.';
+            startButton.disabled = true;
+            stopButton.disabled = true;
+            sessionSelect.disabled = true;
+            return;
+        }
+
+        try {
+            const statusResponse = await fetch('?action=status', { cache: 'no-store' });
+            const status = await statusResponse.json();
+            if (!statusResponse.ok) throw new Error(status.error || 'No se pudo consultar el estado.');
+            csrfToken = status.csrf_token;
+            metricsEnabled = status.metrics_enabled;
+            activeSessionId = status.active_session_id || '';
+
+            const sessions = status.sessions || [];
+            const requestedSession = selectedSessionId
+                || (historySelected ? '' : activeSessionId || status.last_session_id)
+                || '';
+            sessionSelect.replaceChildren();
+            sessions.slice().reverse().forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.id;
+                option.textContent = `\${session.started_at}\${session.stopped_at ? ` — \${session.stopped_at}` : ' — activa'}`;
+                sessionSelect.appendChild(option);
+            });
+            const allOption = document.createElement('option');
+            allOption.value = '';
+            allOption.textContent = 'Historial general';
+            sessionSelect.appendChild(allOption);
+            selectedSessionId = sessions.some(session => session.id === requestedSession)
+                ? requestedSession
+                : '';
+            sessionSelect.value = selectedSessionId;
+
+            startButton.disabled = !metricsEnabled || Boolean(activeSessionId);
+            stopButton.disabled = !activeSessionId;
+            statusNode.textContent = activeSessionId
+                ? `Captura activa desde \${sessions.find(item => item.id === activeSessionId)?.started_at || ''}. Actualizando cada 3 segundos.`
+                : metricsEnabled
+                    ? 'Sin captura activa. Inicia una para aislar las próximas peticiones.'
+                    : 'Activa APP_ENV=development y PERFORMANCE_METRICS_ENABLED=true en el backend para capturar.';
+
+            if (selectedSessionId) {
+                const eventsResponse = await fetch(
+                    `?action=events&session_id=\${encodeURIComponent(selectedSessionId)}`,
+                    { cache: 'no-store' }
+                );
+                const payload = await eventsResponse.json();
+                if (!eventsResponse.ok) throw new Error(payload.error || 'No se pudieron leer las métricas.');
+                renderEvents(payload.events);
+            } else {
+                restoreHistory();
+            }
+        } catch (error) {
+            statusNode.textContent = error.message || 'No se pudo conectar con el control local de métricas.';
+        }
+    };
+
+    const sendControl = async action => {
+        startButton.disabled = true;
+        stopButton.disabled = true;
+        try {
+            const response = await fetch(`?action=\${action}`, {
+                method: 'POST',
+                headers: { 'X-Performance-Dashboard-Token': csrfToken }
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'No se pudo cambiar el estado de captura.');
+            if (action === 'start') {
+                selectedSessionId = result.session_id;
+                historySelected = false;
+                renderEvents([]);
+            }
+            await refresh();
+        } catch (error) {
+            statusNode.textContent = error.message;
+            await refresh();
+        }
+    };
+
+    startButton.addEventListener('click', () => sendControl('start'));
+    stopButton.addEventListener('click', () => sendControl('stop'));
+    sessionSelect.addEventListener('change', () => {
+        selectedSessionId = sessionSelect.value;
+        historySelected = !selectedSessionId;
+        refresh();
+    });
+
+    refresh();
+    window.setInterval(refresh, 3000);
+})();
 </script>
 </body>
 </html>
@@ -482,7 +760,7 @@ HTML;
     echo "Dashboard generado: {$outputPath}" . PHP_EOL;
     echo "Eventos analizados: {$totalRequests}" . PHP_EOL;
 
-    if (PHP_OS_FAMILY === 'Windows') {
+    if (PHP_OS_FAMILY === 'Windows' && $openBrowser) {
         $command = 'start "" ' . escapeshellarg($outputPath);
         $process = @popen($command, 'r');
 
@@ -494,7 +772,7 @@ HTML;
             echo 'No se pudo abrir el navegador automáticamente.'
                 . PHP_EOL;
         }
-    } else {
+    } elseif (PHP_OS_FAMILY !== 'Windows') {
         echo 'Abre el archivo HTML generado en tu navegador.'
             . PHP_EOL;
     }

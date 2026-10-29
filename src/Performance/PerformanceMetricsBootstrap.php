@@ -11,6 +11,7 @@ final class PerformanceMetricsBootstrap
 {
     public function __construct(
         private readonly ?PerformanceMetricsLogger $logger = null,
+        private readonly ?PerformanceMetricsSession $session = null,
     ) {
     }
 
@@ -48,6 +49,8 @@ final class PerformanceMetricsBootstrap
                 method: $request->method(),
                 route: null,
                 slowSqlThresholdMs: $threshold,
+                sessionId: ($this->session ?? new PerformanceMetricsSession())
+                    ->activeSessionId(),
             );
 
             PerformanceMetricsContext::activate($metrics);

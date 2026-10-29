@@ -37,6 +37,7 @@ final class PerformanceMetrics
         private ?string $route,
         private readonly int $slowSqlThresholdMs = 100,
         private readonly ?Closure $monotonicClock = null,
+        private readonly ?string $sessionId = null,
     ) {
         if ($slowSqlThresholdMs < 0) {
             throw new InvalidArgumentException(
@@ -108,6 +109,7 @@ final class PerformanceMetrics
         return [
             'timestamp_utc' => gmdate('Y-m-d\TH:i:s\Z'),
             'request_id' => $this->requestId,
+            'session_id' => $this->sessionId,
             'method' => $this->method,
             'route' => $this->route,
             'status_code' => $statusCode,

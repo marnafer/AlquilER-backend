@@ -158,7 +158,9 @@ sin guardar el SQL ni sus bindings.
 
 Los eventos incluyen fecha UTC, identificador de petición, método, plantilla de
 ruta cuando se conoce, estado HTTP, duración total y cantidad/duración
-acumulada de consultas. No se registran tokens, encabezados, cuerpos de
+acumulada de consultas y, si hay una captura activa desde el dashboard, su
+identificador de sesión. Sin captura activa, `session_id` queda en `null`.
+No se registran tokens, encabezados, cuerpos de
 petición, credenciales ni valores de bindings. Las consultas fallidas no
 generan `QueryExecuted`, por lo que este contador mide consultas notificadas
 por Illuminate tras ejecutarse.
@@ -188,6 +190,42 @@ Get-Content storage/logs/performance.jsonl | ForEach-Object {
 Las duraciones SQL y HTTP se deben interpretar juntas y contrastar en varias
 corridas; una consulta lenta individual no demuestra por sí sola que sea el
 cuello de botella.
+
+#### Capturas por sesión y actualización en vivo
+
+En Windows, desde la raíz del backend, ejecuta:
+
+```powershell
+.\scripts\abrir_dashboard_performance.ps1
+```
+
+El script genera el dashboard, inicia (o reutiliza) un servidor local ligado
+solo a `127.0.0.1:8765` y abre `http://127.0.0.1:8765`. También puedes iniciar
+el servidor manualmente:
+
+```bash
+php -S 127.0.0.1:8765 scripts/performance_dashboard_server.php
+```
+
+Mantén `APP_ENV=development` y `PERFORMANCE_METRICS_ENABLED=true` en `.env`.
+Desde el dashboard, pulsa **Iniciar captura**, usa la aplicación y pulsa
+**Detener captura**. Mientras está activa, los resultados se actualizan cada
+3 segundos; el selector permite volver a consultar las sesiones anteriores.
+Cada captura tiene un identificador distinto y no requiere borrar ni mover los
+logs. El servidor de control solo escucha en loopback y exige validación de
+origen y token local para iniciar o detener una sesión. Termina el servidor
+en la ventana de consola que abrió el lanzador, o en la terminal manual, con
+`Ctrl+C`.
+
+El botón no activa ni modifica `.env`: si la instrumentación no está habilitada,
+el dashboard no permite iniciar la captura. Las solicitudes que ya estaban en
+curso al detenerla pueden terminar y quedar asociadas a esa sesión. Las sesiones
+se guardan en los logs existentes, sujetos a su rotación de 5 MiB y tres
+respaldos. Para generar un HTML estático de una sesión concreta:
+
+```bash
+php scripts/generar_dashboard_performance.php --session=IDENTIFICADOR_DE_32_CARACTERES
+```
 
 ### Datos sintéticos para pruebas de carga
 

@@ -7,6 +7,7 @@ namespace Tests\Unit\Performance;
 use App\Performance\PerformanceMetricsBootstrap;
 use App\Performance\PerformanceMetricsContext;
 use App\Performance\PerformanceMetricsLogger;
+use App\Performance\PerformanceMetricsSession;
 use App\Http\Request;
 use PHPUnit\Framework\TestCase;
 
@@ -69,6 +70,29 @@ final class PerformanceMetricsBootstrapTest extends TestCase
             }
         }
 
+        foreach ([
+            'sessions.json',
+            'sessions.json.lock',
+        ] as $filename) {
+            $path = $this->directory
+                . DIRECTORY_SEPARATOR
+                . 'sessions'
+                . DIRECTORY_SEPARATOR
+                . $filename;
+
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        $sessionDirectory = $this->directory
+            . DIRECTORY_SEPARATOR
+            . 'sessions';
+
+        if (is_dir($sessionDirectory)) {
+            @rmdir($sessionDirectory);
+        }
+
         if (is_dir($this->directory)) {
             @rmdir($this->directory);
         }
@@ -116,8 +140,13 @@ final class PerformanceMetricsBootstrapTest extends TestCase
             . DIRECTORY_SEPARATOR
             . 'performance.jsonl';
 
+        $sessions = new PerformanceMetricsSession(
+            $this->directory . DIRECTORY_SEPARATOR . 'sessions'
+        );
+        $sessionId = $sessions->start();
         $bootstrap = new PerformanceMetricsBootstrap(
-            new PerformanceMetricsLogger($path)
+            new PerformanceMetricsLogger($path),
+            $sessions
         );
 
         $lifecycle = $bootstrap->start(
@@ -142,6 +171,7 @@ final class PerformanceMetricsBootstrapTest extends TestCase
         );
 
         $this->assertSame('GET', $event['method']);
+        $this->assertSame($sessionId, $event['session_id']);
         $this->assertSame(200, $event['status_code']);
         $this->assertSame(0, $event['sql']['query_count']);
         $this->assertMatchesRegularExpression(
