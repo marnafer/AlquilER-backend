@@ -19,6 +19,7 @@ use App\Http\Response;
 class Router
 {
     private array $routes = [];
+    private ?string $matchedRoute = null;
 
     public function get(string $uri, callable|array $handler): void
     {
@@ -49,10 +50,16 @@ class Router
     {
         $method = $request->method();
         $path = $request->path();
+        $this->matchedRoute = null;
 
         // 1. Rutas exactas
         if (isset($this->routes[$method][$path])) {
-            return $this->invocarAccion($this->routes[$method][$path], $request);
+            $this->matchedRoute = $path;
+
+            return $this->invocarAccion(
+                $this->routes[$method][$path],
+                $request
+            );
         }
 
         // 2. Rutas dinámicas
@@ -60,9 +67,14 @@ class Router
             $pattern = $this->compilarRuta($route);
 
             if (preg_match($pattern, $path, $matches)) {
-                array_shift($matches); // quita match completo
+                $this->matchedRoute = $route;
+                array_shift($matches);
 
-                return $this->invocarAccion($handler, $request, $matches);
+                return $this->invocarAccion(
+                    $handler,
+                    $request,
+                    $matches
+                );
             }
         }
 
@@ -70,6 +82,8 @@ class Router
         foreach ($this->routes as $routes) {
             foreach (array_keys($routes) as $route) {
                 if (preg_match($this->compilarRuta($route), $path)) {
+                    $this->matchedRoute = $route;
+
                     throw new MethodNotAllowedException();
                 }
             }
@@ -111,5 +125,10 @@ class Router
         $response = $instance->$action($request, ...$params);
 
         return $response;
+    }
+
+    public function matchedRoute(): ?string
+    {
+        return $this->matchedRoute;
     }
 }

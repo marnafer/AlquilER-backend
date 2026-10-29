@@ -23,3 +23,12 @@ PLAN-SWAGGER.txt
 
 # Archivos temporales
 .phpunit.result.cache
+
+# Reportes locales de pruebas de carga
+/storage/stress-tests/*.json
+/storage/stress-tests/*.csv
+
+# Métricas locales de rendimiento y archivos rotados/bloqueo
+/storage/logs/performance.jsonl
+/storage/logs/performance.jsonl.*
+/storage/performance-dashboard/

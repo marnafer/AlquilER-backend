@@ -278,4 +278,70 @@ final class RouterTest extends TestCase
         $this->assertSame('store', ControladorFalso::$llamadas[0]['metodo']);
         $this->assertSame(200, $response->status());
     }
+
+    public function test_matched_route_devuelve_la_plantilla_de_una_ruta_exacta(): void
+    {
+        $this->router->get('/api/usuarios/me', [new ControladorFalso(), 'me']);
+
+        $this->router->dispatch($this->get('/api/usuarios/me'));
+
+        $this->assertSame(
+            '/api/usuarios/me',
+            $this->router->matchedRoute()
+        );
+    }
+
+    public function test_matched_route_devuelve_la_plantilla_y_no_el_id_dinamico(): void
+    {
+        $this->router->get(
+            '/api/usuarios/{id}',
+            [new ControladorFalso(), 'show']
+        );
+
+        $this->router->dispatch($this->get('/api/usuarios/42'));
+
+        $this->assertSame(
+            '/api/usuarios/{id}',
+            $this->router->matchedRoute()
+        );
+    }
+
+    public function test_matched_route_es_null_si_la_ruta_no_existe(): void
+    {
+        $this->router->get(
+            '/api/usuarios/{id}',
+            [new ControladorFalso(), 'show']
+        );
+
+        $this->router->dispatch($this->get('/api/usuarios/42'));
+        $this->assertSame('/api/usuarios/{id}', $this->router->matchedRoute());
+
+        try {
+            $this->router->dispatch($this->get('/api/desconocida'));
+            $this->fail('Se esperaba NotFoundException');
+        } catch (NotFoundException) {
+            $this->assertNull($this->router->matchedRoute());
+        }
+    }
+
+    public function test_matched_route_se_conserva_para_una_respuesta_405(): void
+    {
+        $this->router->get(
+            '/api/usuarios/{id}',
+            [new ControladorFalso(), 'show']
+        );
+
+        try {
+            $this->router->dispatch(
+                new Request(method: 'DELETE', path: '/api/usuarios/42')
+            );
+            $this->fail('Se esperaba MethodNotAllowedException');
+        } catch (MethodNotAllowedException $exception) {
+            $this->assertSame(405, $exception->getCode());
+            $this->assertSame(
+                '/api/usuarios/{id}',
+                $this->router->matchedRoute()
+            );
+        }
+    }
 }

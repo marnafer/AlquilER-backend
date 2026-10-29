@@ -1,13 +1,20 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
+use App\Exceptions\GlobalExceptionHandler;
+use App\Performance\PerformanceMetricsBootstrap;
+use App\Http\Request;
+use App\Http\Response;
+use App\Middlewares\RateLimitMiddleware;
+use App\Routes\Router;
+use Dotenv\Dotenv;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use App\Exceptions\GlobalExceptionHandler;
-use Dotenv\Dotenv;
-
 set_exception_handler(
-    function (\Throwable $e) {
-        $response = GlobalExceptionHandler::handle($e);
+    static function (\Throwable $exception): void {
+        $response = GlobalExceptionHandler::handle($exception);
         $response->emit();
     }
 );
@@ -15,14 +22,14 @@ set_exception_handler(
 $dotenv = Dotenv::createImmutable(dirname(__DIR__));
 $dotenv->load();
 
+$request = Request::fromGlobals();
+$method = $request->method();
+$path = $request->path();
+
+$metricsLifecycle = (new PerformanceMetricsBootstrap())->start($request);
+
 require_once __DIR__ . '/../src/database.php';
-
 require_once __DIR__ . '/../config/config.php';
-
-use App\Http\Request;
-use App\Http\Response;
-use App\Routes\Router;
-use App\Middlewares\RateLimitMiddleware;
 
 date_default_timezone_set('America/Argentina/Buenos_Aires');
 
@@ -49,14 +56,6 @@ if (in_array($origin, $allowedOrigins, true)) {
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-// ============================================
-// CONFIGURACIÓN
-// ============================================
-
-$request = Request::fromGlobals();
-$method = $request->method();
-$path = $request->path();
 
 // ============================================
 // SERVIDOR EMBEBIDO (php -S): servir archivos
@@ -99,17 +98,38 @@ if (($_ENV['APP_ENV'] ?? 'production') === 'development') {
     }
 }
 
-RateLimitMiddleware::verificar();
+if (
+    $metricsLifecycle !== null
+    && $method === 'GET'
+    && $path === '/api/health'
+) {
+    $metricsLifecycle->setRoute('/api/health');
+}
 
 // Health
 if ($method === 'GET' && $path === '/api/health') {
     Response::success([
         'status' => 'ok',
-        'timestamp' => date('Y-m-d H:i:s')
+        'timestamp' => date('Y-m-d H:i:s'),
     ], 200, 'API funcionando correctamente')->emit();
     exit;
 }
 
-$router->dispatch($request)->emit();
-exit;
+RateLimitMiddleware::verificar();
 
+try {
+    $response = $router->dispatch($request);
+} catch (\Throwable $exception) {
+    if ($metricsLifecycle !== null) {
+        $metricsLifecycle->setRoute($router->matchedRoute());
+    }
+
+    throw $exception;
+}
+
+if ($metricsLifecycle !== null) {
+    $metricsLifecycle->setRoute($router->matchedRoute());
+}
+
+$response->emit();
+exit;
