@@ -436,24 +436,6 @@ class PropiedadValidator
         return null;
     }
 
-    private static function validarLimitFiltro(
-        mixed $limit
-    ): ?string {
-        if ($limit === null) {
-            return null;
-        }
-
-        if (
-            !is_int($limit)
-            || $limit < 1
-            || $limit > 50
-        ) {
-            return 'El límite debe ser un entero entre 1 y 50.';
-        }
-
-        return null;
-    }
-
     private static function validarPaginaFiltro(
         mixed $pagina
     ): ?string {
@@ -651,9 +633,6 @@ class PropiedadValidator
                 $data['localidad_id'] ?? null
             ),
 
-            'limit' => self::validarLimitFiltro(
-                $data['limit'] ?? null
-            )
         ];
 
        foreach ($validaciones as $campo => $error) {

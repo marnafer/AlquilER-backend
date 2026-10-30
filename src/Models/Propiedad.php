@@ -144,8 +144,12 @@ class Propiedad extends Model
         return $this->imagenes->first();
     }
 
-    public function getImagenUrlAttribute(): ?string
+    public function getImagenUrlAttribute(?string $value = null): ?string
     {
+        if (array_key_exists('imagen_url', $this->attributes)) {
+            return $this->attributes['imagen_url'];
+        }
+
         $imagen = $this->imagenDestacada();
 
         return $imagen?->ruta;
