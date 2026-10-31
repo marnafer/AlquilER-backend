@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\Helpers\ProfanityFilter;
+
 class PropiedadValidator
 {
     public static function validarId($id): ?string
@@ -40,6 +42,10 @@ class PropiedadValidator
 
         if (mb_strlen($titulo) > 150) {
             return 'El título no puede superar los 150 caracteres';
+
+        if (ProfanityFilter::contiene($titulo)) {
+            return 'El titulo contiene lenguaje inapropiado';
+        }
         }
 
         return null;
@@ -54,7 +60,10 @@ class PropiedadValidator
 
         if (mb_strlen($descripcion) > 5000) {
             return 'La descripción no puede superar los 5000 caracteres';
-        }
+
+        if (ProfanityFilter::contiene($descripcion)) {
+            return 'La descripcion contiene lenguaje inapropiado';
+        }        }
 
         return null;
     }
@@ -427,24 +436,6 @@ class PropiedadValidator
         return null;
     }
 
-    private static function validarLimitFiltro(
-        mixed $limit
-    ): ?string {
-        if ($limit === null) {
-            return null;
-        }
-
-        if (
-            !is_int($limit)
-            || $limit < 1
-            || $limit > 50
-        ) {
-            return 'El límite debe ser un entero entre 1 y 50.';
-        }
-
-        return null;
-    }
-
     private static function validarPaginaFiltro(
         mixed $pagina
     ): ?string {
@@ -642,9 +633,6 @@ class PropiedadValidator
                 $data['localidad_id'] ?? null
             ),
 
-            'limit' => self::validarLimitFiltro(
-                $data['limit'] ?? null
-            )
         ];
 
        foreach ($validaciones as $campo => $error) {

@@ -95,6 +95,167 @@ interesados, ejecutar una vez el script
 
 Si Apache está configurado para utilizar otro puerto, utilizar el puerto correspondiente en la URL.
 
+### Prueba de carga local
+
+El script `scripts/stress_test.php` ejecuta una prueba escalonada sobre rutas
+GET y reporta latencia total (mínima, promedio, p50, p95 y p99), tiempo hasta
+el primer byte, solicitudes por segundo, distribución de códigos HTTP,
+errores, bytes descargados y encabezados del limitador. Los resultados se
+separan por nivel de concurrencia y ruta. No crea ni modifica datos de negocio
+y solo admite destinos locales (`localhost`, `127.0.0.1` o `::1`).
+
+La aplicación debe estar levantada y conectada a una base de datos de prueba.
+Para medir concurrencia, usar Apache/XAMPP: el servidor integrado `php -S`
+atiende una solicitud a la vez por defecto. El middleware limita las lecturas
+GET a 120 solicitudes por minuto; las respuestas `429` se registran aparte y
+hacen que el nivel figure como inconcluso, porque no permiten conocer la
+capacidad real de la aplicación.
+
+```bash
+php scripts/stress_test.php --base-url=http://localhost/alquiler-backend/public --requests=30 --concurrency=1,5,10
+```
+
+Por defecto prueba `/api/propiedades?per_page=10`, con dos solicitudes de
+calentamiento por ruta y nivel. Los objetivos orientativos son p95 <= 500 ms
+y errores <= 1%; son configurables y no constituyen un SLA:
+
+```bash
+php scripts/stress_test.php --base-url=http://localhost/alquiler-backend/public --requests=50 --concurrency=1,5,10 --warmup=3 --p95-target-ms=400 --error-target-percent=1 --paths=/api/propiedades?per_page=20
+```
+
+Cada ejecución guarda un reporte JSON detallado y un resumen CSV en
+`storage/stress-tests/`, incluyendo commit, rama, estado de Git, entorno del
+cliente y evaluación por nivel/ruta. Para rutas autenticadas, se puede definir
+`STRESS_TEST_BEARER_TOKEN` en el entorno; el token no se guarda en los reportes.
+`OK` indica que se cumplieron los objetivos configurados; `REVISAR` que se
+superó alguno; `INCONCLUSO` que hubo respuestas `429`; `PROVISIONAL` indica
+menos de 30 solicitudes en alguna ruta/nivel. El proceso termina con código 1
+si hay que revisar, 2 si el limitador impidió concluir y 0 si no se detectó
+ninguna de esas condiciones.
+La medición no desglosa CPU, memoria ni tiempo exclusivo de base de datos. Para
+comparar resultados, mantener iguales los datos, el entorno y los parámetros,
+usar al menos 30 solicitudes medidas por ruta y nivel, y repetir cada corrida.
+
+### Instrumentación local de rendimiento
+
+La instrumentación registra un evento JSON por línea en
+`storage/logs/performance.jsonl`. Está desactivada por defecto. Solo se activa
+cuando `.env` tiene `APP_ENV=development` y
+`PERFORMANCE_METRICS_ENABLED=true`.
+
+```dotenv
+APP_ENV=development
+PERFORMANCE_METRICS_ENABLED=true
+PERFORMANCE_METRICS_SLOW_SQL_MS=100
+```
+
+El umbral de consultas lentas está expresado en milisegundos; el valor inicial
+es 100 ms. La instrumentación registra la duración total de la petición con un
+reloj monotónico, el código HTTP y métricas SQL agregadas. Una consulta que
+alcanza el umbral se cuenta como lenta. Se conserva como máximo el detalle de
+10 consultas lentas por petición; su huella SHA-256 sirve para agrupar consultas
+sin guardar el SQL ni sus bindings.
+
+Los eventos incluyen fecha UTC, identificador de petición, método, plantilla de
+ruta cuando se conoce, estado HTTP, duración total y cantidad/duración
+acumulada de consultas y, si hay una captura activa desde el dashboard, su
+identificador de sesión. Sin captura activa, `session_id` queda en `null`.
+No se registran tokens, encabezados, cuerpos de
+petición, credenciales ni valores de bindings. Las consultas fallidas no
+generan `QueryExecuted`, por lo que este contador mide consultas notificadas
+por Illuminate tras ejecutarse.
+
+El archivo tiene un límite de 5 MiB y conserva hasta tres generaciones rotadas
+(`performance.jsonl.1` a `.3`). Si falla el registro, el error se envía al log
+de PHP y no debe impedir la respuesta. Los archivos de métricas y de bloqueo
+están excluidos de Git; se recomienda limitar el acceso a `storage/logs/` al
+usuario local que ejecuta PHP.
+
+La instrumentación se inicia para rutas bajo `/api/`. Las respuestas `429`
+producidas antes del despacho pueden quedar sin plantilla de ruta. En el
+flujo actual, `/api/health` se responde antes del rate limiter y no queda
+sujeto a ese límite.
+
+Para revisar las líneas del log en PowerShell:
+
+```powershell
+Get-Content storage/logs/performance.jsonl | ForEach-Object {
+    $_ | ConvertFrom-Json
+} | Select-Object timestamp_utc, request_id, method, route, status_code, duration_ms,
+    @{Name='sql_count';Expression={$_.sql.query_count}},
+    @{Name='sql_total_ms';Expression={$_.sql.total_ms}},
+    @{Name='slow_sql_count';Expression={$_.sql.slow_query_count}}
+```
+
+Las duraciones SQL y HTTP se deben interpretar juntas y contrastar en varias
+corridas; una consulta lenta individual no demuestra por sí sola que sea el
+cuello de botella.
+
+#### Capturas por sesión y actualización en vivo
+
+En Windows, desde la raíz del backend, ejecuta:
+
+```powershell
+.\scripts\abrir_dashboard_performance.ps1
+```
+
+El script genera el dashboard, inicia (o reutiliza) un servidor local ligado
+solo a `127.0.0.1:8765` y abre `http://127.0.0.1:8765`. También puedes iniciar
+el servidor manualmente:
+
+```bash
+php -S 127.0.0.1:8765 scripts/performance_dashboard_server.php
+```
+
+Mantén `APP_ENV=development` y `PERFORMANCE_METRICS_ENABLED=true` en `.env`.
+Desde el dashboard, pulsa **Iniciar captura**, usa la aplicación y pulsa
+**Detener captura**. Mientras está activa, los resultados se actualizan cada
+3 segundos; el selector permite volver a consultar las sesiones anteriores.
+Cada captura tiene un identificador distinto y no requiere borrar ni mover los
+logs. El servidor de control solo escucha en loopback y exige validación de
+origen y token local para iniciar o detener una sesión. Termina el servidor
+en la ventana de consola que abrió el lanzador, o en la terminal manual, con
+`Ctrl+C`.
+
+El botón no activa ni modifica `.env`: si la instrumentación no está habilitada,
+el dashboard no permite iniciar la captura. Las solicitudes que ya estaban en
+curso al detenerla pueden terminar y quedar asociadas a esa sesión. Las sesiones
+se guardan en los logs existentes, sujetos a su rotación de 5 MiB y tres
+respaldos. Para generar un HTML estático de una sesión concreta:
+
+```bash
+php scripts/generar_dashboard_performance.php --session=IDENTIFICADOR_DE_32_CARACTERES
+```
+
+### Datos sintéticos para pruebas de carga
+
+`scripts/generar_datos_stress.php` crea usuarios, propiedades, relaciones con
+servicios, consultas/mensajes, favoritos y reservas ficticias. La simulación
+por defecto estima 10.000 usuarios, 10.000 propiedades, 5.000 consultas,
+15.000 favoritos y 2.000 reservas. No crea archivos de imágenes.
+
+El script solo acepta `APP_ENV=development`, una conexión MySQL local y
+`DB_DATABASE=sistema_alquiler_db_dev`. Primero revisar el plan sin escribir:
+
+```bash
+php scripts/generar_datos_stress.php --dry-run
+```
+
+Para insertar hay que solicitarlo explícitamente:
+
+```bash
+php scripts/generar_datos_stress.php --execute
+```
+
+La carga es aditiva: no elimina ni trunca tablas. Los correos usan el dominio
+reservado `.invalid`, las contraseñas se generan aleatoriamente y las
+ejecuciones repetidas omiten los registros sintéticos que ya existen. Aun así,
+se recomienda una copia de seguridad antes de poblar la base local, porque el
+volumen agregado puede afectar otras pruebas y ocupar espacio. Ajustar el
+volumen con `--users=N`, `--properties=N`, `--consultations=N`,
+`--favorites=N` y `--reservations=N`. Los usuarios sintéticos usan únicamente
+el rol estándar; no se crean cuentas administradoras.
+
 ### Propósito general
 El sistema AlquilER tiene como objetivo gestionar el alquiler de propiedades, permitiendo centralizar la información relacionada con propiedades, usuarios, reservas, consultas, servicios y demás elementos asociados al proceso de alquiler. 
 

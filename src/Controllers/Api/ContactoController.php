@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
+use App\Http\Request;
+use App\Http\Response;
 use App\Services\ContactoService;
 
 class ContactoController
@@ -18,13 +18,13 @@ class ContactoController
     /**
      * POST /api/contacto
      */
-    public function store(): void
+    public function store(Request $request): Response
     {
         $this->service->enviar(
-            Request::json()
+            $request->json()
         );
 
-        Response::created(
+        return Response::created(
             [],
             'Mensaje enviado correctamente'
         );

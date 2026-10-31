@@ -1,99 +1,75 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
-use App\Helpers\Request;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\CategoriaService;
-use App\Middlewares\AutenticadorMiddleware;
-use App\Middlewares\PapeleraMiddleware;
 
 class CategoriaController
 {
-
-    private readonly CategoriaService $service;
-
-    public function __construct(CategoriaService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly CategoriaService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     // GET /api/categorias
-    public function index()
+    public function index(Request $request): Response
     {
-        PapeleraMiddleware::verificarSiPidePapelera();
+        $this->auth->verificarSiPidePapelera($request);
 
-        Response::success(
-            $this->service->listar($this->filtrosPapelera())
+        return Response::success(
+            $this->service->listar($this->filtrosPapelera($request))
         );
     }
 
-    private function filtrosPapelera(): array
-    {
-        $filtros = [];
-
-        if (isset($_GET['solo_eliminados'])) {
-            $filtros['solo_eliminados'] = filter_var(
-                $_GET['solo_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        if (isset($_GET['incluir_eliminados'])) {
-            $filtros['incluir_eliminados'] = filter_var(
-                $_GET['incluir_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        return $filtros;
-    }
-
     // GET /api/categorias/{id}
-    public function show($id)
+    public function show(Request $request, $id): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->obtener($id)
         );
     }
 
     // POST /api/categorias
-    public function store()
-    { 
-        AutenticadorMiddleware::soloAdmin();
+    public function store(Request $request): Response
+    {
+        $this->auth->soloAdmin($request);
 
-        $categoria = $this->service->crear(Request::json());
+        $categoria = $this->service->crear($request->json());
 
-        Response::created(
+        return Response::created(
             $categoria,
             'Categoría creada exitosamente'
         );
     }
 
     // PUT /api/categorias/{id}
-    public function update($id)
+    public function update(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-        $this->service->actualizar($id, Request::json());
+        $this->service->actualizar($id, $request->json());
 
-        Response::success(
+        return Response::success(
             [],
-             200,
+            200,
             'Categoría actualizada exitosamente'
-         );
-
+        );
     }
 
-
     // DELETE /api/categorias/{id}
-    public function delete($id)
+    public function delete(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
         $this->service->eliminar($id);
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Categoría eliminada exitosamente'
@@ -101,17 +77,37 @@ class CategoriaController
     }
 
     // POST /api/categorias/{id}/restaurar
-
-    public function restore($id)
+    public function restore(Request $request, $id): Response
     {
-        AutenticadorMiddleware::soloAdmin();
+        $this->auth->soloAdmin($request);
 
-       $this->service->restaurar($id);
+        $this->service->restaurar($id);
 
-       Response::success(
+        return Response::success(
             [],
             200,
             'Categoría restaurada exitosamente'
         );
     }
-}   
+
+    private function filtrosPapelera(Request $request): array
+    {
+        $filtros = [];
+
+        if (($valor = $request->query('solo_eliminados')) !== null) {
+            $filtros['solo_eliminados'] = filter_var(
+                $valor,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        if (($valor = $request->query('incluir_eliminados')) !== null) {
+            $filtros['incluir_eliminados'] = filter_var(
+                $valor,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        return $filtros;
+    }
+}

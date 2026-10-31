@@ -4,60 +4,53 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\ConsultaService;
 
 class ConsultaController
 {
-    private readonly ConsultaService $service;
-
-    public function __construct(ConsultaService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly ConsultaService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
-    public function adminIndex(): void
+    public function adminIndex(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
-
-        $rolId = (int) $user->rol_id;
-        $filtros = $_GET ?? [];
+        $user = $this->auth->verificar($request);
 
         $consultas = $this->service->listar(
-            $rolId,
-            $filtros
+            (int) $user->rol_id,
+            $request->queryParams()
         );
 
-        Response::success([
+        return Response::success([
             'items' => $consultas,
             'total' => count($consultas)
         ]);
     }
 
-    public function index(): void
+    public function index(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
-
-        $usuarioId = (int) $user->sub;
-        $rolId = (int) $user->rol_id;
+        $user = $this->auth->verificar($request);
 
         $consultas = $this->service->listarPorUsuario(
-            $usuarioId,
-            $usuarioId,
-            $rolId
+            (int) $user->sub,
+            (int) $user->sub,
+            (int) $user->rol_id
         );
 
-        Response::success([
+        return Response::success([
             'items' => $consultas,
             'total' => count($consultas)
         ]);
     }
 
-    public function indexByPropiedad($propiedadId): void
+    public function indexByPropiedad(Request $request, $propiedadId): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $consultas = $this->service->listarPorPropiedad(
             (int) $propiedadId,
@@ -65,15 +58,15 @@ class ConsultaController
             (int) $user->rol_id
         );
 
-        Response::success([
+        return Response::success([
             'items' => $consultas,
             'total' => count($consultas)
         ]);
     }
 
-    public function indexByUsuario($usuarioId): void
+    public function indexByUsuario(Request $request, $usuarioId): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $consultas = $this->service->listarPorUsuario(
             (int) $usuarioId,
@@ -81,29 +74,29 @@ class ConsultaController
             (int) $user->rol_id
         );
 
-        Response::success([
+        return Response::success([
             'items' => $consultas,
             'total' => count($consultas)
         ]);
     }
 
-    public function indexRecibidas(): void
+    public function indexRecibidas(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $consultas = $this->service->listarRecibidasPorPropietario(
             (int) $user->sub
         );
 
-        Response::success([
+        return Response::success([
             'items' => $consultas,
             'total' => count($consultas),
         ]);
     }
 
-    public function show($id): void
+    public function show(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $consulta = $this->service->obtenerAutorizada(
             (int) $id,
@@ -111,67 +104,67 @@ class ConsultaController
             (int) $user->rol_id
         );
 
-        Response::success($consulta);
+        return Response::success($consulta);
     }
 
-    public function store(): void
+    public function store(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
-        $data = Request::json();
+        $data = $request->json();
         $data['usuario_id'] = (int) $user->sub;
 
         $id = $this->service->crear($data);
 
-        Response::created(
+        return Response::created(
             ['id' => $id],
             'Consulta creada exitosamente'
         );
     }
 
-    public function update($id): void
+    public function update(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->actualizar(
             (int) $id,
-            Request::json(),
+            $request->json(),
             (int) $user->sub
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Consulta actualizada exitosamente'
         );
     }
 
-    public function delete($id): void
+    public function delete(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->eliminar(
             (int) $id,
             (int) $user->sub
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Consulta eliminada exitosamente'
         );
     }
 
-    public function restore($id): void
+    public function restore(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $this->service->restaurar(
             (int) $id,
             (int) $user->sub
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Consulta restaurada exitosamente'

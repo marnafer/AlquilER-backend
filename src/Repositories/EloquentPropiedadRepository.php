@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Propiedad;
+use App\Models\PropiedadImagen;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -13,7 +14,17 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     private function construirConsulta(array $filtros): Builder
     {
         $query = Propiedad::query()
-            ->with(['imagenes', 'imagenPrincipal', 'servicios']);
+            ->addSelect([
+                'imagen_url' => PropiedadImagen::query()
+                    ->select('ruta')
+                    ->whereColumn(
+                        'propiedad_imagenes.propiedad_id',
+                        'propiedades.id'
+                    )
+                    ->orderByDesc('es_principal')
+                    ->orderBy('id')
+                    ->limit(1),
+            ]);
 
         if (isset($filtros['categoria_id'])) {
             $query->whereIn(
@@ -132,14 +143,6 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
     public function all(array $filtros = []): Collection
     {
         $query = $this->construirConsulta($filtros);
-
-        if (isset($filtros['limit'])) {
-            return $query
-                ->orderByDesc('fecha_publicacion')
-                ->orderByDesc('id')
-                ->limit($filtros['limit'])
-                ->get();
-        }
 
         return $query->orderBy('id', 'asc')->get();
     }

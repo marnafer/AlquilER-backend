@@ -6,11 +6,20 @@ namespace App\Routes;
 
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\NotFoundException;
-use ReflectionMethod;
+use App\Http\Request;
+use App\Http\Response;
 
+/**
+ * Mapea peticiones a acciones de controlador.
+ *
+ * La acción se invoca siempre con el Request como primer argumento y se
+ * espera que devuelva un Response. Así el despacho es determinista (no hay
+ * reflexión ni estado global) y los controladores son testables puros.
+ */
 class Router
 {
     private array $routes = [];
+    private ?string $matchedRoute = null;
 
     public function get(string $uri, callable|array $handler): void
     {
@@ -37,64 +46,44 @@ class Router
         $this->routes['DELETE'][$uri] = $handler;
     }
 
-    public function dispatch(string $method, string $path): void
+    public function dispatch(Request $request): Response
     {
+        $method = $request->method();
+        $path = $request->path();
+        $this->matchedRoute = null;
+
         // 1. Rutas exactas
         if (isset($this->routes[$method][$path])) {
+            $this->matchedRoute = $path;
 
-            $handler = $this->routes[$method][$path];
-
-            [$controller, $action] = $handler;
-
-            $instance = is_object($controller)
-                ? $controller
-                : new $controller();
-
-            $this->invocarAccion($instance, $action);
-
-            return;
+            return $this->invocarAccion(
+                $this->routes[$method][$path],
+                $request
+            );
         }
 
         // 2. Rutas dinámicas
         foreach ($this->routes[$method] ?? [] as $route => $handler) {
-
-            $pattern = preg_replace(
-                '#\{([a-zA-Z_][a-zA-Z0-9_]*)\}#',
-                '([^/]+)',
-                $route
-            );
-
-            $pattern = '#^' . $pattern . '$#';
+            $pattern = $this->compilarRuta($route);
 
             if (preg_match($pattern, $path, $matches)) {
+                $this->matchedRoute = $route;
+                array_shift($matches);
 
-                array_shift($matches); // quita match completo
-
-                [$controller, $action] = $handler;
-
-                $instance = is_object($controller)
-                    ? $controller
-                    : new $controller();
-
-                // pasar parámetros al controller
-                $this->invocarAccion($instance, $action, $matches);
-
-                return;
+                return $this->invocarAccion(
+                    $handler,
+                    $request,
+                    $matches
+                );
             }
         }
 
         // 3. Método incorrecto
         foreach ($this->routes as $routes) {
             foreach (array_keys($routes) as $route) {
-                $pattern = preg_replace(
-                    '#\{([a-zA-Z_][a-zA-Z0-9_]*)\}#',
-                    '([^/]+)',
-                    $route
-                );
+                if (preg_match($this->compilarRuta($route), $path)) {
+                    $this->matchedRoute = $route;
 
-                $pattern = '#^' . $pattern . '$#';
-
-                if (preg_match($pattern, $path)) {
                     throw new MethodNotAllowedException();
                 }
             }
@@ -104,18 +93,42 @@ class Router
     }
 
     /**
-     * Invoca la acción del controlador inyectando $request
-     * como primer argumento si el método lo declara.
+     * Convierte una ruta con {parametros} en una expresión regular anclada.
      */
-    private function invocarAccion(object $instance, string $action, array $params = []): void
+    private function compilarRuta(string $route): string
     {
-        $reflexion = new ReflectionMethod($instance, $action);
-        $parametros = $reflexion->getParameters();
+        $pattern = preg_replace(
+            '#\{([a-zA-Z_][a-zA-Z0-9_]*)\}#',
+            '([^/]+)',
+            $route
+        );
 
-        if (isset($parametros[0]) && $parametros[0]->getName() === 'request') {
-            array_unshift($params, null);
-        }
+        return '#^' . $pattern . '$#';
+    }
 
-        $instance->$action(...$params);
+    /**
+     * Invoca la acción del controlador con el Request y los parámetros de la
+     * ruta, y devuelve su Response.
+     */
+    private function invocarAccion(
+        callable|array $handler,
+        Request $request,
+        array $params = []
+    ): Response {
+        [$controller, $action] = $handler;
+
+        $instance = is_object($controller)
+            ? $controller
+            : new $controller();
+
+        /** @var Response $response */
+        $response = $instance->$action($request, ...$params);
+
+        return $response;
+    }
+
+    public function matchedRoute(): ?string
+    {
+        return $this->matchedRoute;
     }
 }

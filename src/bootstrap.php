@@ -23,9 +23,9 @@ use App\Controllers\Api\NotificacionController;
 use App\Controllers\Api\RecuperarContrasenaController;
 use App\Controllers\Api\ContactoController;
 
-// HELPERS - MIDDLEWARES
+// HELPERS - SECURITY
 use App\Helpers\JwtProvider;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Security\Authenticator;
 
 // REPOSITORIES
 use App\Repositories\EloquentUsuarioRepository;
@@ -47,6 +47,7 @@ use App\Repositories\EloquentMensajeConsultaRepository;
 use App\Repositories\EloquentNotificacionRepository;
 use App\Repositories\EloquentPasswordResetRepository;
 use App\Repositories\GestorArchivosLocales;
+use App\Repositories\ProcesadorImagenes;
 
 // SERVICES
 use App\Services\AutenticadorService;
@@ -84,7 +85,7 @@ use App\Policies\UsuarioPolicy;
 
 // TOKEN PROVIDER
 $tokenProvider = new JwtProvider();
-AutenticadorMiddleware::configure($tokenProvider);
+$authenticator = new Authenticator($tokenProvider);
 
 // INSTANCIAR REPOSITORIES
 $usuarioRepository = new EloquentUsuarioRepository();
@@ -105,15 +106,20 @@ $refreshTokenRepository = new EloquentRefreshTokenRepository();
 $mensajeConsultaRepository = new EloquentMensajeConsultaRepository();
 $notificacionRepository = new EloquentNotificacionRepository();
 $passwordResetRepository = new EloquentPasswordResetRepository();
+$gestorArchivos = new GestorArchivosLocales();
+$procesadorImagenes = new ProcesadorImagenes();
 
 //INSTANCIAR POLICIES
 $consultaPolicy = new ConsultaPolicy();
-$favoritoPolicy = new FavoritoPolicy(); 
+$favoritoPolicy = new FavoritoPolicy();
 $propiedadPolicy = new PropiedadPolicy();
 $propiedadImagenPolicy = new PropiedadImagenPolicy();
 $resenaPolicy = new ResenaPolicy();
 $reservaPolicy = new ReservaPolicy();
 $usuarioPolicy = new UsuarioPolicy();
+
+//INSTANCIAR VALIDATORS
+$cargaImagenValidator = new CargaImagenValidator();
 
 // INSTANCIAR SERVICES
 $notificacionService = new NotificacionService(
@@ -128,7 +134,19 @@ $autenticadorService = new AutenticadorService(
     $usuarioRepository,
     $refreshTokenRepository,
     $tokenProvider,
-    $logActividadService
+    $logActividadService,
+    MailService::desdeEntorno(),
+    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
+);
+
+$mailService = MailService::desdeEntorno();
+
+$recuperarContrasenaService = new RecuperarContrasenaService(
+    $usuarioRepository,
+    $passwordResetRepository,
+    $mailService,
+    $logActividadService,
+    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
 );
 
 $usuarioService = new UsuarioService(
@@ -138,7 +156,9 @@ $usuarioService = new UsuarioService(
     $consultaRepository,
     $reservaRepository,
     $propiedadRepository,
-    $resenaRepository
+    $resenaRepository,
+    $mailService,
+    $recuperarContrasenaService
 );
 
 $categoriaService = new CategoriaService(
@@ -174,14 +194,12 @@ $propiedadService = new PropiedadService(
     $propiedadServicioRepository
 );
 
-$gestorArchivos = new GestorArchivosLocales();
-$cargaImagenValidator = new CargaImagenValidator();
-
 $propiedadImagenService = new PropiedadImagenService(
     $propiedadImagenRepository,
     $propiedadService,
     $logActividadService,
     $gestorArchivos,
+    $procesadorImagenes,
     $cargaImagenValidator,
     $propiedadImagenPolicy
 );
@@ -190,7 +208,7 @@ $favoritoService = new FavoritoService(
     $favoritoRepository,
     $propiedadRepository,
     $logActividadService,
-    $favoritoPolicy 
+    $favoritoPolicy
 );
 
 $reservaService = new ReservaService(
@@ -236,16 +254,6 @@ $mensajeConsultaService = new MensajeConsultaService(
     $notificacionService
 );
 
-$mailService = MailService::desdeEntorno();
-
-$recuperarContrasenaService = new RecuperarContrasenaService(
-    $usuarioRepository,
-    $passwordResetRepository,
-    $mailService,
-    $logActividadService,
-    trim((string) ($_ENV['FRONTEND_URL'] ?? 'http://localhost:3000'))
-);
-
 $contactoService = new ContactoService(
     $mailService,
     trim((string) ($_ENV['MAIL_TO'] ?? ''))
@@ -254,23 +262,23 @@ $contactoService = new ContactoService(
 // CONTROLLERS & EXPORT
 return [
     'autenticadorController' => new AutenticadorController($autenticadorService),
-    'usuarioController' => new UsuarioController($usuarioService),
-    'categoriaController' => new CategoriaController($categoriaService),
-    'servicioController' => new ServicioController($servicioService),
-    'provinciaController' => new ProvinciaController($provinciaService),
-    'localidadController' => new LocalidadController($localidadService),
-    'rolController' => new RolController($rolService),
-    'propiedadController' => new PropiedadController($propiedadService),
-    'propiedadImagenController' => new PropiedadImagenController($propiedadImagenService),
-    'logActividadController' => new LogActividadController($logActividadService),
-    'favoritoController' => new FavoritoController($favoritoService),
-    'reservaController' => new ReservaController($reservaService),
+    'usuarioController' => new UsuarioController($usuarioService, $authenticator),
+    'categoriaController' => new CategoriaController($categoriaService, $authenticator),
+    'servicioController' => new ServicioController($servicioService, $authenticator),
+    'provinciaController' => new ProvinciaController($provinciaService, $authenticator),
+    'localidadController' => new LocalidadController($localidadService, $authenticator),
+    'rolController' => new RolController($rolService, $authenticator),
+    'propiedadController' => new PropiedadController($propiedadService, $authenticator),
+    'propiedadImagenController' => new PropiedadImagenController($propiedadImagenService, $authenticator),
+    'logActividadController' => new LogActividadController($logActividadService, $authenticator),
+    'favoritoController' => new FavoritoController($favoritoService, $authenticator),
+    'reservaController' => new ReservaController($reservaService, $authenticator),
     'reservaService' => $reservaService,
-    'consultaController' => new ConsultaController($consultaService),
-    'resenaController' => new ResenaController($resenaService),
-    'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService),
-    'notificacionController' => new NotificacionController($notificacionService),
-    'propiedadServicioController' => new PropiedadServicioController($propiedadServicioService),
+    'consultaController' => new ConsultaController($consultaService, $authenticator),
+    'resenaController' => new ResenaController($resenaService, $authenticator),
+    'mensajeConsultaController' => new MensajeConsultaController($mensajeConsultaService, $authenticator),
+    'notificacionController' => new NotificacionController($notificacionService, $authenticator),
+    'propiedadServicioController' => new PropiedadServicioController($propiedadServicioService, $authenticator),
     'recuperarContrasenaController' => new RecuperarContrasenaController($recuperarContrasenaService),
     'contactoController' => new ContactoController($contactoService),
 ];

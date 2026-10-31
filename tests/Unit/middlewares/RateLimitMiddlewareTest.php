@@ -424,4 +424,96 @@ public function test_rutas_admin_aplican_limite_especifico(): void
     $this->assertTrue($resultado['permitido']);
 }
 
+
+    public function test_verificar_ignora_rutas_no_api(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/health';
+
+        RateLimitMiddleware::verificar();
+
+        $this->addToAssertionCount(1);
+
+        unset($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
+    }
+
+    public function test_obtener_directorio_usa_variable_de_entorno(): void
+    {
+        $directorio = $this->directorio . DIRECTORY_SEPARATOR . 'env-path';
+
+        mkdir($directorio, 0777, true);
+
+        $_ENV['RATE_LIMIT_STORAGE_PATH'] = $directorio;
+        $_SERVER['RATE_LIMIT_STORAGE_PATH'] = $directorio;
+        putenv('RATE_LIMIT_STORAGE_PATH=' . $directorio);
+
+        try {
+            $resultado = RateLimitMiddleware::evaluarSolicitud(
+                'GET',
+                '/api/propiedades',
+                '203.0.113.200',
+                1000,
+                null
+            );
+
+            $this->assertTrue($resultado['permitido']);
+        } finally {
+            unset(
+                $_ENV['RATE_LIMIT_STORAGE_PATH'],
+                $_SERVER['RATE_LIMIT_STORAGE_PATH']
+            );
+            putenv('RATE_LIMIT_STORAGE_PATH');
+        }
+    }
+
+    public function test_regla_por_defecto_aplica_al_metodo_no_especifico(): void
+    {
+        $resultado = RateLimitMiddleware::evaluarSolicitud(
+            'OPTIONS',
+            '/api/propiedades',
+            '203.0.113.201',
+            1000,
+            $this->directorio
+        );
+
+        $this->assertSame('default', $resultado['nombre']);
+        $this->assertSame(60, $resultado['limite']);
+    }
+
+    public function test_directorio_por_defecto_se_usa_sin_variable_de_entorno(): void
+    {
+        unset($_ENV['RATE_LIMIT_STORAGE_PATH'], $_SERVER['RATE_LIMIT_STORAGE_PATH']);
+        putenv('RATE_LIMIT_STORAGE_PATH');
+
+        $resultado = RateLimitMiddleware::evaluarSolicitud(
+            'GET',
+            '/api/propiedades',
+            '203.0.113.202',
+            1000,
+            null
+        );
+
+        $this->assertTrue($resultado['permitido']);
+    }
+
+    public function test_reinicia_si_falta_window_start_en_el_archivo(): void
+    {
+        $ip = '203.0.113.203';
+        $nombreRegla = 'get';
+        $archivo = $this->directorio . DIRECTORY_SEPARATOR
+            . hash('sha256', $ip . '|' . $nombreRegla) . '.json';
+
+        file_put_contents($archivo, '{}');
+
+        $resultado = RateLimitMiddleware::evaluarSolicitud(
+            'GET',
+            '/api/propiedades',
+            $ip,
+            1000,
+            $this->directorio
+        );
+
+        $this->assertTrue($resultado['permitido']);
+        $this->assertSame(119, $resultado['restantes']);
+    }
 }

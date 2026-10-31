@@ -303,4 +303,89 @@ final class LimpiadorArchivosLocalesTest extends TestCase
 
         rmdir($directorio);
     }
+
+    public function test_no_elimina_archivos_referenciados_aunque_sean_antiguos(): void
+    {
+        $this->crearArchivoAntiguo('registrada.jpg');
+
+        $this->configurarRutas([
+            '/uploads/propiedades/registrada.jpg',
+        ]);
+
+        $resultado = $this->limpiador->limpiar(
+            $this->directorio,
+            true
+        );
+
+        $this->assertSame(1, $resultado['archivos_analizados']);
+        $this->assertSame(1, $resultado['archivos_referenciados']);
+        $this->assertSame(0, $resultado['archivos_huerfanos']);
+        $this->assertSame(0, $resultado['archivos_eliminados']);
+
+        $this->assertFileExists(
+            $this->directorio
+            . DIRECTORY_SEPARATOR
+            . 'registrada.jpg'
+        );
+    }
+
+    public function test_ignora_archivos_temporales_sin_extension(): void
+    {
+        $this->crearArchivo('alquiler_img_abc123');
+        $this->crearArchivoAntiguo('huerfana.jpg');
+
+        $this->configurarRutas([]);
+
+        $resultado = $this->limpiador->limpiar(
+            $this->directorio,
+            true
+        );
+
+        $this->assertSame(1, $resultado['archivos_analizados']);
+        $this->assertSame(1, $resultado['archivos_huerfanos']);
+        $this->assertSame(1, $resultado['archivos_eliminados']);
+
+        $this->assertFileExists(
+            $this->directorio
+            . DIRECTORY_SEPARATOR
+            . 'alquiler_img_abc123'
+        );
+
+        $this->assertFileDoesNotExist(
+            $this->directorio
+            . DIRECTORY_SEPARATOR
+            . 'huerfana.jpg'
+        );
+    }
+    
+    public function test_cuenta_multiples_referencias_sin_archivo(): void
+    {
+        $this->crearArchivo('existente.jpg');
+
+        $this->configurarRutas([
+            '/uploads/propiedades/existente.jpg',
+            '/uploads/propiedades/faltante1.jpg',
+            '/uploads/propiedades/faltante2.jpg',
+            '/uploads/propiedades/faltante3.jpg',
+        ]);
+
+        $resultado = $this->limpiador->limpiar(
+            $this->directorio
+        );
+
+        $this->assertSame(1, $resultado['archivos_analizados']);
+        $this->assertSame(4, $resultado['archivos_referenciados']);
+        $this->assertSame(0, $resultado['archivos_huerfanos']);
+        $this->assertSame(0, $resultado['archivos_eliminados']);
+        $this->assertSame(
+            3,
+            $resultado['archivos_referenciados_inexistentes']
+        );
+
+        $this->assertFileExists(
+            $this->directorio
+            . DIRECTORY_SEPARATOR
+            . 'existente.jpg'
+        );
+    }
 }

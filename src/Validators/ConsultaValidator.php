@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\Helpers\ProfanityFilter;
+
 class ConsultaValidator
 {
     /**
@@ -214,6 +216,14 @@ class ConsultaValidator
             return [
                 'success' => false,
                 'error' => 'El mensaje no puede superar los 5000 caracteres'
+            ];
+        }
+
+        if (ProfanityFilter::contiene($mensaje)) {
+
+            return [
+                'success' => false,
+                'error' => 'El mensaje contiene lenguaje inapropiado y no puede ser publicado'
             ];
         }
 

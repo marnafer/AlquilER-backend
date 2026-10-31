@@ -11,9 +11,10 @@ use App\Debug\Debugger;
  *
  * Si no hay servidor SMTP configurado (MAIL_HOST vacío) los mensajes se
  * persisten en storage/emails.log y se registran en debug.log, de modo que
- * en desarrollo el flujo funciona sin depender de un relay.
+ * en desarrollo el flujo funciona sin depender de un relay. En producción
+ * solo se guardan metadatos, nunca el MIME completo con enlaces o tokens.
  */
-class MailService
+class MailService implements EnviadorCorreoInterface
 {
     private const DEFAULT_FROM = 'no-responder@alquiler.local';
     private const DEFAULT_FROM_NAME = 'AlquilER';
@@ -31,7 +32,21 @@ class MailService
 
     public static function desdeEntorno(): self
     {
+        $entorno = strtolower(trim((string) ($_ENV['APP_ENV'] ?? 'development')));
         $host = self::env('MAIL_HOST');
+
+        if ($host === '' && $entorno === 'development') {
+            // Mailpit local sin cifrado ni autenticación.
+            $host = '127.0.0.1';
+            $_ENV['MAIL_PORT'] = $_ENV['MAIL_PORT'] ?? '1025';
+            $_ENV['MAIL_ENCRYPTION'] = 'none';
+        }
+
+        $encryption = strtolower(self::env('MAIL_ENCRYPTION', 'tls'));
+
+        if ($entorno === 'production') {
+            $encryption = 'tls';
+        }
 
         return new self(
             $host !== '' ? $host : null,
@@ -40,13 +55,33 @@ class MailService
             (string) ($_ENV['MAIL_PASSWORD'] ?? ''),
             self::env('MAIL_FROM', self::DEFAULT_FROM),
             self::env('MAIL_FROM_NAME', self::DEFAULT_FROM_NAME),
-            strtolower(self::env('MAIL_ENCRYPTION', 'tls'))
+            $encryption
         );
     }
 
     private static function env(string $clave, string $default = ''): string
     {
         return trim((string) ($_ENV[$clave] ?? $default));
+    }
+
+    private function direccionValida(string $direccion): bool
+    {
+        return $direccion !== ''
+            && !$this->tieneSaltosDeLinea($direccion)
+            && filter_var($direccion, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    private function tieneSaltosDeLinea(string $valor): bool
+    {
+        return str_contains($valor, "\r") || str_contains($valor, "\n");
+    }
+
+    private function esProduccion(): bool
+    {
+        $entorno = $_ENV['APP_ENV']
+            ?? (defined('APP_ENV') ? APP_ENV : 'development');
+
+        return strtolower(trim((string) $entorno)) === 'production';
     }
 
     public function enviar(
@@ -56,11 +91,36 @@ class MailService
         string $textPlain,
         ?string $replyTo = null
     ): bool {
+        return $this->enviarConEstado(
+            $to,
+            $subject,
+            $htmlBody,
+            $textPlain,
+            $replyTo
+        )->esExitoso();
+    }
+
+    public function enviarConEstado(
+        string $to,
+        string $subject,
+        string $htmlBody,
+        string $textPlain,
+        ?string $replyTo = null
+    ): EstadoEnvio {
         $destinatario = trim($to);
         $asunto = trim($subject);
+        $remitente = trim($this->from ?: self::DEFAULT_FROM);
+        $responderA = $replyTo !== null ? trim($replyTo) : '';
 
-        if ($destinatario === '' || $asunto === '') {
-            return false;
+        if (
+            $destinatario === ''
+            || $asunto === ''
+            || !$this->direccionValida($destinatario)
+            || !$this->direccionValida($remitente)
+            || $this->tieneSaltosDeLinea($asunto)
+            || ($responderA !== '' && !$this->direccionValida($responderA))
+        ) {
+            return EstadoEnvio::Fallido;
         }
 
         $mensaje = $this->construirMime(
@@ -68,35 +128,45 @@ class MailService
             $asunto,
             $htmlBody,
             $textPlain,
-            $replyTo
+            $responderA !== '' ? $responderA : null
         );
 
         if (!$this->host) {
             return $this->guardarEnLog(
                 $destinatario,
                 $asunto,
-                $mensaje
-            );
+                $mensaje,
+                'sin SMTP configurado'
+            )
+                ? EstadoEnvio::GuardadoLocalmente
+                : EstadoEnvio::Fallido;
         }
 
         try {
-            return $this->enviarSmtp(
+            $this->enviarSmtp(
                 $destinatario,
                 $asunto,
                 $mensaje
             );
+
+            return EstadoEnvio::Enviado;
         } catch (\Throwable $e) {
             Debugger::log(
                 'Error al enviar email por SMTP',
                 ['error' => $e->getMessage()],
                 'ERROR'
             );
-            $this->guardarEnLog(
+
+            $guardado = $this->guardarEnLog(
                 $destinatario,
                 $asunto,
-                $mensaje
+                $mensaje,
+                'fallo SMTP: ' . $e->getMessage()
             );
-            return false;
+
+            return $guardado
+                ? EstadoEnvio::GuardadoTrasFallo
+                : EstadoEnvio::Fallido;
         }
     }
 
@@ -164,15 +234,23 @@ class MailService
     private function guardarEnLog(
         string $to,
         string $subject,
-        string $mensaje
+        string $mensaje,
+        string $motivo = 'sin SMTP configurado'
     ): bool {
+        $registro = [
+            'fecha' => date('Y-m-d H:i:s'),
+            'para' => $to,
+            'asunto' => $subject,
+        ];
+
+        // El MIME puede contener enlaces de recuperación y tokens en texto
+        // plano: solo se persiste fuera de producción.
+        if (!$this->esProduccion()) {
+            $registro['mensaje'] = $mensaje;
+        }
+
         $linea = json_encode(
-            [
-                'fecha' => date('Y-m-d H:i:s'),
-                'para' => $to,
-                'asunto' => $subject,
-                'mensaje' => $mensaje,
-            ],
+            $registro,
             JSON_UNESCAPED_UNICODE
         ) . PHP_EOL;
 
@@ -190,18 +268,22 @@ class MailService
             // @codeCoverageIgnoreEnd
         }
 
-        @file_put_contents($archivo, $linea, FILE_APPEND);
+        $guardado = @file_put_contents($archivo, $linea, FILE_APPEND) !== false;
 
         Debugger::log(
-            'Email generado (sin SMTP configurado)',
+            $guardado
+                ? 'Email guardado localmente'
+                : 'No se pudo guardar el email localmente',
             [
+                'motivo' => $motivo,
                 'para' => $to,
                 'asunto' => $subject,
                 'archivo' => $archivo,
-            ]
+            ],
+            $guardado ? 'INFO' : 'ERROR'
         );
 
-        return true;
+        return $guardado;
     }
 
     private function enviarSmtp(
@@ -217,8 +299,9 @@ class MailService
 
         $contexto = stream_context_create([
             'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+                'peer_name' => $host,
             ],
         ]);
 
@@ -255,69 +338,98 @@ class MailService
             return $leer();
         };
 
-        $leer();
+        $validar = function (
+            string $respuesta,
+            array $codigos,
+            string $etapa
+        ): void {
+            $codigo = substr($respuesta, 0, 3);
 
-        // Iniciar conversación SIEMPRE con EHLO (STARTTLS requiere EHLO)
-        $respuesta = $enviar('EHLO alquiler.local');
-
-        // STARTTLS opcional
-        if (!$esSsl && $this->encryption === 'tls') {
-            $leer();
-            $respuesta = $enviar('STARTTLS');
-
-            if (str_starts_with($respuesta, '220')) {
-                // @codeCoverageIgnoreStart
-                $tls = stream_socket_enable_crypto(
-                    $socket,
-                    true,
-                    STREAM_CRYPTO_METHOD_TLS_CLIENT
+            if (!in_array($codigo, $codigos, true)) {
+                throw new \RuntimeException(
+                    'El servidor SMTP rechazó ' . $etapa . ': ' . $respuesta
                 );
+            }
+        };
 
-                if (!$tls) {
+        try {
+            $respuesta = $leer();
+            $validar($respuesta, ['220'], 'la conexión');
+
+            // Iniciar conversación SIEMPRE con EHLO (STARTTLS requiere EHLO)
+            $respuesta = $enviar('EHLO alquiler.local');
+            $validar($respuesta, ['250'], 'EHLO');
+
+            // Las capacidades del EHLO siguen siendo válidas si STARTTLS no
+            // está disponible y la conexión continúa en texto plano.
+            $capacidades = $respuesta;
+
+            // STARTTLS opcional
+            if (!$esSsl && $this->encryption === 'tls') {
+                $respuesta = $enviar('STARTTLS');
+
+                if (str_starts_with($respuesta, '220')) {
+                    // @codeCoverageIgnoreStart
+                    $tls = stream_socket_enable_crypto(
+                        $socket,
+                        true,
+                        STREAM_CRYPTO_METHOD_TLS_CLIENT
+                    );
+
+                    if (!$tls) {
+                        throw new \RuntimeException(
+                            'No se pudo iniciar TLS con el servidor SMTP'
+                        );
+                    }
+
+                    $respuesta = $enviar('EHLO alquiler.local');
+                    $validar($respuesta, ['250'], 'EHLO tras STARTTLS');
+                    $capacidades = $respuesta;
+                    // @codeCoverageIgnoreEnd
+                } elseif (!str_starts_with($respuesta, '5')) {
                     throw new \RuntimeException(
-                        'No se pudo iniciar TLS con el servidor SMTP'
+                        'El servidor SMTP respondió de forma inesperada a STARTTLS: '
+                        . $respuesta
                     );
                 }
+            }
 
-                $leer();
-                $respuesta = $enviar('EHLO alquiler.local');
-                // @codeCoverageIgnoreEnd
+            // Autenticación si hay credenciales
+            if (
+                $this->username !== null
+                && $this->username !== ''
+                && str_contains($capacidades, 'AUTH')
+            ) {
+                $respuesta = $enviar('AUTH LOGIN');
+                $validar($respuesta, ['334'], 'AUTH LOGIN');
+
+                $respuesta = $enviar(base64_encode($this->username));
+                $validar($respuesta, ['334'], 'el usuario de autenticación');
+
+                $respuesta = $enviar(base64_encode((string) $this->password));
+                $validar($respuesta, ['235'], 'la autenticación');
+            }
+
+            $respuesta = $enviar('MAIL FROM:<' . ($this->from ?: self::DEFAULT_FROM) . '>');
+            $validar($respuesta, ['250'], 'MAIL FROM');
+
+            $respuesta = $enviar('RCPT TO:<' . $to . '>');
+            $validar($respuesta, ['250', '251'], 'RCPT TO');
+
+            $respuesta = $enviar('DATA');
+            $validar($respuesta, ['354'], 'el inicio del mensaje');
+
+            fwrite($socket, $mensaje . "\r\n.\r\n");
+            $respuesta = $leer();
+            $validar($respuesta, ['250'], 'el mensaje');
+
+            $enviar('QUIT');
+
+            return true;
+        } finally {
+            if (is_resource($socket)) {
+                fclose($socket);
             }
         }
-
-        // Autenticación si hay credenciales
-        if (
-            $this->username !== null
-            && $this->username !== ''
-            && str_contains($respuesta, 'AUTH')
-        ) {
-            $leer();
-            $enviar('AUTH LOGIN');
-            $leer();
-            $enviar(base64_encode($this->username));
-            $leer();
-            $respuesta = $enviar(base64_encode((string) $this->password));
-        }
-
-        $leer();
-        $respuesta = $enviar('MAIL FROM:<' . ($this->from ?: self::DEFAULT_FROM) . '>');
-        $leer();
-        $respuesta = $enviar('RCPT TO:<' . $to . '>');
-        $leer();
-        $respuesta = $enviar('DATA');
-
-        if (!str_starts_with($respuesta, '354')) {
-            throw new \RuntimeException(
-                'El servidor SMTP rechazó el inicio del mensaje: ' . $respuesta
-            );
-        }
-
-        fwrite($socket, $mensaje . "\r\n.\r\n");
-        $respuesta = $leer();
-
-        $enviar('QUIT');
-        fclose($socket);
-
-        return str_starts_with($respuesta, '250');
     }
 }

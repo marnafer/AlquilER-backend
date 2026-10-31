@@ -13,6 +13,7 @@ use App\Sanitizers\PropiedadImagenSanitizer;
 use App\Validators\CargaImagenValidatorInterface;
 use App\Validators\PropiedadImagenValidator;
 use App\Repositories\GestorArchivosInterface;
+use App\Repositories\ProcesadorImagenesInterface;
 use Illuminate\Database\Capsule\Manager as DB;
 
 class PropiedadImagenService
@@ -22,6 +23,7 @@ class PropiedadImagenService
         private readonly PropiedadService $propiedadService,
         private readonly LogActividadService $logService,
         private readonly GestorArchivosInterface $gestorArchivos,
+        private readonly ProcesadorImagenesInterface $procesadorImagenes,
         private readonly CargaImagenValidatorInterface $cargaImagenValidator,
         private readonly PropiedadImagenPolicy $policy
     ) {
@@ -66,6 +68,7 @@ class PropiedadImagenService
         return $imagen;
     }
 
+    
     public function crear(
         array $rawData,
         $file,
@@ -81,9 +84,7 @@ class PropiedadImagenService
         );
 
         if (!$validacion['success']) {
-            throw new ValidationException(
-                $validacion['errors']
-            );
+            throw new ValidationException($validacion['errors']);
         }
 
         $errorImagen = $this->cargaImagenValidator->validate($file);
@@ -96,10 +97,7 @@ class PropiedadImagenService
 
         $propiedadId = (int) $data['propiedad_id'];
 
-        // Se obtiene la propiedad para validar permisos.
-        $propiedad = $this->propiedadService->obtener(
-            $propiedadId
-        );
+        $propiedad = $this->propiedadService->obtener($propiedadId);
 
         $this->policy->gestionarPropiedad(
             $usuarioId,
@@ -111,13 +109,17 @@ class PropiedadImagenService
             . '/public/uploads/propiedades';
 
         $ruta = null;
+        $rutaTemporal = null;
 
         try {
+            // Procesa la imagen antes de guardarla definitivamente.
+            $rutaTemporal = $this->procesadorImagenes->procesar($file);
+
             $imagen = DB::transaction(
                 function () use (
                     $propiedadId,
                     $data,
-                    $file,
+                    $rutaTemporal,
                     $uploadDir,
                     &$ruta
                 ): PropiedadImagen {
@@ -127,7 +129,10 @@ class PropiedadImagenService
                     $cantidadImagenes = $this->repository
                         ->countByPropiedadId($propiedadId);
 
-                    if ($cantidadImagenes >= self::MAX_IMAGENES_POR_PROPIEDAD) {
+                    if (
+                        $cantidadImagenes
+                        >= self::MAX_IMAGENES_POR_PROPIEDAD
+                    ) {
                         throw new ValidationException([
                             'imagen' => 'La propiedad no puede tener más de '
                                 . self::MAX_IMAGENES_POR_PROPIEDAD
@@ -136,7 +141,7 @@ class PropiedadImagenService
                     }
 
                     $nombreArchivo = $this->gestorArchivos->upload(
-                        $file,
+                        $rutaTemporal,
                         $uploadDir
                     );
 
@@ -151,11 +156,20 @@ class PropiedadImagenService
                 }
             );
         } catch (\Throwable $e) {
+            // Si falla la operación, elimina el archivo definitivo si existe.
             if ($ruta !== null) {
                 $this->gestorArchivos->delete($ruta);
             }
 
             throw $e;
+        } finally {
+            // El temporal se elimina tanto si la operación funciona como si falla.
+            if (
+                $rutaTemporal !== null
+                && is_file($rutaTemporal)
+            ) {
+                @unlink($rutaTemporal);
+            }
         }
 
         $this->logService->registrar(
@@ -165,6 +179,8 @@ class PropiedadImagenService
 
         return $imagen;
     }
+
+
     public function establecerPrincipal(
         $rawId,
         int $usuarioId,

@@ -1,4 +1,10 @@
 RewriteEngine On
+
+# Bloquear acceso directo a logs y archivos sensibles.
+<FilesMatch "\.(log|env)$">
+    Require all denied
+</FilesMatch>
+
 # Si el archivo o carpeta existe físicamente, que lo abra (para CSS/JS)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

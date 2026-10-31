@@ -17,16 +17,20 @@ class Usuario extends Model
         'email',
         'telefono',
         'domicilio',
-        'contrasena'
+        'contrasena',
+        'email_verified_at',
+        'email_verification_token',
+        'email_verification_expires_at'
     ];
 
     protected $hidden = [
         'contrasena',
-        'deleted_at'
+        'deleted_at',
+        'email_verification_token'
     ];
 
     protected $casts = [
-        'rol_id' => 'integer'
+        'rol_id' => 'integer',
     ];
 
     public $timestamps = false;
@@ -78,4 +82,10 @@ class Usuario extends Model
             'usuario_id'
         );
     }
+
+    public function isEmailVerified(): bool
+    {
+        return $this->email_verified_at !== null;
+    }
 }
+

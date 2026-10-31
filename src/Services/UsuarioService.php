@@ -29,7 +29,9 @@ class UsuarioService
         private readonly ConsultaRepositoryInterface $consultaRepository,
         private readonly ReservaRepositoryInterface $reservaRepository,
         private readonly PropiedadRepositoryInterface $propiedadRepository,
-        private readonly ResenaRepositoryInterface $resenaRepository
+        private readonly ResenaRepositoryInterface $resenaRepository,
+        private readonly ?MailService $mailService = null,
+        private readonly ?RecuperarContrasenaService $recuperarContrasenaService = null
     ) {
     }
 
@@ -225,12 +227,64 @@ class UsuarioService
             'telefono',
             'domicilio',
             'contrasena',
+            'contrasena_actual',
         ];
 
         $datosRecibidos = array_intersect_key(
             $rawData,
             array_flip($camposPermitidos)
         );
+
+        $contrasenaActual = $datosRecibidos['contrasena_actual'] ?? null;
+
+        unset($datosRecibidos['contrasena_actual']);
+
+        $esCambioPropioDeContrasena = array_key_exists(
+            'contrasena',
+            $datosRecibidos
+        )
+            && (int) $usuario->id === $usuarioId
+            && $rolId !== Rol::ADMIN;
+
+        if ($esCambioPropioDeContrasena) {
+            if (
+                $contrasenaActual === null
+                || $contrasenaActual === ''
+            ) {
+                throw new ValidationException([
+                    'contrasena_actual' => [
+                        'Debés ingresar tu contraseña actual',
+                    ],
+                ]);
+            }
+
+            if (
+                !password_verify(
+                    (string) $contrasenaActual,
+                    (string) $usuario->contrasena
+                )
+            ) {
+                throw new ValidationException([
+                    'contrasena_actual' => [
+                        'La contraseña actual no es correcta',
+                    ],
+                ]);
+            }
+
+            if ($this->recuperarContrasenaService === null) {
+                throw new BadRequestException(
+                    'No se pudo procesar el cambio de contraseña'
+                );
+            }
+
+            $this->recuperarContrasenaService->solicitarCambioDesdePerfil(
+                $usuario,
+                (string) $contrasenaActual,
+                (string) $datosRecibidos['contrasena']
+            );
+
+            return;
+        }
 
         if ($datosRecibidos === []) {
             throw new BadRequestException(

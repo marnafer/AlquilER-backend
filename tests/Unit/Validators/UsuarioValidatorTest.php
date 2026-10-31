@@ -81,6 +81,10 @@ final class UsuarioValidatorTest extends TestCase
                 'Juan1',
                 'El nombre solo puede contener letras y espacios',
             ],
+            'profanidad' => [
+                'puta',
+                'El nombre contiene lenguaje inapropiado',
+            ],
         ];
     }
 
@@ -130,6 +134,10 @@ final class UsuarioValidatorTest extends TestCase
             'con_signos' => [
                 'García!',
                 'El apellido solo puede contener letras y espacios',
+            ],
+            'profanidad' => [
+                'puta',
+                'El apellido contiene lenguaje inapropiado',
             ],
         ];
     }
@@ -272,6 +280,10 @@ final class UsuarioValidatorTest extends TestCase
             'largo' => [
                 str_repeat('a', 101),
                 'El domicilio no puede exceder los 100 caracteres',
+            ],
+            'profanidad' => [
+                'puta domicilio',
+                'El domicilio contiene lenguaje inapropiado',
             ],
         ];
     }

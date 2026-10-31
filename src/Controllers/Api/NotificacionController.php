@@ -1,26 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\NotificacionService;
 
 class NotificacionController
 {
-    private readonly NotificacionService $service;
-
-    public function __construct(NotificacionService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly NotificacionService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     // GET /api/notificaciones
-    public function index()
+    public function index(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
-        Response::success([
+        return Response::success([
             'items' => $this->service->listarPorUsuario(
                 (int) $usuario->sub
             ),
@@ -31,11 +33,11 @@ class NotificacionController
     }
 
     // GET /api/notificaciones/no-leidas
-    public function noLeidas()
+    public function noLeidas(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
-        Response::success([
+        return Response::success([
             'no_leidas' => $this->service->contarNoLeidas(
                 (int) $usuario->sub
             )
@@ -43,16 +45,16 @@ class NotificacionController
     }
 
     // PUT /api/notificaciones/{id}/leer
-    public function marcarLeida($id)
+    public function marcarLeida(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->marcarLeida(
             $id,
             (int) $usuario->sub
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Notificación marcada como leída'
@@ -60,15 +62,15 @@ class NotificacionController
     }
 
     // PUT /api/notificaciones/leer-todas
-    public function marcarTodasLeidas()
+    public function marcarTodasLeidas(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->marcarTodasLeidas(
             (int) $usuario->sub
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Notificaciones marcadas como leídas'

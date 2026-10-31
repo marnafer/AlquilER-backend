@@ -124,7 +124,6 @@ class PropiedadSanitizerTest extends TestCase
             'cantidad_dormitorios' => '3',
             'cantidad_banos' => '1',
             'capacidad' => '4',
-            'limit' => '10',
             'page' => '1',
             'per_page' => '5',
         ]);
@@ -140,7 +139,6 @@ class PropiedadSanitizerTest extends TestCase
         $this->assertSame('3', $resultado['cantidad_dormitorios']);
         $this->assertSame('1', $resultado['cantidad_banos']);
         $this->assertSame('4', $resultado['capacidad']);
-        $this->assertSame(10, $resultado['limit']);
         $this->assertSame(1, $resultado['page']);
         $this->assertSame(5, $resultado['per_page']);
     }
@@ -162,25 +160,11 @@ class PropiedadSanitizerTest extends TestCase
         );
     }
 
-    public function test_sanitizar_limit_non_string_is_returned_as_is(): void
+    public function test_sanitizar_filtros_ignora_limit(): void
     {
-        $resultado = PropiedadSanitizer::sanitizarFiltros(['limit' => 10]);
+        $resultado = PropiedadSanitizer::sanitizarFiltros(['limit' => '5']);
 
-        $this->assertSame(10, $resultado['limit']);
-    }
-
-    public function test_sanitizar_limit_non_numeric_string_is_returned_as_is(): void
-    {
-        $resultado = PropiedadSanitizer::sanitizarFiltros(['limit' => 'abc']);
-
-        $this->assertSame('abc', $resultado['limit']);
-    }
-
-    public function test_sanitizar_limit_trims_numeric_string(): void
-    {
-        $resultado = PropiedadSanitizer::sanitizarFiltros(['limit' => '  10  ']);
-
-        $this->assertSame(10, $resultado['limit']);
+        $this->assertArrayNotHasKey('limit', $resultado);
     }
 
     public function test_sanitizar_precio_filtro(): void

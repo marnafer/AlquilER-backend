@@ -151,6 +151,10 @@ final class MensajeConsultaValidatorTest extends TestCase
                 str_repeat('a', 2001),
                 'El mensaje no puede superar los 2000 caracteres',
             ],
+            'profanidad' => [
+                'puta',
+                'El mensaje contiene lenguaje inapropiado y no puede ser publicado',
+            ],
         ];
     }
 

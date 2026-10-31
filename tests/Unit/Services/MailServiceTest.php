@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Debug\Debugger;
+use App\Services\EstadoEnvio;
 use App\Services\MailService;
 use PHPUnit\Framework\TestCase;
 
@@ -50,6 +51,7 @@ final class MailServiceTest extends TestCase
 
         foreach ($this->banderasSmtp as $bandera) {
             @unlink($bandera);
+            @unlink($bandera . '.cerrado');
         }
 
         parent::tearDown();
@@ -143,7 +145,18 @@ final class MailServiceTest extends TestCase
 
     public function test_desde_entorno_usa_valores_por_defecto_cuando_faltan(): void
     {
-        $mail = MailService::desdeEntorno();
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $_ENV['APP_ENV'] = 'production';
+
+        try {
+            $mail = MailService::desdeEntorno();
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
 
         $reflexion = new \ReflectionClass($mail);
 
@@ -152,6 +165,29 @@ final class MailServiceTest extends TestCase
         $this->assertSame('no-responder@alquiler.local', $reflexion->getProperty('from')->getValue($mail));
         $this->assertSame('AlquilER', $reflexion->getProperty('fromName')->getValue($mail));
         $this->assertSame('tls', $reflexion->getProperty('encryption')->getValue($mail));
+    }
+
+    public function test_desde_entorno_desarrollo_usa_mailpit_sin_cifrado(): void
+    {
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $_ENV['APP_ENV'] = 'development';
+        unset($_ENV['MAIL_HOST']);
+
+        try {
+            $mail = MailService::desdeEntorno();
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
+
+        $reflexion = new \ReflectionClass($mail);
+
+        $this->assertSame('127.0.0.1', $reflexion->getProperty('host')->getValue($mail));
+        $this->assertSame(1025, $reflexion->getProperty('port')->getValue($mail));
+        $this->assertSame('none', $reflexion->getProperty('encryption')->getValue($mail));
     }
 
     public function test_enviar_sin_host_con_reply_to_y_cuerpo_solo_html(): void
@@ -300,6 +336,438 @@ final class MailServiceTest extends TestCase
         $this->assertFalse($resultado);
     }
 
+    public function test_cierra_la_conexion_cuando_falla_el_envio(): void
+    {
+        $puerto = $this->puertoLibre();
+        $bandera = $this->iniciarServidorSmtp($puerto, 'rechaza-ehlo');
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertFalse($resultado);
+
+        $archivoCerrado = $bandera . '.cerrado';
+        $intentos = 0;
+
+        while (!is_file($archivoCerrado) && $intentos < 100) {
+            usleep(50000);
+            $intentos++;
+        }
+
+        $this->assertFileExists($archivoCerrado);
+    }
+
+    public function test_enviar_devuelve_false_cuando_el_servidor_rechaza_una_etapa(): void
+    {
+        $casos = [
+            'rechaza-saludo' => ['none', null],
+            'rechaza-ehlo' => ['none', null],
+            'starttls-inesperado' => ['tls', null],
+            'rechaza-auth' => ['none', 'usuario'],
+            'rechaza-usuario' => ['none', 'usuario'],
+            'rechaza-clave' => ['none', 'usuario'],
+            'rechaza-mail' => ['none', null],
+            'rechaza-rcpt' => ['none', null],
+            'rechaza-data' => ['none', null],
+            'rechaza-fin-data' => ['none', null],
+        ];
+
+        foreach ($casos as $modo => [$encryption, $usuario]) {
+            $puerto = $this->puertoLibre();
+            $this->iniciarServidorSmtp($puerto, $modo);
+
+            $mail = new MailService(
+                '127.0.0.1',
+                $puerto,
+                $usuario,
+                $usuario !== null ? 'secreto' : null,
+                'emisor@test.com',
+                'Emisor',
+                $encryption
+            );
+
+            $resultado = $mail->enviar(
+                'destino@test.com',
+                'Asunto',
+                '<p>Hola</p>',
+                'Hola'
+            );
+
+            $this->assertFalse($resultado, 'Modo: ' . $modo);
+        }
+    }
+
+    public function test_enviar_con_estado_sin_host_indica_guardado_local(): void
+    {
+        $mail = new MailService();
+
+        $estado = $mail->enviarConEstado(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+        $this->assertTrue($estado->fueGuardadoLocalmente());
+        $this->assertFalse($estado->fueEnviado());
+        $this->assertTrue($estado->esExitoso());
+    }
+
+    public function test_no_persiste_el_mensaje_mime_en_produccion(): void
+    {
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $rutaEmails = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'emails.log';
+        $emailsAnteriores = is_file($rutaEmails)
+            ? (string) file_get_contents($rutaEmails)
+            : '';
+
+        $_ENV['APP_ENV'] = 'production';
+
+        try {
+            $token = 'token-secreto-123';
+            $mail = new MailService();
+
+            $estado = $mail->enviarConEstado(
+                'destino@test.com',
+                'Recuperación de contraseña',
+                '<p>Enlace: https://app.test/reset?token=' . $token . '</p>',
+                'Enlace: https://app.test/reset?token=' . $token
+            );
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
+
+        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+
+        $emails = substr(
+            (string) file_get_contents($rutaEmails),
+            strlen($emailsAnteriores)
+        );
+
+        $this->assertStringContainsString('destino@test.com', $emails);
+        $this->assertStringNotContainsString('"mensaje"', $emails);
+        $this->assertStringNotContainsString($token, $emails);
+        $this->assertStringNotContainsString(
+            $token,
+            (string) file_get_contents(Debugger::getLogFile())
+        );
+    }
+
+    public function test_persiste_el_mensaje_mime_fuera_de_produccion(): void
+    {
+        $entornoAnterior = $_ENV['APP_ENV'] ?? null;
+        $rutaEmails = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'emails.log';
+        $emailsAnteriores = is_file($rutaEmails)
+            ? (string) file_get_contents($rutaEmails)
+            : '';
+
+        $_ENV['APP_ENV'] = 'development';
+
+        try {
+            $token = 'token-secreto-123';
+            $mail = new MailService();
+
+            $estado = $mail->enviarConEstado(
+                'destino@test.com',
+                'Recuperación de contraseña',
+                '<p>Enlace: https://app.test/reset?token=' . $token . '</p>',
+                'Enlace: https://app.test/reset?token=' . $token
+            );
+        } finally {
+            if ($entornoAnterior === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $entornoAnterior;
+            }
+        }
+
+        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+
+        $emails = substr(
+            (string) file_get_contents($rutaEmails),
+            strlen($emailsAnteriores)
+        );
+
+        $this->assertStringContainsString('"mensaje"', $emails);
+        $this->assertStringContainsString($token, $emails);
+    }
+
+    public function test_enviar_con_estado_smtp_exitoso_indica_enviado(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto);
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $estado = $mail->enviarConEstado(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::Enviado, $estado);
+        $this->assertTrue($estado->fueEnviado());
+        $this->assertFalse($estado->fueGuardadoLocalmente());
+        $this->assertTrue($estado->esExitoso());
+    }
+
+    public function test_enviar_con_estado_fallo_smtp_guarda_local_pero_no_es_exitoso(): void
+    {
+        $puerto = $this->puertoLibre();
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor',
+            'none'
+        );
+
+        $estado = $mail->enviarConEstado(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::GuardadoTrasFallo, $estado);
+        $this->assertTrue($estado->fueGuardadoLocalmente());
+        $this->assertFalse($estado->fueEnviado());
+        $this->assertFalse($estado->esExitoso());
+
+        $emails = (string) file_get_contents(
+            dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage'
+                . DIRECTORY_SEPARATOR . 'emails.log'
+        );
+
+        $this->assertStringContainsString('destino@test.com', $emails);
+        $this->assertStringContainsString(
+            'Email guardado localmente',
+            (string) file_get_contents(Debugger::getLogFile())
+        );
+        $this->assertStringContainsString(
+            'fallo SMTP',
+            (string) file_get_contents(Debugger::getLogFile())
+        );
+    }
+
+    public function test_enviar_con_estado_invalido_es_fallido(): void
+    {
+        $mail = new MailService();
+
+        $estado = $mail->enviarConEstado(
+            '   ',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertSame(EstadoEnvio::Fallido, $estado);
+        $this->assertFalse($estado->esExitoso());
+    }
+
+    public function test_enviar_rechaza_direcciones_invalidas(): void
+    {
+        $casos = [
+            'destinatario' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino-sin-arroba',
+                null,
+            ],
+            'remitente' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'remitente-invalido'
+                ),
+                'destino@test.com',
+                null,
+            ],
+            'reply-to' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino@test.com',
+                'reply-invalido',
+            ],
+        ];
+
+        foreach ($casos as $nombre => [$mail, $destino, $replyTo]) {
+            $estado = $mail->enviarConEstado(
+                $destino,
+                'Asunto',
+                '<p>Hola</p>',
+                'Hola',
+                $replyTo
+            );
+
+            $this->assertSame(EstadoEnvio::Fallido, $estado, $nombre);
+        }
+    }
+
+    public function test_enviar_rechaza_inyeccion_de_encabezados(): void
+    {
+        $casos = [
+            'destinatario' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                "destino@test.com\r\nBcc: copia@test.com",
+                'Asunto',
+                null,
+            ],
+            'remitente' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    "emisor@test.com\r\nBcc: copia@test.com"
+                ),
+                'destino@test.com',
+                'Asunto',
+                null,
+            ],
+            'reply-to' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino@test.com',
+                'Asunto',
+                "reply@test.com\r\nBcc: copia@test.com",
+            ],
+            'asunto' => [
+                new MailService(
+                    null,
+                    null,
+                    null,
+                    null,
+                    'emisor@test.com'
+                ),
+                'destino@test.com',
+                "Asunto\r\nBcc: copia@test.com",
+                null,
+            ],
+        ];
+
+        foreach ($casos as $nombre => [$mail, $destino, $asunto, $replyTo]) {
+            $estado = $mail->enviarConEstado(
+                $destino,
+                $asunto,
+                '<p>Hola</p>',
+                'Hola',
+                $replyTo
+            );
+
+            $this->assertSame(EstadoEnvio::Fallido, $estado, $nombre);
+        }
+    }
+
+    public function test_construir_mime_elimina_saltos_de_linea_del_nombre_remitente(): void
+    {
+        $mail = new MailService(
+            null,
+            null,
+            null,
+            null,
+            'emisor@test.com',
+            "Emisor\r\nBcc: copia@test.com"
+        );
+
+        $metodo = new \ReflectionMethod($mail, 'construirMime');
+        $mime = (string) $metodo->invoke(
+            $mail,
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola',
+            null
+        );
+
+        $this->assertStringNotContainsString("\r\nBcc:", $mime);
+        $this->assertStringContainsString(
+            'From: EmisorBcc: copia@test.com <emisor@test.com>',
+            $mime
+        );
+    }
+
+    public function test_autentica_cuando_starttls_no_esta_disponible(): void
+    {
+        $puerto = $this->puertoLibre();
+        $this->iniciarServidorSmtp($puerto, 'requiere-auth');
+
+        $mail = new MailService(
+            '127.0.0.1',
+            $puerto,
+            'usuario',
+            'secreto',
+            'emisor@test.com',
+            'Emisor',
+            'tls'
+        );
+
+        $resultado = $mail->enviar(
+            'destino@test.com',
+            'Asunto',
+            '<p>Hola</p>',
+            'Hola'
+        );
+
+        $this->assertTrue($resultado);
+    }
+
     private function puertoLibre(): int
     {
         $socket = stream_socket_server('tcp://127.0.0.1:0', $codigo, $mensaje);
@@ -314,7 +782,7 @@ final class MailServiceTest extends TestCase
         return (int) substr($nombre, strrpos($nombre, ':') + 1);
     }
 
-    private function iniciarServidorSmtp(int $puerto, string $modo = ''): void
+    private function iniciarServidorSmtp(int $puerto, string $modo = ''): string
     {
         $script = dirname(__DIR__, 2)
             . DIRECTORY_SEPARATOR . 'Support'
@@ -360,5 +828,7 @@ final class MailServiceTest extends TestCase
         if (!is_file($bandera)) {
             $this->fail('El servidor SMTP falso no quedó disponible.');
         }
+
+        return $bandera;
     }
 }

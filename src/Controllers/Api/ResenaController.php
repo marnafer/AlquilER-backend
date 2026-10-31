@@ -1,94 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
-use App\Middlewares\PapeleraMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\ResenaService;
 
 class ResenaController
 {
-    private readonly ResenaService $service;
-
-    public function __construct(ResenaService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly ResenaService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     // GET /api/resenas
-    public function index()
+    public function index(Request $request): Response
     {
-        PapeleraMiddleware::verificarSiPidePapelera();
+        $this->auth->verificarSiPidePapelera($request);
 
-        $filtros = [];
-
-        if (isset($_GET['tipo'])) {
-            $filtros['tipo'] = $_GET['tipo'];
-        }
-
-        if (isset($_GET['calificacion'])) {
-            $filtros['calificacion'] = (int) $_GET['calificacion'];
-        }
-
-        if (isset($_GET['calificacion_min'])) {
-            $filtros['calificacion_min'] = (int) $_GET['calificacion_min'];
-        }
-
-        if (isset($_GET['calificacion_max'])) {
-            $filtros['calificacion_max'] = (int) $_GET['calificacion_max'];
-        }
-
-        if (isset($_GET['calificador_id'])) {
-            $filtros['calificador_id'] = (int) $_GET['calificador_id'];
-        }
-
-        if (isset($_GET['reserva_id'])) {
-            $filtros['reserva_id'] = (int) $_GET['reserva_id'];
-        }
-
-        if (isset($_GET['propiedad_id'])) {
-            $filtros['propiedad_id'] = (int) $_GET['propiedad_id'];
-        }
-
-        if (isset($_GET['usuario_id'])) {
-            $filtros['usuario_id'] = (int) $_GET['usuario_id'];
-        }
-
-        if (isset($_GET['fecha_desde'])) {
-            $filtros['fecha_desde'] = $_GET['fecha_desde'];
-        }
-
-        if (isset($_GET['fecha_hasta'])) {
-            $filtros['fecha_hasta'] = $_GET['fecha_hasta'];
-        }
-
-        if (isset($_GET['solo_eliminados'])) {
-            $filtros['solo_eliminados'] = filter_var(
-                $_GET['solo_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        if (isset($_GET['incluir_eliminados'])) {
-            $filtros['incluir_eliminados'] = filter_var(
-                $_GET['incluir_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        Response::success(
-            $this->service->listar($filtros),
+        return Response::success(
+            $this->service->listar($this->filtros($request)),
             200,
             'Reseñas obtenidas correctamente'
         );
     }
 
     // GET /api/resenas/{id}
-    public function show($id)
+    public function show(Request $request, $id): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->obtener($id),
             200,
             'Reseña encontrada'
@@ -96,9 +40,9 @@ class ResenaController
     }
 
     // GET /api/resenas/reserva/{reservaId}
-    public function getByReserva($reservaId)
+    public function getByReserva(Request $request, $reservaId): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->obtenerPorReserva($reservaId),
             200,
             'Reseñas de la reserva obtenidas'
@@ -106,17 +50,13 @@ class ResenaController
     }
 
     // GET /api/resenas/propiedad/{propiedadId}
-    public function getByPropiedad($propiedadId)
+    public function getByPropiedad(Request $request, $propiedadId): Response
     {
-        $resenas = $this->service->obtenerPorPropiedad(
-            $propiedadId
-        );
+        $resenas = $this->service->obtenerPorPropiedad($propiedadId);
 
-        $promedio = $this->service->promedioPropiedad(
-            $propiedadId
-        );
+        $promedio = $this->service->promedioPropiedad($propiedadId);
 
-        Response::success([
+        return Response::success([
             'items' => $resenas,
             'total' => $resenas->count(),
             'promedio' => $promedio,
@@ -124,17 +64,13 @@ class ResenaController
     }
 
     // GET /api/resenas/usuario/{usuarioId}
-    public function getByUsuario($usuarioId)
+    public function getByUsuario(Request $request, $usuarioId): Response
     {
-        $resenas = $this->service->obtenerPorUsuario(
-            $usuarioId
-        );
+        $resenas = $this->service->obtenerPorUsuario($usuarioId);
 
-        $promedio = $this->service->promedioUsuario(
-            $usuarioId
-        );
+        $promedio = $this->service->promedioUsuario($usuarioId);
 
-        Response::success([
+        return Response::success([
             'items' => $resenas,
             'total' => $resenas->count(),
             'promedio' => $promedio,
@@ -142,9 +78,9 @@ class ResenaController
     }
 
     // GET /api/resenas/calificador/{calificadorId}
-    public function getByCalificador($calificadorId)
+    public function getByCalificador(Request $request, $calificadorId): Response
     {
-        Response::success(
+        return Response::success(
             $this->service->obtenerPorCalificador($calificadorId),
             200,
             'Reseñas del calificador obtenidas'
@@ -152,80 +88,80 @@ class ResenaController
     }
 
     // GET /api/resenas/mis-propiedades
-    public function getMyPropertiesReviews(): void
+    public function getMyPropertiesReviews(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $resenas = $this->service->obtenerResenasDeMisPropiedades(
             (int) $usuario->sub
         );
 
-        Response::success([
+        return Response::success([
             'items' => $resenas,
             'total' => $resenas->count(),
         ], 200, 'Reseñas de tus propiedades obtenidas correctamente');
     }
 
     // GET /api/resenas/como-inquilino
-    public function getMyTenantReviews(): void
+    public function getMyTenantReviews(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $resenas = $this->service->obtenerMisResenasComoInquilino(
             (int) $usuario->sub
         );
 
-        Response::success([
+        return Response::success([
             'items' => $resenas,
             'total' => $resenas->count(),
         ], 200, 'Reseñas realizadas como inquilino obtenidas correctamente');
     }
 
     // POST /api/admin/resenas
-    public function storeAdmin()
+    public function storeAdmin(Request $request): Response
     {
-        $admin = AutenticadorMiddleware::soloAdmin();
+        $admin = $this->auth->soloAdmin($request);
 
         $resena = $this->service->crearDesdeAdmin(
-            Request::json(),
+            $request->json(),
             (int) $admin->sub
         );
 
-        Response::created(
+        return Response::created(
             $resena,
             'Reseña creada correctamente'
         );
     }
 
     // POST /api/resenas
-    public function store()
+    public function store(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $resena = $this->service->crear(
-            Request::json(),
+            $request->json(),
             (int) $usuario->sub
         );
 
-        Response::created(
+        return Response::created(
             $resena,
             'Reseña creada exitosamente'
         );
     }
 
     // PUT /api/resenas/{id}
-    public function update($id)
+    public function update(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->actualizar(
             (int) $id,
-            Request::json(),
+            $request->json(),
             (int) $usuario->sub,
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             null,
             200,
             'Reseña actualizada correctamente'
@@ -233,9 +169,9 @@ class ResenaController
     }
 
     // DELETE /api/resenas/{id}
-    public function delete($id)
+    public function delete(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->eliminar(
             (int) $id,
@@ -243,7 +179,7 @@ class ResenaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reseña eliminada exitosamente'
@@ -251,9 +187,9 @@ class ResenaController
     }
 
     // POST /api/resenas/{id}/restaurar
-    public function restore($id)
+    public function restore(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->restaurar(
             (int) $id,
@@ -261,10 +197,62 @@ class ResenaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             null,
             200,
             'Reseña restaurada exitosamente'
         );
+    }
+
+    /**
+     * Reconstruye los filtros de listado desde la query string.
+     *
+     * Se conserva el casting original campo por campo: el servicio espera
+     * enteros para los rangos de calificación e identificadores.
+     *
+     * @return array<string, mixed>
+     */
+    private function filtros(Request $request): array
+    {
+        $filtros = [];
+
+        $enteros = [
+            'calificacion',
+            'calificacion_min',
+            'calificacion_max',
+            'calificador_id',
+            'reserva_id',
+            'propiedad_id',
+            'usuario_id',
+        ];
+
+        $textos = [
+            'tipo',
+            'fecha_desde',
+            'fecha_hasta',
+        ];
+
+        foreach ($textos as $campo) {
+            if (($valor = $request->query($campo)) !== null) {
+                $filtros[$campo] = $valor;
+            }
+        }
+
+        foreach ($enteros as $campo) {
+            if (($valor = $request->query($campo)) !== null) {
+                $filtros[$campo] = (int) $valor;
+            }
+        }
+
+        foreach (['solo_eliminados', 'incluir_eliminados'] as $campo) {
+            if (($valor = $request->query($campo)) !== null) {
+                $filtros[$campo] = filter_var(
+                    $valor,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+            }
+        }
+
+        return $filtros;
     }
 }

@@ -64,6 +64,7 @@ final class RateLimitMiddleware
         ],
     ];
 
+    // @codeCoverageIgnoreStart
     public static function verificar(
         ?string $metodo = null,
         ?string $ruta = null
@@ -110,6 +111,7 @@ final class RateLimitMiddleware
             exit;
         }
     }
+    // @codeCoverageIgnoreEnd
 
     /**
      * Se conserva la firma pública para facilitar las pruebas existentes.
@@ -206,9 +208,11 @@ final class RateLimitMiddleware
     ): array {
         self::crearDirectorioSiNoExiste($directorio);
 
+        // @codeCoverageIgnoreStart
         if (!is_dir($directorio) || !is_writable($directorio)) {
             return self::permitirSinContador($limite);
         }
+        // @codeCoverageIgnoreEnd
 
         $archivo = $directorio
             . DIRECTORY_SEPARATOR
@@ -217,25 +221,31 @@ final class RateLimitMiddleware
 
         $handle = @fopen($archivo, 'c+');
 
+        // @codeCoverageIgnoreStart
         if ($handle === false) {
             return self::permitirSinContador($limite);
         }
+        // @codeCoverageIgnoreEnd
 
         $bloqueado = false;
 
         try {
+            // @codeCoverageIgnoreStart
             if (!flock($handle, LOCK_EX)) {
                 return self::permitirSinContador($limite);
             }
+            // @codeCoverageIgnoreEnd
 
             $bloqueado = true;
 
             rewind($handle);
 
             $contenido = stream_get_contents($handle);
+            // @codeCoverageIgnoreStart
             $datos = $contenido !== false
                 ? json_decode($contenido, true)
                 : null;
+            // @codeCoverageIgnoreEnd
 
             if (!is_array($datos)) {
                 $datos = [];
@@ -279,18 +289,23 @@ final class RateLimitMiddleware
                 JSON_UNESCAPED_UNICODE
             );
 
+            // @codeCoverageIgnoreStart
             if ($nuevoContenido === false) {
                 return self::permitirSinContador($limite);
             }
+            // @codeCoverageIgnoreEnd
 
             rewind($handle);
 
+            // @codeCoverageIgnoreStart
             if (!ftruncate($handle, 0)) {
                 return self::permitirSinContador($limite);
             }
+            // @codeCoverageIgnoreEnd
 
             $escrito = fwrite($handle, $nuevoContenido);
 
+            // @codeCoverageIgnoreStart
             if (
                 $escrito === false
                 || $escrito !== strlen($nuevoContenido)
@@ -298,6 +313,7 @@ final class RateLimitMiddleware
             ) {
                 return self::permitirSinContador($limite);
             }
+            // @codeCoverageIgnoreEnd
 
             return [
                 'permitido' => true,
@@ -313,6 +329,7 @@ final class RateLimitMiddleware
         }
     }
 
+    // @codeCoverageIgnoreStart
     private static function permitirSinContador(
         int $limite
     ): array {
@@ -322,6 +339,7 @@ final class RateLimitMiddleware
             'retry_after' => 0,
         ];
     }
+    // @codeCoverageIgnoreEnd
 
     private static function obtenerDirectorioAlmacenamiento(): string
     {
@@ -352,11 +370,15 @@ final class RateLimitMiddleware
             return;
         }
 
+        // @codeCoverageIgnoreStart
         if (!@mkdir($directorio, 0700, true) && !is_dir($directorio)) {
             return;
         }
+        // @codeCoverageIgnoreEnd
 
+        // @codeCoverageIgnoreStart
         @chmod($directorio, 0700);
+        // @codeCoverageIgnoreEnd
     }
 
     

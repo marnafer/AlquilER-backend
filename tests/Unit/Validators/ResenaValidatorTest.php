@@ -191,6 +191,10 @@ final class ResenaValidatorTest extends TestCase
                 str_repeat('a', 1001),
                 'El comentario no puede superar los 1000 caracteres',
             ],
+            'profanidad' => [
+                'esto es una puta mierda larga',
+                'El comentario contiene lenguaje inapropiado y no puede ser publicado',
+            ],
         ];
     }
 

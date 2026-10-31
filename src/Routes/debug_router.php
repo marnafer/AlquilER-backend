@@ -8,7 +8,7 @@ require_once SRC_PATH . 'Controllers/Api/DebugController.php';
 
 
 use App\Controllers\Api\DebugController;
-// Defensa en profundidad: aunque este archivo sea incluido por algún otro
+// Defensa en profundidad: aunque este archivo sea incluido por alg?n otro
 // camino, las rutas de debug solo responden en entorno de desarrollo.
 if (($_ENV['APP_ENV'] ?? 'production') !== 'development') {
     http_response_code(404);
@@ -19,7 +19,7 @@ if (($_ENV['APP_ENV'] ?? 'production') !== 'development') {
         'error' => 'Not Found'
     ]);
 
-    exit;
+    return true;
 }
 
 $controller = new DebugController();
@@ -30,32 +30,34 @@ $debugPath = parse_url(
     PHP_URL_PATH
 );
 
-// Estadísticas
+// Estad??sticas
 if ($debugPath === '/api/debug/stats' && $debugMethod === 'GET') {
     $controller->stats();
-    exit;
+    return true;
 }
 
 // Logs
 if ($debugPath === '/api/debug/logs' && $debugMethod === 'GET') {
     $controller->logs();
-    exit;
+    return true;
 }
 
 // Limpiar log
 if ($debugPath === '/api/debug/clear-log' && $debugMethod === 'POST') {
     $controller->clearLog();
-    exit;
+    return true;
 }
 
 // Test DB
 if ($debugPath === '/api/debug/test-db' && $debugMethod === 'GET') {
     $controller->testDB();
-    exit;
+    return true;
 }
 
 // PHP Info
 if ($debugPath === '/api/debug/phpinfo' && $debugMethod === 'GET') {
     $controller->phpinfo();
-    exit;
+    return true;
 }
+
+return false;

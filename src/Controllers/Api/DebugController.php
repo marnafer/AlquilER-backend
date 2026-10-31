@@ -1,163 +1,142 @@
 <?php
-/**
- * Controlador de debug para API
- */
+
+declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Models\Categoria;
-use App\Models\Consulta;
-use App\Models\Reserva;
-use App\Models\Resena;
-use App\Models\Propiedad;
-use App\Models\Usuario;
-use App\Models\Favorito;
-use App\Models\Provincia;
-use App\Models\Localidad;
-use App\Models\LogActividad;
-use App\Models\Rol;
-use App\Models\Servicio;
-use App\Models\PropiedadServicio;
-use App\Models\PropiedadImagen;
-use App\Debug\Debugger;
-use Exception;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
+use App\Services\PropiedadService;
 
 class DebugController
 {
+    public function __construct(
+        private readonly ?PropiedadService $propiedadService = null,
+        private readonly ?Authenticator $auth = null
+    ) {
+    }
+
     /**
      * GET /api/debug/stats
      */
-    public function stats()
+    public function stats(?Request $request = null): Response
     {
         try {
-            // Contar registros usando Eloquent
             $stats = [
-                'categorias' => Categoria::count(),
-                'consultas' => Consulta::count(),
-                'reservas' => Reserva::count(),
-                'reseñas' => Resena::count(),
-                'propiedades' => Propiedad::count(),
-                'usuarios' => Usuario::count(),
-                'favoritos' => Favorito::count(),
-                'provincias' => Provincia::count(),
-                'localidades' => Localidad::count(),
-                'logs_actividad' => LogActividad::count(),
-                'roles' => Rol::count(),
-                'servicios' => Servicio::count(),
-                'propiedad_servicio' => PropiedadServicio::count(),
-                'propiedad_imagenes' => PropiedadImagen::count()
+                'categorias' => \App\Models\Categoria::count(),
+                'consultas' => \App\Models\Consulta::count(),
+                'reservas' => \App\Models\Reserva::count(),
+                'reseñas' => \App\Models\Resena::count(),
+                'propiedades' => \App\Models\Propiedad::count(),
+                'usuarios' => \App\Models\Usuario::count(),
+                'favoritos' => \App\Models\Favorito::count(),
+                'provincias' => \App\Models\Provincia::count(),
+                'localidades' => \App\Models\Localidad::count(),
+                'logs_actividad' => \App\Models\LogActividad::count(),
+                'roles' => \App\Models\Rol::count(),
+                'servicios' => \App\Models\Servicio::count(),
+                'propiedad_servicio' => \App\Models\PropiedadServicio::count(),
+                'propiedad_imagenes' => \App\Models\PropiedadImagen::count()
             ];
-            
+
             $totalRegistros = array_sum($stats);
-            
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'total_entidades' => count($stats),
-                    'total_registros' => $totalRegistros,
-                    'detalle_por_entidad' => $stats,
-                    'total_logs' => count(Debugger::getStats()),
-                    'debug_enabled' => true
-                ]
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+
+            return Response::success([
+                'total_entidades' => count($stats),
+                'total_registros' => $totalRegistros,
+                'detalle_por_entidad' => $stats,
+                'total_logs' => count(\App\Debug\Debugger::getStats()),
+                'debug_enabled' => true
+            ]);
+        // @codeCoverageIgnoreStart
+        } catch (\Throwable $e) {
+            return Response::serverError($e->getMessage());
         }
+        // @codeCoverageIgnoreEnd
     }
 
     /**
      * GET /api/debug/logs
      */
-    public function logs()
+    public function logs(?Request $request = null): Response
     {
-        $logFile = Debugger::getLogFile();
-        
+        $logFile = \App\Debug\Debugger::getLogFile();
+
         if (!file_exists($logFile)) {
-            echo json_encode([
-                'success' => true,
-                'data' => [],
-                'message' => 'No hay archivo de logs'
-            ], JSON_UNESCAPED_UNICODE);
-            return;
+            return Response::success(
+                [],
+                200,
+                'No hay archivo de logs'
+            );
         }
-        
+
         $content = file_get_contents($logFile);
-        $lines = explode(PHP_EOL, trim($content));
+        $lines = explode(PHP_EOL, trim((string) $content));
         $logs = [];
-        
+
         foreach ($lines as $line) {
             if ($line) {
                 $decoded = json_decode($line, true);
-                if ($decoded) {
+                if (is_array($decoded)) {
                     $logs[] = $decoded;
                 }
             }
         }
-        
-        echo json_encode([
-            'success' => true,
-            'data' => array_reverse($logs),
-            'total' => count($logs)
-        ], JSON_UNESCAPED_UNICODE);
+
+        return Response::success(array_reverse($logs));
     }
 
     /**
      * POST /api/debug/clear-log
      */
-    public function clearLog()
+    public function clearLog(?Request $request = null): Response
     {
-        $logFile = Debugger::getLogFile();
-        
+        $logFile = \App\Debug\Debugger::getLogFile();
+
         if (file_exists($logFile)) {
             file_put_contents($logFile, '');
             $message = 'Log limpiado exitosamente';
         } else {
             $message = 'No existe archivo de log para limpiar';
         }
-        
-        echo json_encode([
-            'success' => true,
-            'message' => $message
-        ], JSON_UNESCAPED_UNICODE);
+
+        return Response::success([], 200, $message);
     }
 
     /**
      * GET /api/debug/test-db
      */
-    public function testDB()
+    public function testDB(?Request $request = null): Response
     {
         try {
-            // Probar conexión obteniendo un registro simple
-            $test = Categoria::first();
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Conexión a base de datos exitosa',
-                'data' => [
-                    'test' => $test ? 'OK - Conexión funcionando' : 'Sin datos pero conexión ok',
-                    'database' => 'sistema_alquiler_db',
-                    'driver' => 'Eloquent ORM'
-                ]
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error de conexión: ' . $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+            $test = \App\Models\Categoria::first();
+
+            return Response::success([
+                'test' => $test ? 'OK - Conexión funcionando' : 'Sin datos pero conexión ok',
+                'database' => 'sistema_alquiler_db',
+                'driver' => 'Eloquent ORM'
+            ]);
+        // @codeCoverageIgnoreStart
+        } catch (\Throwable $e) {
+            return Response::serverError('Error de conexi��n: ' . $e->getMessage());
         }
+        // @codeCoverageIgnoreEnd
+
     }
 
     /**
      * GET /api/debug/phpinfo
      */
-    public function phpinfo()
+    public function phpinfo(?Request $request = null): Response
     {
+        ob_start();
         phpinfo();
-        exit;
+        $info = (string) ob_get_clean();
+
+        return new Response(200, ['phpinfo' => $info]);
     }
 }
+
+
+

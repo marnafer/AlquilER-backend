@@ -47,16 +47,17 @@ final class EloquentPropiedadRepositoryTest extends RepositorioTestCase
         ]);
     }
 
-    public function test_all_ordena_asc_carga_relaciones_y_excluye_eliminados(): void
+    public function test_all_ordena_asc_incluye_imagen_destacada_y_excluye_eliminados(): void
     {
         $this->sembrar();
 
         $propiedades = $this->repo->all();
 
         $this->assertSame([1, 2], $propiedades->pluck('id')->all());
-        $this->assertTrue($propiedades->first()->relationLoaded('imagenes'));
-        $this->assertTrue($propiedades->first()->relationLoaded('imagenPrincipal'));
-        $this->assertTrue($propiedades->first()->relationLoaded('servicios'));
+        $this->assertSame('principal.jpg', $propiedades->first()->imagen_url);
+        $this->assertFalse($propiedades->first()->relationLoaded('imagenes'));
+        $this->assertFalse($propiedades->first()->relationLoaded('imagenPrincipal'));
+        $this->assertFalse($propiedades->first()->relationLoaded('servicios'));
     }
 
     public function test_all_filtra_por_categoria_y_localidad(): void
@@ -171,14 +172,48 @@ final class EloquentPropiedadRepositoryTest extends RepositorioTestCase
         $this->assertNotNull($this->repo->findById($propiedad->id));
     }
 
-    public function test_all_con_limit_ordena_desc_y_limita(): void
+    public function test_paginate_selecciona_una_imagen_por_propiedad_sin_consultas_n_mas_uno(): void
     {
         $this->sembrar();
 
-        $this->assertSame(
-            [2],
-            $this->repo->all(['limit' => 1])->pluck('id')->all()
-        );
+        $this->insertar('propiedad_imagenes', [
+            ['id' => 3, 'propiedad_id' => 2, 'ruta' => 'respaldo.jpg', 'es_principal' => 0],
+        ]);
+        $this->insertar('propiedades', [
+            ['id' => 4, 'titulo' => 'Sin imágenes', 'categoria_id' => 1, 'localidad_id' => 1, 'usuario_id' => 1, 'precio' => 400, 'cantidad_ambientes' => 1, 'cantidad_dormitorios' => 0, 'cantidad_banos' => 1, 'capacidad' => 1, 'disponible' => 1],
+        ]);
+
+        $connection = $this->capsule->getConnection();
+        $connection->enableQueryLog();
+
+        $resultado = $this->repo->paginate([], 1, 10);
+        $items = $resultado['items'];
+        $imagenesPorPropiedad = $items
+            ->mapWithKeys(
+                static fn ($propiedad): array => [
+                    $propiedad->id => $propiedad->imagen_url,
+                ]
+            )
+            ->all();
+
+        $this->assertSame('principal.jpg', $imagenesPorPropiedad[1]);
+        $this->assertSame('respaldo.jpg', $imagenesPorPropiedad[2]);
+        $this->assertNull($imagenesPorPropiedad[4]);
+
+        $serializadasPorId = collect(
+            json_decode(
+                json_encode($items, JSON_THROW_ON_ERROR),
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            )
+        )->keyBy('id');
+        $this->assertSame('principal.jpg', $serializadasPorId[1]['imagen_url']);
+        $this->assertSame('respaldo.jpg', $serializadasPorId[2]['imagen_url']);
+
+        $this->assertFalse($items->first()->relationLoaded('imagenes'));
+        $this->assertFalse($items->first()->relationLoaded('servicios'));
+        $this->assertCount(2, $connection->getQueryLog());
     }
 
     public function test_paginate_ordena_por_defecto_y_pagina(): void

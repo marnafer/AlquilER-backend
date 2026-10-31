@@ -15,11 +15,16 @@ class PasswordReset extends Model
         'token',
         'expiracion',
         'usado',
+        'contrasena_temporal',
     ];
 
     protected $casts = [
         'id' => 'integer',
         'usado' => 'integer',
         'expiracion' => 'datetime',
+    ];
+
+    protected $hidden = [
+        'contrasena_temporal',
     ];
 }

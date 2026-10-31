@@ -18,6 +18,8 @@ use App\Repositories\ReservaRepositoryInterface;
 use App\Repositories\PropiedadRepositoryInterface;
 use App\Repositories\ResenaRepositoryInterface;
 use App\Services\LogActividadService;
+use App\Services\MailService;
+use App\Services\RecuperarContrasenaService;
 use App\Services\UsuarioService;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
@@ -76,8 +78,10 @@ final class UsuarioServiceTest extends TestCase
         $this->policy = new UsuarioPolicy();
     }
 
-    private function crearServicio(): UsuarioService
-    {
+    private function crearServicio(
+        ?MailService $mailService = null,
+        ?RecuperarContrasenaService $recuperarContrasenaService = null
+    ): UsuarioService {
         return new UsuarioService(
             $this->repository,
             $this->logService,
@@ -85,7 +89,9 @@ final class UsuarioServiceTest extends TestCase
             $this->consultaRepository,
             $this->reservaRepository,
             $this->propiedadRepository,
-            $this->resenaRepository
+            $this->resenaRepository,
+            $mailService,
+            $recuperarContrasenaService
         );
     }
 
@@ -421,7 +427,166 @@ final class UsuarioServiceTest extends TestCase
         );
     }
 
-    public function test_actualizar_encripta_la_contrasena(): void
+    public function test_actualizar_contrasena_propia_delega_en_solicitud_de_cambio(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $recuperar = $this->createMock(RecuperarContrasenaService::class);
+
+        $recuperar
+            ->expects($this->once())
+            ->method('solicitarCambioDesdePerfil')
+            ->with(
+                $usuario,
+                'actual',
+                'secreto'
+            );
+
+        $this->crearServicio(null, $recuperar)->actualizar(
+            1,
+            [
+                'contrasena' => 'secreto',
+                'contrasena_actual' => 'actual',
+            ],
+            1,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_contrasena_sin_actual_falla(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio()->actualizar(
+            1,
+            ['contrasena' => 'secreto'],
+            1,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_actualizar_contrasena_actual_incorrecta_falla(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $this->expectException(ValidationException::class);
+
+        $this->crearServicio()->actualizar(
+            1,
+            [
+                'contrasena' => 'secreto',
+                'contrasena_actual' => 'incorrecta',
+            ],
+            1,
+            Rol::USUARIO
+        );
+    }
+
+    public function test_administrador_actualiza_contrasena_sin_actual(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 5;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->once())
+            ->method('update')
+            ->with(
+                $usuario,
+                $this->callback(
+                    static function (array $data): bool {
+                        return isset($data['contrasena'])
+                            && password_verify(
+                                'nueva123',
+                                $data['contrasena']
+                            );
+                    }
+                )
+            )
+            ->willReturn(true);
+
+        $this->logService
+            ->expects($this->once())
+            ->method('registrar')
+            ->with(5, 'Actualización de usuario');
+
+        $this->crearServicio()->actualizar(
+            5,
+            ['contrasena' => 'nueva123'],
+            99,
+            Rol::ADMIN
+        );
+    }
+
+    public function test_actualizar_otros_datos_no_envia_correo(): void
     {
         $usuario = new Usuario([
             'nombre' => 'Ana',
@@ -438,28 +603,21 @@ final class UsuarioServiceTest extends TestCase
         $this->repository
             ->expects($this->once())
             ->method('update')
-            ->with(
-                $usuario,
-                $this->callback(
-                    static function (array $data): bool {
-                        return isset($data['contrasena'])
-                            && password_verify(
-                                'secreto',
-                                $data['contrasena']
-                            );
-                    }
-                )
-            )
             ->willReturn(true);
 
         $this->logService
             ->expects($this->once())
-            ->method('registrar')
-            ->with(1, 'Actualización de usuario');
+            ->method('registrar');
 
-        $this->crearServicio()->actualizar(
+        $mailService = $this->createMock(MailService::class);
+
+        $mailService
+            ->expects($this->never())
+            ->method('enviar');
+
+        $this->crearServicio($mailService)->actualizar(
             1,
-            ['contrasena' => 'secreto'],
+            ['nombre' => 'Ana Maria'],
             1,
             Rol::USUARIO
         );
@@ -983,6 +1141,45 @@ final class UsuarioServiceTest extends TestCase
                 'rol_id' => Rol::ADMIN,
             ],
             99
+        );
+    }
+
+    public function test_actualizar_contrasena_propia_sin_servicio_de_recuperacion_falla(): void
+    {
+        $usuario = new Usuario([
+            'nombre' => 'Ana',
+            'email' => 'ana@example.com',
+            'contrasena' => password_hash('actual', PASSWORD_DEFAULT),
+        ]);
+        $usuario->id = 1;
+
+        $this->repository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($usuario);
+
+        $this->repository
+            ->expects($this->never())
+            ->method('update');
+
+        $this->logService
+            ->expects($this->never())
+            ->method('registrar');
+
+        $servicio = $this->crearServicio(null, null);
+
+        $this->expectException(BadRequestException::class);
+        $this->expectExceptionMessage("No se pudo procesar el cambio de contrase\u{00F1}a");
+
+        $servicio->actualizar(
+            1,
+            [
+                'contrasena' => 'secreto',
+                'contrasena_actual' => 'actual',
+            ],
+            1,
+            Rol::USUARIO
         );
     }
 }

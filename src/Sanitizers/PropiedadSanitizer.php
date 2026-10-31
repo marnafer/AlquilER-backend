@@ -265,13 +265,6 @@ class PropiedadSanitizer
                 );
         }
 
-        if (array_key_exists('limit', $filtros)) {
-            $sanitizado['limit'] =
-                self::sanitizarLimit(
-                    $filtros['limit']
-                );
-        }
-
         if (array_key_exists('page', $filtros)) {
             $sanitizado['page'] = self::sanitizarLimit(
                 $filtros['page']

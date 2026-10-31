@@ -7,14 +7,14 @@ namespace Tests\Unit\Services;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ValidationException;
 use App\Services\ContactoService;
-use App\Services\MailService;
+use App\Services\EnviadorCorreoInterface;
 use PHPUnit\Framework\TestCase;
 
 final class ContactoServiceTest extends TestCase
 {
     public function test_enviar_llama_al_mail_service_con_destino_y_reply_to(): void
     {
-        $mailService = $this->createMock(MailService::class);
+        $mailService = $this->createMock(EnviadorCorreoInterface::class);
 
         $mailService->expects($this->once())
             ->method('enviar')
@@ -48,7 +48,7 @@ final class ContactoServiceTest extends TestCase
 
     public function test_enviar_lanza_error_si_el_destino_no_esta_configurado(): void
     {
-        $mailService = $this->createMock(MailService::class);
+        $mailService = $this->createMock(EnviadorCorreoInterface::class);
 
         $mailService->expects($this->never())
             ->method('enviar');
@@ -68,7 +68,7 @@ final class ContactoServiceTest extends TestCase
 
     public function test_enviar_lanza_validacion_si_faltan_campos(): void
     {
-        $mailService = $this->createMock(MailService::class);
+        $mailService = $this->createMock(EnviadorCorreoInterface::class);
 
         $mailService->expects($this->never())
             ->method('enviar');

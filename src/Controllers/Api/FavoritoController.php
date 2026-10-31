@@ -4,26 +4,25 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\FavoritoService;
 
 class FavoritoController
 {
-    private readonly FavoritoService $service;
-
-    public function __construct(FavoritoService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly FavoritoService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     /**
      * Obtener los favoritos del usuario autenticado.
      */
-    public function index(): void
+    public function index(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $usuarioId = (int) $user->sub;
         $rolId = (int) $user->rol_id;
@@ -34,7 +33,7 @@ class FavoritoController
             $rolId
         );
 
-        Response::success(
+        return Response::success(
             $favoritos,
             200,
             'Favoritos obtenidos correctamente'
@@ -44,20 +43,20 @@ class FavoritoController
     /**
      * Agregar una propiedad a favoritos.
      */
-    public function store(): void
+    public function store(Request $request): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $usuarioId = (int) $user->sub;
 
-        $data = Request::json();
+        $data = $request->json();
 
         $this->service->agregar(
             $data,
             $usuarioId
         );
 
-        Response::created(
+        return Response::created(
             [
                 'propiedad_id' => $data['propiedad_id'] ?? null,
                 'es_favorito' => true
@@ -69,9 +68,9 @@ class FavoritoController
     /**
      * Obtener los favoritos de un usuario específico.
      */
-    public function indexByUsuario($id): void
+    public function indexByUsuario(Request $request, $id): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $usuarioId = (int) $user->sub;
         $rolId = (int) $user->rol_id;
@@ -82,7 +81,7 @@ class FavoritoController
             $rolId
         );
 
-        Response::success(
+        return Response::success(
             $favoritos,
             200,
             'Favoritos del usuario obtenidos correctamente'
@@ -92,9 +91,9 @@ class FavoritoController
     /**
      * Eliminar una propiedad de favoritos.
      */
-    public function deleteByPropiedad($propiedadId): void
+    public function deleteByPropiedad(Request $request, $propiedadId): Response
     {
-        $user = AutenticadorMiddleware::verificar();
+        $user = $this->auth->verificar($request);
 
         $usuarioId = (int) $user->sub;
 
@@ -103,7 +102,7 @@ class FavoritoController
             $usuarioId
         );
 
-        Response::success(
+        return Response::success(
             null,
             200,
             'Propiedad eliminada de favoritos'

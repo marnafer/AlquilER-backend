@@ -1,69 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Api;
 
-use App\Helpers\Request;
-use App\Helpers\Response;
-use App\Middlewares\AutenticadorMiddleware;
+use App\Http\Request;
+use App\Http\Response;
+use App\Security\Authenticator;
 use App\Services\ReservaService;
 
 class ReservaController
 {
-    private readonly ReservaService $service;
-
-    public function __construct(ReservaService $service)
-    {
-        $this->service = $service;
+    public function __construct(
+        private readonly ReservaService $service,
+        private readonly Authenticator $auth
+    ) {
     }
 
     // GET /api/reservas
-    public function index()
+    public function index(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
-        $filtros = [];
-
-        if (isset($_GET['estado'])) {
-            $filtros['estado'] = $_GET['estado'];
-        }
-
-        if (isset($_GET['usuario_id'])) {
-            $filtros['usuario_id'] = (int) $_GET['usuario_id'];
-        }
-
-        if (isset($_GET['propiedad_id'])) {
-            $filtros['propiedad_id'] = (int) $_GET['propiedad_id'];
-        }
-
-        if (isset($_GET['solo_eliminados'])) {
-            $filtros['solo_eliminados'] = filter_var(
-                $_GET['solo_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        if (isset($_GET['incluir_eliminados'])) {
-            $filtros['incluir_eliminados'] = filter_var(
-                $_GET['incluir_eliminados'],
-                FILTER_VALIDATE_BOOLEAN
-            );
-        }
-
-        Response::success(
+        return Response::success(
             $this->service->listar(
                 (int) $usuario->sub,
                 (int) $usuario->rol_id,
-                $filtros
+                $this->filtros($request)
             )
         );
     }
 
     // GET /api/reservas/{id}
-    public function show($id)
+    public function show(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
-        Response::success(
+        return Response::success(
             $this->service->obtener(
                 $id,
                 (int) $usuario->sub,
@@ -73,41 +46,41 @@ class ReservaController
     }
 
     // POST /api/reservas
-    public function store()
+    public function store(Request $request): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $id = $this->service->crear(
-            Request::json(),
+            $request->json(),
             (int) $usuario->sub
         );
 
-        Response::created(
+        return Response::created(
             ['id' => $id],
             'Reserva creada correctamente'
         );
     }
 
     // POST /api/admin/reservas
-    public function storeAdmin()
+    public function storeAdmin(Request $request): Response
     {
-        $admin = AutenticadorMiddleware::soloAdmin();
+        $admin = $this->auth->soloAdmin($request);
 
         $id = $this->service->crearDesdeAdmin(
-            Request::json(),
+            $request->json(),
             (int) $admin->sub
         );
 
-        Response::created(
+        return Response::created(
             ['id' => $id],
             'Reserva creada correctamente'
         );
     }
 
     // PUT /api/reservas/{id}/confirmar
-    public function confirm($id)
+    public function confirm(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->confirmar(
             $id,
@@ -115,7 +88,7 @@ class ReservaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva confirmada correctamente'
@@ -123,9 +96,9 @@ class ReservaController
     }
 
     // PUT /api/reservas/{id}/rechazar
-    public function reject($id)
+    public function reject(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->rechazar(
             $id,
@@ -133,7 +106,7 @@ class ReservaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva rechazada correctamente'
@@ -141,9 +114,9 @@ class ReservaController
     }
 
     // PUT /api/reservas/{id}/finalizar
-    public function finalize($id)
+    public function finalize(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->finalizar(
             $id,
@@ -151,7 +124,7 @@ class ReservaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva finalizada correctamente'
@@ -159,9 +132,9 @@ class ReservaController
     }
 
     // PUT /api/reservas/{id}/cancelar
-    public function cancel($id)
+    public function cancel(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->cancelar(
             $id,
@@ -169,7 +142,7 @@ class ReservaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva cancelada correctamente'
@@ -177,18 +150,18 @@ class ReservaController
     }
 
     // PUT /api/reservas/{id}
-    public function update($id)
+    public function update(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->actualizar(
             $id,
-            Request::json(),
+            $request->json(),
             (int) $usuario->sub,
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva actualizada correctamente'
@@ -196,9 +169,9 @@ class ReservaController
     }
 
     // DELETE /api/reservas/{id}
-    public function delete($id)
+    public function delete(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->eliminar(
             $id,
@@ -206,7 +179,7 @@ class ReservaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva eliminada correctamente'
@@ -214,9 +187,9 @@ class ReservaController
     }
 
     // POST /api/reservas/{id}/restore
-    public function restore($id)
+    public function restore(Request $request, $id): Response
     {
-        $usuario = AutenticadorMiddleware::verificar();
+        $usuario = $this->auth->verificar($request);
 
         $this->service->restaurar(
             $id,
@@ -224,10 +197,39 @@ class ReservaController
             (int) $usuario->rol_id
         );
 
-        Response::success(
+        return Response::success(
             [],
             200,
             'Reserva restaurada correctamente'
         );
+    }
+
+    /**
+     * Reconstruye los filtros de listado desde la query string.
+     *
+     * @return array<string, mixed>
+     */
+    private function filtros(Request $request): array
+    {
+        $filtros = [];
+
+        foreach (['estado', 'usuario_id', 'propiedad_id'] as $campo) {
+            if (($valor = $request->query($campo)) !== null) {
+                $filtros[$campo] = $campo === 'estado'
+                    ? $valor
+                    : (int) $valor;
+            }
+        }
+
+        foreach (['solo_eliminados', 'incluir_eliminados'] as $campo) {
+            if (($valor = $request->query($campo)) !== null) {
+                $filtros[$campo] = filter_var(
+                    $valor,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+            }
+        }
+
+        return $filtros;
     }
 }

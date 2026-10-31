@@ -134,7 +134,7 @@ Las actualizaciones parciales solo se permiten en casos donde la entidad admite 
 
 | Endpoint | Acción | Auth & Rol | Reglas Clave |
 |---|---|---|---|
-| `GET /api/propiedades` | Lista propiedades. | No | • Excluye SoftDeletes; • filtros opcionales |
+| `GET /api/propiedades` | Lista propiedades paginadas. | No | • Excluye SoftDeletes; • filtros opcionales; • usa `page` y `per_page` (1-50, predeterminado 10); • incluye `imagen_url` de portada, sin colecciones de imágenes o servicios |
 | `GET /api/propiedades/{id}` | Consulta propiedad. | No | • `id` positivo; • eliminadas devuelven `404` |
 | `POST /api/propiedades` | Crea propiedad. | Sí - Usuario | • `usuario_id` tomado del JWT |
 | `PUT /api/propiedades/{id}` | Actualiza propiedad. | Sí - Usr/Admin | • Solo dueño o admin; • no modifica `usuario_id` |
@@ -142,6 +142,10 @@ Las actualizaciones parciales solo se permiten en casos donde la entidad admite 
 | `POST /api/propiedades/{id}/restaurar`| Restaura propiedad. | Sí - Usr/Admin | • SoftDeletes; • solo dueño o admin |
 
 ---
+
+El listado devuelve una sola `imagen_url` por propiedad: prioriza la imagen
+principal y, si no existe, usa la imagen de menor ID. Para obtener todas las
+imágenes y servicios se debe consultar el detalle `GET /api/propiedades/{id}`.
 
 ## 7. Imágenes de propiedades
 

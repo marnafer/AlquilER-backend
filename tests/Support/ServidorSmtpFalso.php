@@ -9,8 +9,10 @@ declare(strict_types=1);
  *
  * Escribe "1" en <archivo-bandera> cuando el socket queda escuchando para
  * que el test sepa que puede conectarse, acepta una unica conexion y
- * responde una conversacion SMTP minima. El modo "rechaza-data" hace que
- * el comando DATA responda con un error.
+ * responde una conversacion SMTP minima. El modo permite simular rechazos:
+ * rechaza-saludo, rechaza-ehlo, starttls-inesperado, rechaza-auth,
+ * rechaza-usuario, rechaza-clave, requiere-auth, rechaza-mail,
+ * rechaza-rcpt, rechaza-data y rechaza-fin-data.
  */
 
 $puerto = (int) ($argv[1] ?? 0);
@@ -39,6 +41,8 @@ if ($conexion === false) {
     exit(2);
 }
 
+stream_set_timeout($conexion, 5);
+
 $leerLinea = static function ($conexion): string {
     $linea = '';
 
@@ -53,26 +57,100 @@ $leerLinea = static function ($conexion): string {
     return $linea;
 };
 
-fwrite($conexion, "220 alquiler.local ESMTP\r\n");
+fwrite(
+    $conexion,
+    $modo === 'rechaza-saludo'
+        ? "554 Servicio no disponible\r\n"
+        : "220 alquiler.local ESMTP\r\n"
+);
+
+$autenticando = 0;
+$autenticado = false;
 
 while (($linea = $leerLinea($conexion)) !== '') {
     $comando = strtoupper(trim($linea));
 
+    if ($autenticando === 1) {
+        if ($modo === 'rechaza-usuario') {
+            $autenticando = 0;
+            fwrite($conexion, "535 Usuario rechazado\r\n");
+            continue;
+        }
+
+        $autenticando = 2;
+        fwrite($conexion, "334 UGFzc3dvcmQ6\r\n");
+        continue;
+    }
+
+    if ($autenticando === 2) {
+        $autenticando = 0;
+
+        if ($modo === 'rechaza-clave') {
+            fwrite($conexion, "535 Contraseña rechazada\r\n");
+            continue;
+        }
+
+        $autenticado = true;
+        fwrite($conexion, "235 Autenticación correcta\r\n");
+        continue;
+    }
+
     if (str_starts_with($comando, 'EHLO') || str_starts_with($comando, 'HELO')) {
+        if ($modo === 'rechaza-ehlo') {
+            fwrite($conexion, "554 EHLO rechazado\r\n");
+            continue;
+        }
+
         fwrite(
             $conexion,
-            "250-alquiler.local\r\n250-AUTH LOGIN PLAIN\r\n250 HELP\r\n250 OK\r\n"
+            "250-alquiler.local\r\n250-AUTH LOGIN PLAIN\r\n250 HELP\r\n"
         );
         continue;
     }
 
+    if ($comando === 'STARTTLS') {
+        if ($modo === 'starttls-inesperado') {
+            fwrite($conexion, "250 STARTTLS aceptado\r\n");
+            continue;
+        }
+
+        fwrite($conexion, "502 STARTTLS no disponible\r\n");
+        continue;
+    }
+
+    if ($comando === 'AUTH LOGIN') {
+        if ($modo === 'rechaza-auth') {
+            fwrite($conexion, "535 Autenticación rechazada\r\n");
+            continue;
+        }
+
+        $autenticando = 1;
+        fwrite($conexion, "334 VXNlcm5hbWU6\r\n");
+        continue;
+    }
+
     if (str_starts_with($comando, 'MAIL FROM')) {
-        fwrite($conexion, "250 OK\r\n250 OK\r\n");
+        if ($modo === 'requiere-auth' && !$autenticado) {
+            fwrite($conexion, "530 Autenticación requerida\r\n");
+            continue;
+        }
+
+        if ($modo === 'rechaza-mail') {
+            fwrite($conexion, "550 Remitente rechazado\r\n");
+            continue;
+        }
+
+        fwrite($conexion, "250 OK\r\n");
         continue;
     }
 
     if (str_starts_with($comando, 'RCPT TO')) {
-        fwrite($conexion, "250 OK\r\n250 OK\r\n");
+        if ($modo === 'rechaza-rcpt') {
+            fwrite($conexion, "550 Destinatario rechazado\r\n");
+            continue;
+        }
+
+        fwrite($conexion, "250 OK\r\n");
         continue;
     }
 
@@ -90,6 +168,11 @@ while (($linea = $leerLinea($conexion)) !== '') {
             }
         }
 
+        if ($modo === 'rechaza-fin-data') {
+            fwrite($conexion, "554 Mensaje rechazado\r\n");
+            continue;
+        }
+
         fwrite($conexion, "250 OK queued\r\n");
         continue;
     }
@@ -99,7 +182,13 @@ while (($linea = $leerLinea($conexion)) !== '') {
         break;
     }
 
-    fwrite($conexion, "250 OK\r\n250 OK\r\n");
+    fwrite($conexion, "250 OK\r\n");
+}
+
+$meta = stream_get_meta_data($conexion);
+
+if ($bandera !== '' && empty($meta['timed_out'])) {
+    @file_put_contents($bandera . '.cerrado', '1');
 }
 
 fclose($conexion);
