@@ -35,7 +35,7 @@ class MensajeConsultaService
         }
 
         // Delega la búsqueda y validación de seguridad a la Policy mediante ConsultaService
-        $consulta = $this->consultaService->obtenerConsultaAutorizada(
+        $consulta = $this->consultaService->obtenerAutorizada(
             $data['consulta_id'],
             $usuarioLogueadoId,
             $rolId
@@ -127,7 +127,7 @@ if ($destinatarioId && $destinatarioId !== $usuarioLogueadoId) {
             : null;
 
         // Autorizar antes de consultar los mensajes.
-        $this->consultaService->obtenerConsultaAutorizada(
+        $this->consultaService->obtenerAutorizada(
             $consultaId,
             $usuarioLogueadoId,
             $rolId

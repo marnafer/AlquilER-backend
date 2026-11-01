@@ -27,8 +27,13 @@ use OpenApi\Attributes as OA;
             scheme: 'bearer',
             bearerFormat: 'JWT'
         )
+    ]),
+    tags: [
+        new OA\Tag(
+            name: 'Administración',
+            description: 'Endpoints exclusivos para administradores.'
+        )
     ]
-)
 )]
 final class OpenApiSpec
 {

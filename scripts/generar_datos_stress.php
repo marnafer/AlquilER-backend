@@ -605,7 +605,10 @@ function generateProperties(
             'acepta_mascotas' => true,
             'acepta_hijos' => true,
             'requisitos_interesados' => json_encode(
-                ['ingresos_comprobables'],
+                [
+                    'max_ocupantes' => rand(1, 8),
+                    'garantias_aceptadas' => ['recibo_sueldo', 'garante'],
+                ],
                 JSON_THROW_ON_ERROR
             ),
             'fecha_publicacion' => date('Y-m-d H:i:s'),

@@ -103,7 +103,6 @@ final class CategoriaServiceTest extends TestCase
             ->expects($this->once())
             ->method('create')
             ->with([
-                'id' => null,
                 'nombre' => 'Casa',
             ])
             ->willReturn($categoria);

@@ -55,14 +55,14 @@ class CategoriaSanitizerTest extends TestCase
         $this->assertSame(50, mb_strlen(CategoriaSanitizer::sanitizarNombre($nombre)));
     }
 
-    public function test_sanitizar_categoria_full_payload(): void
+    public function test_sanitizar_categoria_ignora_id(): void
     {
         $resultado = CategoriaSanitizer::sanitizarCategoria([
             'id' => '3',
             'nombre' => 'departamento',
         ]);
 
-        $this->assertSame(3, $resultado['id']);
+        $this->assertArrayNotHasKey('id', $resultado);
         $this->assertSame('Departamento', $resultado['nombre']);
     }
 
