@@ -363,6 +363,11 @@ final class PropiedadImagenHttpTest extends TestCase
                 }
 
                 if ($this->usuarioId !== null) {
+
+                $this->db->table('logs_actividad')
+                        ->where('usuario_id', $this->usuarioId)
+                        ->delete();
+                        
                     $this->db
                         ->table('usuarios')
                         ->where('id', $this->usuarioId)
@@ -375,7 +380,7 @@ final class PropiedadImagenHttpTest extends TestCase
                 ) {
                     $this->db
                         ->table('localidades')
-                        ->where('id', $this->localidadId)
+                        ->where('id', $this->localidadId)   
                         ->delete();
                 }
 
