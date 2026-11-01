@@ -1115,7 +1115,6 @@
                         "name": "categoria_id",
                         "in": "query",
                         "description": "Identificadores de categorías. Puede repetirse para indicar varios valores.",
-                        "required": false,
                         "style": "form",
                         "explode": true,
                         "schema": {
@@ -1130,7 +1129,6 @@
                         "name": "localidad_id",
                         "in": "query",
                         "description": "Identificadores de localidades.",
-                        "required": false,
                         "style": "form",
                         "explode": true,
                         "schema": {
@@ -1145,7 +1143,6 @@
                         "name": "servicio_id",
                         "in": "query",
                         "description": "Identificadores de servicios. La propiedad debe contar con todos los servicios indicados.",
-                        "required": false,
                         "style": "form",
                         "explode": true,
                         "schema": {
@@ -1227,6 +1224,22 @@
                         }
                     },
                     {
+                        "name": "disponible",
+                        "in": "query",
+                        "description": "Filtrar por disponibilidad.",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "destacada",
+                        "in": "query",
+                        "description": "Filtrar por propiedades destacadas.",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
                         "name": "page",
                         "in": "query",
                         "description": "Número de página. Por defecto: 1.",
@@ -1275,7 +1288,14 @@
                         }
                     },
                     "422": {
-                        "description": "Error de validación en los filtros"
+                        "description": "Error de validación en los filtros",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadValidationErrorResponse"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1284,7 +1304,7 @@
                     "Propiedades"
                 ],
                 "summary": "Crear propiedad",
-                "description": "Registra una propiedad para el usuario autenticado. Los administradores pueden asignar un propietario. Los usuarios comunes no pueden crear propiedades destacadas.",
+                "description": "Registra una propiedad para el usuario autenticado. Los administradores pueden asignar un propietario y establecer si la propiedad es destacada.",
                 "operationId": "e47ca3c0478a53e37c94b9bf55574af0",
                 "requestBody": {
                     "required": true,
@@ -1302,22 +1322,50 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/PropiedadDetalleResponse"
+                                    "$ref": "#/components/schemas/PropiedadCreateResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Solicitud inválida"
+                        "description": "Solicitud inválida",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "401": {
-                        "description": "No autenticado"
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "No autorizado"
+                        "description": "No autorizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "Error de validación"
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadValidationErrorResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1363,15 +1411,17 @@
                         "in": "query",
                         "description": "Incluir propiedades eliminadas.",
                         "schema": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                         }
                     },
                     {
                         "name": "solo_eliminados",
                         "in": "query",
-                        "description": "Mostrar únicamente propiedades eliminadas.",
+                        "description": "Mostrar únicamente las propiedades eliminadas. Tiene prioridad sobre incluir_eliminados.",
                         "schema": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "default": false
                         }
                     }
                 ],
@@ -1387,10 +1437,24 @@
                         }
                     },
                     "401": {
-                        "description": "No autenticado"
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "Acceso restringido a administradores"
+                        "description": "Acceso restringido a administradores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1420,7 +1484,14 @@
                         }
                     },
                     "401": {
-                        "description": "No autenticado"
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1461,10 +1532,24 @@
                         }
                     },
                     "404": {
-                        "description": "Propiedad no encontrada"
+                        "description": "Propiedad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "ID inválido"
+                        "description": "ID inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadValidationErrorResponse"
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -1498,22 +1583,64 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Propiedad actualizada correctamente"
+                        "description": "Propiedad actualizada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadEmptySuccessResponse"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Solicitud inválida"
+                        "description": "Solicitud inválida",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "401": {
-                        "description": "No autenticado"
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "No autorizado para actualizar esta propiedad"
+                        "description": "No autorizado para actualizar esta propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "404": {
-                        "description": "Propiedad no encontrada"
+                        "description": "Propiedad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "Error de validación"
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadValidationErrorResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1542,22 +1669,64 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Propiedad eliminada correctamente"
+                        "description": "Propiedad eliminada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadEmptySuccessResponse"
+                                }
+                            }
+                        }
                     },
                     "401": {
-                        "description": "No autenticado"
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "No autorizado para eliminar esta propiedad"
+                        "description": "No autorizado para eliminar esta propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "404": {
-                        "description": "Propiedad no encontrada"
+                        "description": "Propiedad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "409": {
-                        "description": "La propiedad tiene reservas activas"
+                        "description": "La propiedad tiene reservas activas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "ID inválido"
+                        "description": "ID inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadValidationErrorResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1588,19 +1757,54 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Propiedad restaurada correctamente"
+                        "description": "Propiedad restaurada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadEmptySuccessResponse"
+                                }
+                            }
+                        }
                     },
                     "401": {
-                        "description": "No autenticado"
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "No autorizado para restaurar esta propiedad"
+                        "description": "No autorizado para restaurar esta propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "404": {
-                        "description": "Propiedad eliminada no encontrada"
+                        "description": "Propiedad eliminada no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "ID inválido"
+                        "description": "ID inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadValidationErrorResponse"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -2716,36 +2920,46 @@
                         "example": false
                     },
                     "requisitos_interesados": {
-                        "description": "Requisitos para los interesados. Puede estar vacío.",
-                        "properties": {
-                            "fecha_disponible_desde": {
-                                "type": "string",
-                                "format": "date",
-                                "example": "2026-11-01",
-                                "nullable": true
+                        "description": "Requisitos para los interesados. Puede ser un objeto con requisitos o un arreglo vacío.",
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "fecha_disponible_desde": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-11-01",
+                                        "nullable": true
+                                    },
+                                    "max_ocupantes": {
+                                        "type": "integer",
+                                        "example": 4,
+                                        "nullable": true,
+                                        "maximum": 50,
+                                        "minimum": 1
+                                    },
+                                    "garantias_aceptadas": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "recibo_sueldo",
+                                                "garantia_propietaria",
+                                                "seguro_caucion",
+                                                "garante"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "type": "object"
                             },
-                            "max_ocupantes": {
-                                "type": "integer",
-                                "example": 4,
-                                "nullable": true,
-                                "maximum": 50,
-                                "minimum": 1
-                            },
-                            "garantias_aceptadas": {
+                            {
                                 "type": "array",
                                 "items": {
-                                    "type": "string",
-                                    "enum": [
-                                        "recibo_sueldo",
-                                        "garantia_propietaria",
-                                        "seguro_caucion",
-                                        "garante"
-                                    ]
-                                }
+                                    "type": "string"
+                                },
+                                "maxItems": 0
                             }
-                        },
-                        "type": "object",
-                        "nullable": true
+                        ]
                     },
                     "disponible": {
                         "type": "boolean",
@@ -2759,18 +2973,19 @@
                         "type": "integer",
                         "example": 1
                     },
-                    "usuario_id": {
-                        "type": "integer",
-                        "example": 12
-                    },
                     "localidad_id": {
                         "type": "integer",
                         "example": 1
                     },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
                     "fecha_publicacion": {
                         "type": "string",
                         "format": "date-time",
-                        "example": "2026-10-30T01:36:23Z"
+                        "example": "2026-10-30T01:36:23Z",
+                        "nullable": true
                     },
                     "imagen_url": {
                         "type": "string",
@@ -2912,7 +3127,7 @@
                 },
                 "type": "object"
             },
-            "PropiedadDetalleResponse": {
+            "PropiedadDetalle": {
                 "allOf": [
                     {
                         "$ref": "#/components/schemas/PropiedadResponse"
@@ -2920,10 +3135,20 @@
                     {
                         "properties": {
                             "categoria": {
-                                "$ref": "#/components/schemas/PropiedadCategoria"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PropiedadCategoria"
+                                    }
+                                ],
+                                "nullable": true
                             },
                             "localidad": {
-                                "$ref": "#/components/schemas/PropiedadLocalidad"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PropiedadLocalidad"
+                                    }
+                                ],
+                                "nullable": true
                             },
                             "servicios": {
                                 "type": "array",
@@ -2949,21 +3174,6 @@
                         "type": "object"
                     }
                 ]
-            },
-            "PropiedadDestacadasResponse": {
-                "properties": {
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PropiedadResponse"
-                        }
-                    },
-                    "total": {
-                        "type": "integer",
-                        "example": 5
-                    }
-                },
-                "type": "object"
             },
             "PropiedadMisPropiedadesItem": {
                 "allOf": [
@@ -2997,21 +3207,6 @@
                     }
                 ]
             },
-            "PropiedadMisPropiedadesResponse": {
-                "properties": {
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PropiedadMisPropiedadesItem"
-                        }
-                    },
-                    "total": {
-                        "type": "integer",
-                        "example": 1
-                    }
-                },
-                "type": "object"
-            },
             "PropiedadAdminItem": {
                 "allOf": [
                     {
@@ -3020,13 +3215,28 @@
                     {
                         "properties": {
                             "usuario": {
-                                "$ref": "#/components/schemas/PropiedadAdminUsuario"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PropiedadAdminUsuario"
+                                    }
+                                ],
+                                "nullable": true
                             },
                             "categoria": {
-                                "$ref": "#/components/schemas/PropiedadCategoria"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PropiedadCategoria"
+                                    }
+                                ],
+                                "nullable": true
                             },
                             "localidad": {
-                                "$ref": "#/components/schemas/PropiedadLocalidad"
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/PropiedadLocalidad"
+                                    }
+                                ],
+                                "nullable": true
                             },
                             "imagenes": {
                                 "type": "array",
@@ -3047,21 +3257,6 @@
                     }
                 ]
             },
-            "PropiedadAdminListResponse": {
-                "properties": {
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PropiedadAdminItem"
-                        }
-                    },
-                    "total": {
-                        "type": "integer",
-                        "example": 1
-                    }
-                },
-                "type": "object"
-            },
             "PropiedadPagination": {
                 "properties": {
                     "current_page": {
@@ -3079,50 +3274,14 @@
                 },
                 "type": "object"
             },
-            "PropiedadListResponse": {
-                "properties": {
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PropiedadResponse"
-                        }
-                    },
-                    "total": {
-                        "type": "integer",
-                        "example": 10008
-                    },
-                    "pagination": {
-                        "$ref": "#/components/schemas/PropiedadPagination"
-                    }
-                },
-                "type": "object"
-            },
-            "PropiedadCollectionResponse": {
-                "properties": {
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PropiedadDetalleResponse"
-                        }
-                    },
-                    "total": {
-                        "type": "integer",
-                        "example": 15
-                    }
-                },
-                "type": "object"
-            },
             "PropiedadCreateRequest": {
                 "required": [
                     "titulo",
                     "precio",
-                    "expensas",
                     "direccion",
                     "cantidad_ambientes",
                     "cantidad_dormitorios",
                     "cantidad_banos",
-                    "disponible",
-                    "destacada",
                     "categoria_id",
                     "localidad_id"
                 ],
@@ -3148,6 +3307,7 @@
                     "expensas": {
                         "type": "number",
                         "example": 65000,
+                        "default": 0,
                         "minimum": 0
                     },
                     "direccion": {
@@ -3179,49 +3339,62 @@
                     },
                     "acepta_mascotas": {
                         "type": "boolean",
-                        "example": false
+                        "example": false,
+                        "default": false
                     },
                     "acepta_hijos": {
                         "type": "boolean",
-                        "example": false
+                        "example": false,
+                        "default": false
                     },
                     "requisitos_interesados": {
-                        "properties": {
-                            "fecha_disponible_desde": {
-                                "type": "string",
-                                "format": "date",
-                                "example": "2026-11-01",
-                                "nullable": true
+                        "description": "Objeto de requisitos o arreglo vacío.",
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "fecha_disponible_desde": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "max_ocupantes": {
+                                        "type": "integer",
+                                        "nullable": true,
+                                        "maximum": 50,
+                                        "minimum": 1
+                                    },
+                                    "garantias_aceptadas": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "recibo_sueldo",
+                                                "garantia_propietaria",
+                                                "seguro_caucion",
+                                                "garante"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "type": "object"
                             },
-                            "max_ocupantes": {
-                                "type": "integer",
-                                "example": 4,
-                                "nullable": true,
-                                "maximum": 50,
-                                "minimum": 1
-                            },
-                            "garantias_aceptadas": {
+                            {
                                 "type": "array",
                                 "items": {
-                                    "type": "string",
-                                    "enum": [
-                                        "recibo_sueldo",
-                                        "garantia_propietaria",
-                                        "seguro_caucion",
-                                        "garante"
-                                    ]
-                                }
+                                    "type": "string"
+                                },
+                                "maxItems": 0
                             }
-                        },
-                        "type": "object"
+                        ]
                     },
                     "disponible": {
                         "type": "boolean",
-                        "example": true
+                        "default": true
                     },
                     "destacada": {
+                        "description": "Solo los administradores pueden asignar esta propiedad como destacada.",
                         "type": "boolean",
-                        "example": false
+                        "default": false
                     },
                     "categoria_id": {
                         "type": "integer",
@@ -3256,6 +3429,7 @@
                 "type": "object"
             },
             "PropiedadUpdateRequest": {
+                "minProperties": 1,
                 "properties": {
                     "titulo": {
                         "type": "string",
@@ -3276,7 +3450,6 @@
                     },
                     "expensas": {
                         "type": "number",
-                        "example": 70000,
                         "minimum": 0
                     },
                     "direccion": {
@@ -3327,6 +3500,224 @@
                     }
                 },
                 "type": "object"
+            },
+            "PropiedadListData": {
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PropiedadResponse"
+                        }
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 10008
+                    },
+                    "pagination": {
+                        "$ref": "#/components/schemas/PropiedadPagination"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadDestacadasData": {
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PropiedadResponse"
+                        }
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 5
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadMisPropiedadesData": {
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PropiedadMisPropiedadesItem"
+                        }
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadAdminListData": {
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PropiedadAdminItem"
+                        }
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadSuccessResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadListResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadSuccessResponse"
+                    },
+                    {
+                        "properties": {
+                            "data": {
+                                "$ref": "#/components/schemas/PropiedadListData"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "PropiedadDestacadasResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadSuccessResponse"
+                    },
+                    {
+                        "properties": {
+                            "data": {
+                                "$ref": "#/components/schemas/PropiedadDestacadasData"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "PropiedadMisPropiedadesResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadSuccessResponse"
+                    },
+                    {
+                        "properties": {
+                            "data": {
+                                "$ref": "#/components/schemas/PropiedadMisPropiedadesData"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "PropiedadAdminListResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadSuccessResponse"
+                    },
+                    {
+                        "properties": {
+                            "data": {
+                                "$ref": "#/components/schemas/PropiedadAdminListData"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "PropiedadDetalleResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PropiedadDetalle"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadCreateResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Propiedad creada exitosamente"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PropiedadResponse"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadEmptySuccessResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error interno del servidor"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadValidationErrorResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadErrorResponse"
+                    },
+                    {
+                        "properties": {
+                            "validation_errors": {
+                                "type": "object",
+                                "example": {
+                                    "titulo": [
+                                        "El título es obligatorio"
+                                    ]
+                                },
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
             },
             "UsuarioResponse": {
                 "properties": {
