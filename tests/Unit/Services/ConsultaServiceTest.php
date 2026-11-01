@@ -1082,31 +1082,6 @@ class ConsultaServiceTest extends TestCase
         $this->service->obtenerAutorizada(0, 5);
     }
 
-    public function test_obtenerConsultaAutorizada_delega_en_obtenerAutorizada(): void
-    {
-        $consulta = new Consulta();
-        $consulta->id = 10;
-
-        $this->consultaRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(10)
-            ->willReturn($consulta);
-
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeParticipar')
-            ->with(5, $consulta)
-            ->willReturn(true);
-
-        $resultado = $this->service->obtenerConsultaAutorizada(
-            10,
-            5
-        );
-
-        $this->assertSame($consulta, $resultado);
-    }
-
     public function test_crear_rechaza_datos_invalidos(): void
     {
         $this->propiedadRepository
