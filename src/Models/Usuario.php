@@ -26,7 +26,8 @@ class Usuario extends Model
     protected $hidden = [
         'contrasena',
         'deleted_at',
-        'email_verification_token'
+        'email_verification_token',
+        'email_verification_expires_at'
     ];
 
     protected $casts = [
