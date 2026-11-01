@@ -369,6 +369,11 @@ final class PropiedadImagenHttpTest extends TestCase
                         ->delete();
                         
                     $this->db
+                        ->table('logs_actividad')
+                        ->where('usuario_id', $this->usuarioId)
+                        ->delete();
+
+                    $this->db
                         ->table('usuarios')
                         ->where('id', $this->usuarioId)
                         ->delete();
