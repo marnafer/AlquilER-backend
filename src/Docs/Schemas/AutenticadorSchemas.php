@@ -115,43 +115,6 @@ use OpenApi\Attributes as OA;
     ],
     type: 'object'
     )]
-    #[OA\Schema(
-    schema: 'RecuperarPasswordRequest',
-    required: ['email'],
-    properties: [
-        new OA\Property(
-            property: 'email',
-            type: 'string',
-            format: 'email',
-            example: 'usuario@example.com'
-        ),
-    ],
-    type: 'object'
-)]
-#[OA\Schema(
-    schema: 'RestablecerPasswordRequest',
-    required: ['email', 'token', 'contrasena'],
-    properties: [
-        new OA\Property(
-            property: 'email',
-            type: 'string',
-            format: 'email',
-            example: 'usuario@example.com'
-        ),
-        new OA\Property(
-            property: 'token',
-            type: 'string',
-            example: '7f8c9a2b4d6e8f1a3c5b7d9e0f2a4c6b8d0e1f3a5c7b9d1e3f5a7c9b0d2e4f6'
-        ),
-        new OA\Property(
-            property: 'contrasena',
-            type: 'string',
-            format: 'password',
-            example: 'NuevaPassword123'
-        ),
-    ],
-    type: 'object'
-    )]
 final class AutenticadorSchemas
 {
 }
