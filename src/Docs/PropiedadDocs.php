@@ -87,18 +87,6 @@ final class PropiedadDocs
                 schema: new OA\Schema(type: 'boolean')
             ),
             new OA\Parameter(
-                name: 'disponible',
-                in: 'query',
-                description: 'Filtrar por disponibilidad.',
-                schema: new OA\Schema(type: 'boolean')
-            ),
-            new OA\Parameter(
-                name: 'destacada',
-                in: 'query',
-                description: 'Filtrar por propiedades destacadas.',
-                schema: new OA\Schema(type: 'boolean')
-            ),
-            new OA\Parameter(
                 name: 'page',
                 in: 'query',
                 description: 'Número de página. Por defecto: 1.',
@@ -158,7 +146,7 @@ final class PropiedadDocs
     #[OA\Get(
         path: '/api/admin/propiedades',
         summary: 'Listar propiedades desde administración',
-        description: 'Obtiene todas las propiedades para administración. Permite incluir propiedades eliminadas o consultar únicamente las eliminadas.',
+        description: 'Obtiene todas las propiedades para administración, sin paginación. Incluye las propiedades activas por defecto. Permite incluir propiedades eliminadas o consultar únicamente las eliminadas.',
         tags: ['Administración'],
         security: [['bearerAuth' => []]],
         parameters: [
@@ -189,6 +177,11 @@ final class PropiedadDocs
             new OA\Response(
                 response: 403,
                 description: 'Acceso restringido a administradores',
+                content: new OA\JsonContent(ref: '#/components/schemas/PropiedadErrorResponse')
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Propietario no encontrado',
                 content: new OA\JsonContent(ref: '#/components/schemas/PropiedadErrorResponse')
             ),
         ]
@@ -300,7 +293,7 @@ final class PropiedadDocs
     #[OA\Put(
         path: '/api/propiedades/{id}',
         summary: 'Actualizar propiedad',
-        description: 'Actualiza los datos de una propiedad. El propietario o un administrador pueden realizar la operación. Los usuarios comunes no pueden modificar el campo destacada.',
+        description: 'Actualiza los datos de una propiedad. El propietario o un administrador pueden realizar la operación. El campo destacada solo puede ser modificado por administradores; para usuarios comunes se ignora.',
         tags: ['Propiedades'],
         security: [['bearerAuth' => []]],
         parameters: [
@@ -355,7 +348,7 @@ final class PropiedadDocs
     #[OA\Delete(
         path: '/api/propiedades/{id}',
         summary: 'Eliminar propiedad',
-        description: 'Realiza la eliminación lógica de una propiedad. No permite eliminar propiedades con reservas activas.',
+        description: 'Realiza la eliminación lógica de una propiedad. Solo puede realizarla el propietario o un administrador. No permite eliminar propiedades con reservas activas.',
         tags: ['Propiedades'],
         security: [['bearerAuth' => []]],
         parameters: [
@@ -406,7 +399,7 @@ final class PropiedadDocs
     #[OA\Post(
         path: '/api/propiedades/{id}/restaurar',
         summary: 'Restaurar propiedad',
-        description: 'Restaura una propiedad previamente eliminada.',
+        description: 'Restaura una propiedad previamente eliminada. Solo puede realizar la operación el propietario o un administrador.',
         tags: ['Propiedades'],
         security: [['bearerAuth' => []]],
         parameters: [

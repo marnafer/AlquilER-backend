@@ -161,68 +161,6 @@
                 }
             }
         },
-        "/api/autenticador/recuperar": {
-            "post": {
-                "tags": [
-                    "Autenticador"
-                ],
-                "summary": "Solicitar recuperación de contraseña",
-                "description": "Envía un enlace de recuperación al correo indicado. La respuesta no revela si el correo existe.",
-                "operationId": "3b0f3a03db1de114e2061b57ba843181",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RecuperarPasswordRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Solicitud procesada correctamente"
-                    },
-                    "422": {
-                        "description": "Error de validación"
-                    },
-                    "400": {
-                        "description": "Cuerpo de la solicitud inválido"
-                    }
-                }
-            }
-        },
-        "/api/autenticador/restablecer": {
-            "post": {
-                "tags": [
-                    "Autenticador"
-                ],
-                "summary": "Restablecer contraseña",
-                "description": "Restablece la contraseña utilizando un token de recuperación válido.",
-                "operationId": "c1339ce95f23d304142729df9886c4ea",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RestablecerPasswordRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Contraseña restablecida correctamente"
-                    },
-                    "400": {
-                        "description": "Enlace de recuperación inválido, utilizado o expirado"
-                    },
-                    "422": {
-                        "description": "Error de validación"
-                    }
-                }
-            }
-        },
         "/api/categorias": {
             "get": {
                 "tags": [
@@ -1092,6 +1030,1221 @@
                 ]
             }
         },
+        "/api/contacto": {
+            "post": {
+                "tags": [
+                    "Contacto"
+                ],
+                "summary": "Enviar un mensaje de contacto",
+                "description": "Permite enviar un mensaje al equipo de AlquilER. No requiere autenticación.",
+                "operationId": "enviarMensajeContacto",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContactoRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Mensaje enviado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ContactoSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta o servicio de contacto no configurado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ContactoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación de los datos enviados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ContactoValidationErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ContactoErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/favoritos": {
+            "get": {
+                "tags": [
+                    "Favoritos"
+                ],
+                "summary": "Obtener mis favoritos",
+                "description": "Obtiene las propiedades favoritas del usuario autenticado, incluyendo sus relaciones.",
+                "operationId": "listarFavoritos",
+                "responses": {
+                    "200": {
+                        "description": "Favoritos obtenidos correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Favoritos"
+                ],
+                "summary": "Agregar una propiedad a favoritos",
+                "description": "Agrega una propiedad a la lista de favoritos del usuario autenticado. No permite agregar propiedades propias ni duplicar favoritos.",
+                "operationId": "agregarFavorito",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FavoritoCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Propiedad agregada a favoritos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoCreateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta o intento de agregar una propiedad propia",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad no existe",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "La propiedad ya está en favoritos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/usuarios/{id}/favoritos": {
+            "get": {
+                "tags": [
+                    "Favoritos"
+                ],
+                "summary": "Obtener favoritos de un usuario",
+                "description": "Obtiene los favoritos de un usuario específico. Solo el propio usuario o un administrador autorizado pueden realizar la consulta.",
+                "operationId": "listarFavoritosPorUsuario",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del usuario cuyos favoritos se desean consultar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 8
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Favoritos del usuario obtenidos correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para consultar los favoritos de este usuario",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de usuario inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/favoritos/propiedad/{propiedad_id}": {
+            "delete": {
+                "tags": [
+                    "Favoritos"
+                ],
+                "summary": "Eliminar una propiedad de favoritos",
+                "description": "Elimina una propiedad de la lista de favoritos del usuario autenticado.",
+                "operationId": "eliminarFavorito",
+                "parameters": [
+                    {
+                        "name": "propiedad_id",
+                        "in": "path",
+                        "description": "ID de la propiedad que se desea eliminar de favoritos",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 15
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Propiedad eliminada de favoritos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoDeleteResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID de usuario inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para eliminar este favorito",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad no está en favoritos o no se pudo eliminar",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de propiedad inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FavoritoValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/localidades": {
+            "get": {
+                "tags": [
+                    "Localidades"
+                ],
+                "summary": "Listar localidades",
+                "description": "Obtiene las localidades disponibles. Permite consultar únicamente las eliminadas o incluirlas en el listado.",
+                "operationId": "listarLocalidades",
+                "parameters": [
+                    {
+                        "name": "solo_eliminados",
+                        "in": "query",
+                        "description": "Mostrar únicamente localidades eliminadas.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": false
+                    },
+                    {
+                        "name": "incluir_eliminados",
+                        "in": "query",
+                        "description": "Incluir localidades eliminadas en el listado.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "example": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Localidades obtenidas correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado al solicitar la papelera",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso restringido a administradores al solicitar la papelera",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Localidades"
+                ],
+                "summary": "Crear localidad",
+                "description": "Registra una localidad asociada a una provincia. Requiere permisos de administrador.",
+                "operationId": "crearLocalidad",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LocalidadCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Localidad creada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadSingleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso restringido a administradores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una localidad con ese nombre en la provincia",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación o provincia inexistente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/localidades/{id}": {
+            "get": {
+                "tags": [
+                    "Localidades"
+                ],
+                "summary": "Obtener localidad",
+                "description": "Obtiene una localidad según su identificador.",
+                "operationId": "obtenerLocalidad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la localidad.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Localidad obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadSingleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Localidad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de localidad inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Localidades"
+                ],
+                "summary": "Actualizar localidad",
+                "description": "Actualiza parcialmente una localidad. Requiere permisos de administrador y al menos un campo modificable.",
+                "operationId": "actualizarLocalidad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la localidad.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LocalidadUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Localidad actualizada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No se enviaron campos actualizables",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso restringido a administradores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Localidad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe otra localidad con ese nombre en la provincia",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación o provincia inexistente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Localidades"
+                ],
+                "summary": "Eliminar localidad",
+                "description": "Realiza la eliminación lógica de una localidad. No permite eliminar localidades que tengan propiedades asociadas. Requiere permisos de administrador.",
+                "operationId": "eliminarLocalidad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la localidad.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Localidad eliminada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso restringido a administradores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Localidad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "No se puede eliminar porque tiene propiedades asociadas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de localidad inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/localidades/{id}/restaurar": {
+            "post": {
+                "tags": [
+                    "Localidades"
+                ],
+                "summary": "Restaurar localidad",
+                "description": "Restaura una localidad previamente eliminada. No permite restaurarla si ya existe otra localidad activa con el mismo nombre en la provincia. Requiere permisos de administrador.",
+                "operationId": "restaurarLocalidad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la localidad eliminada.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Localidad restaurada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acceso restringido a administradores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Localidad eliminada no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una localidad activa con ese nombre en la provincia",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de localidad inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/consultas/{consulta_id}/mensajes": {
+            "get": {
+                "tags": [
+                    "Mensajes de Consulta"
+                ],
+                "summary": "Obtener historial de mensajes de una consulta",
+                "description": "Devuelve el historial paginado de mensajes. Solo pueden acceder el interesado, el propietario de la propiedad o un administrador.",
+                "operationId": "obtenerHistorialMensajesConsulta",
+                "parameters": [
+                    {
+                        "name": "consulta_id",
+                        "in": "path",
+                        "description": "ID de la consulta",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 5003
+                    },
+                    {
+                        "name": "antes_de_id",
+                        "in": "query",
+                        "description": "Obtiene mensajes anteriores al ID indicado. No se puede combinar con despues_de_id.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 10001
+                    },
+                    {
+                        "name": "despues_de_id",
+                        "in": "query",
+                        "description": "Obtiene mensajes posteriores al ID indicado. No se puede combinar con antes_de_id.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 10001
+                    },
+                    {
+                        "name": "limite",
+                        "in": "query",
+                        "description": "Cantidad máxima de mensajes. Predeterminado: 10.",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "maximum": 50,
+                            "minimum": 1
+                        },
+                        "example": 10
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Historial obtenido correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaHistorialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no tiene permiso para acceder a la consulta",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Consulta inexistente o eliminada para un usuario no administrador",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID o parámetros de paginación inválidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Mensajes de Consulta"
+                ],
+                "summary": "Enviar un mensaje en una consulta",
+                "description": "Registra un mensaje y notifica al otro participante. Solo pueden enviar mensajes los participantes autorizados o un administrador.",
+                "operationId": "crearMensajeConsulta",
+                "parameters": [
+                    {
+                        "name": "consulta_id",
+                        "in": "path",
+                        "description": "ID de la consulta",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 5003
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MensajeConsultaCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Mensaje enviado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cuerpo de solicitud ausente o inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no tiene permiso para enviar mensajes en esta consulta",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Consulta inexistente o eliminada para un usuario no administrador",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Datos del mensaje o ID de consulta inválidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MensajeConsultaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/notificaciones": {
+            "get": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Listar notificaciones",
+                "description": "Obtiene las notificaciones del usuario autenticado y la cantidad de notificaciones no leídas.",
+                "operationId": "listarNotificaciones",
+                "responses": {
+                    "200": {
+                        "description": "Notificaciones obtenidas correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/notificaciones/no-leidas": {
+            "get": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Contar notificaciones no leídas",
+                "description": "Obtiene la cantidad de notificaciones no leídas del usuario autenticado.",
+                "operationId": "contarNotificacionesNoLeidas",
+                "responses": {
+                    "200": {
+                        "description": "Cantidad de notificaciones no leídas obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionNoLeidasResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/notificaciones/{id}/leer": {
+            "put": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Marcar notificación como leída",
+                "description": "Marca como leída una notificación perteneciente al usuario autenticado.",
+                "operationId": "marcarNotificacionLeida",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la notificación.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 25
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notificación marcada como leída",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La notificación pertenece a otro usuario",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Notificación inexistente o identificador inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/notificaciones/leer-todas": {
+            "put": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Marcar todas las notificaciones como leídas",
+                "description": "Marca como leídas todas las notificaciones pendientes del usuario autenticado.",
+                "operationId": "marcarTodasNotificacionesLeidas",
+                "responses": {
+                    "200": {
+                        "description": "Notificaciones marcadas como leídas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token ausente, inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificacionErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/health": {
             "get": {
                 "operationId": "9ff9c9d0808f65ef81ad74a7032b4aa9",
@@ -1219,22 +2372,6 @@
                         "name": "acepta_hijos",
                         "in": "query",
                         "description": "Filtrar por aceptación de hijos.",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    },
-                    {
-                        "name": "disponible",
-                        "in": "query",
-                        "description": "Filtrar por disponibilidad.",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    },
-                    {
-                        "name": "destacada",
-                        "in": "query",
-                        "description": "Filtrar por propiedades destacadas.",
                         "schema": {
                             "type": "boolean"
                         }
@@ -1403,7 +2540,7 @@
                     "Administración"
                 ],
                 "summary": "Listar propiedades desde administración",
-                "description": "Obtiene todas las propiedades para administración. Permite incluir propiedades eliminadas o consultar únicamente las eliminadas.",
+                "description": "Obtiene todas las propiedades para administración, sin paginación. Incluye las propiedades activas por defecto. Permite incluir propiedades eliminadas o consultar únicamente las eliminadas.",
                 "operationId": "b96112ec165c05b2d5e8e9c1779c09ef",
                 "parameters": [
                     {
@@ -1448,6 +2585,16 @@
                     },
                     "403": {
                         "description": "Acceso restringido a administradores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Propietario no encontrado",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1558,7 +2705,7 @@
                     "Propiedades"
                 ],
                 "summary": "Actualizar propiedad",
-                "description": "Actualiza los datos de una propiedad. El propietario o un administrador pueden realizar la operación. Los usuarios comunes no pueden modificar el campo destacada.",
+                "description": "Actualiza los datos de una propiedad. El propietario o un administrador pueden realizar la operación. El campo destacada solo puede ser modificado por administradores; para usuarios comunes se ignora.",
                 "operationId": "4eb543987adbc3091f215961a6cfc950",
                 "parameters": [
                     {
@@ -1654,7 +2801,7 @@
                     "Propiedades"
                 ],
                 "summary": "Eliminar propiedad",
-                "description": "Realiza la eliminación lógica de una propiedad. No permite eliminar propiedades con reservas activas.",
+                "description": "Realiza la eliminación lógica de una propiedad. Solo puede realizarla el propietario o un administrador. No permite eliminar propiedades con reservas activas.",
                 "operationId": "3427deacae612e52027dce5c6eb851e7",
                 "parameters": [
                     {
@@ -1742,7 +2889,7 @@
                     "Propiedades"
                 ],
                 "summary": "Restaurar propiedad",
-                "description": "Restaura una propiedad previamente eliminada.",
+                "description": "Restaura una propiedad previamente eliminada. Solo puede realizar la operación el propietario o un administrador.",
                 "operationId": "33cc25d736095c91e6888a2acaef9f8f",
                 "parameters": [
                     {
@@ -1812,6 +2959,1461 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/propiedad-imagenes": {
+            "get": {
+                "tags": [
+                    "Imágenes de Propiedades"
+                ],
+                "summary": "Listar imágenes de propiedades",
+                "description": "Obtiene todas las imágenes registradas, incluyendo los datos de la propiedad asociada.",
+                "operationId": "c9c7465b2449a799e5e3443910de1c82",
+                "responses": {
+                    "200": {
+                        "description": "Listado de imágenes obtenido correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Imágenes de Propiedades"
+                ],
+                "summary": "Subir una imagen de propiedad",
+                "description": "Carga una imagen y la asocia a una propiedad. La primera imagen de la propiedad se establece automáticamente como principal. Requiere autenticación y permisos sobre la propiedad, salvo administradores.",
+                "operationId": "db241d60255dd1bf703ff2de72e6736d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PropiedadImagenCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Imagen guardada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos sobre esta propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Propiedad no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación de los datos o de la imagen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/propiedad-imagenes/{id}": {
+            "get": {
+                "tags": [
+                    "Imágenes de Propiedades"
+                ],
+                "summary": "Obtener una imagen",
+                "description": "Obtiene una imagen por su ID, incluyendo la propiedad asociada.",
+                "operationId": "e91394cb2fc4ec42b72ef1e89ff958df",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la imagen",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Imagen obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenSingleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Imagen no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Imágenes de Propiedades"
+                ],
+                "summary": "Eliminar una imagen",
+                "description": "Elimina una imagen de una propiedad. Si era la imagen principal, otra imagen disponible pasa a ser la principal. Requiere autenticación y permisos sobre la propiedad, salvo administradores.",
+                "operationId": "838396b83579b6e36e26021d8b86a6ad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la imagen",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Imagen eliminada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos sobre esta imagen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Imagen no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/propiedad-imagenes/{id}/principal": {
+            "put": {
+                "tags": [
+                    "Imágenes de Propiedades"
+                ],
+                "summary": "Establecer imagen principal",
+                "description": "Establece una imagen como principal de su propiedad. La imagen principal anterior deja de serlo. Requiere autenticación y permisos sobre la propiedad, salvo administradores.",
+                "operationId": "107dd68389808b0afafbc96738fffacb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la imagen",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Imagen principal actualizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenSingleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos sobre esta imagen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Imagen no encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadImagenValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/propiedades/{propiedadId}/servicios": {
+            "get": {
+                "tags": [
+                    "Propiedades - Servicios"
+                ],
+                "summary": "Listar servicios de una propiedad",
+                "description": "Obtiene los servicios asociados a una propiedad. No requiere autenticación.",
+                "operationId": "listarServiciosDePropiedad",
+                "parameters": [
+                    {
+                        "name": "propiedadId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Servicios de la propiedad obtenidos correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad no existe",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de propiedad inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Propiedades - Servicios"
+                ],
+                "summary": "Sincronizar servicios de una propiedad",
+                "description": "Reemplaza los servicios asociados a una propiedad por la lista recibida. Los servicios omitidos se eliminan de la relación. Se permite una lista vacía para quitar todos los servicios. Solo el propietario o un administrador pueden realizar esta operación.",
+                "operationId": "sincronizarServiciosDePropiedad",
+                "parameters": [
+                    {
+                        "name": "propiedadId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PropiedadServicioSincronizarRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Servicios sincronizados correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioSincronizarResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cuerpo de solicitud obligatorio",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos para gestionar la propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad o alguno de los servicios no existe",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Lista de servicios inválida",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Propiedades - Servicios"
+                ],
+                "summary": "Asignar un servicio a una propiedad",
+                "description": "Asigna un servicio a una propiedad. Solo el propietario o un administrador pueden realizar esta operación. Si el servicio ya está asignado, devuelve un conflicto.",
+                "operationId": "asignarServicioAPropiedad",
+                "parameters": [
+                    {
+                        "name": "propiedadId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PropiedadServicioAsignarRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Servicio asignado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioAsignarResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cuerpo de solicitud obligatorio",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos para gestionar la propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad o el servicio no existen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "El servicio ya está asignado a la propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Datos inválidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/servicios/{servicioId}/propiedades": {
+            "get": {
+                "tags": [
+                    "Propiedades - Servicios"
+                ],
+                "summary": "Listar propiedades que ofrecen un servicio",
+                "description": "Obtiene todas las propiedades asociadas a un servicio, incluyendo sus datos e imágenes. La respuesta no está paginada.",
+                "operationId": "listarPropiedadesDeServicio",
+                "parameters": [
+                    {
+                        "name": "servicioId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Propiedades obtenidas correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioPropiedadesListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "El servicio no existe",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de servicio inválido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/propiedades/{propiedadId}/servicios/multiple": {
+            "post": {
+                "tags": [
+                    "Propiedades - Servicios"
+                ],
+                "summary": "Asignar varios servicios a una propiedad",
+                "description": "Asigna varios servicios a una propiedad. Requiere al menos un ID válido y no permite IDs duplicados. Los servicios ya asignados se devuelven en duplicados. Solo el propietario o un administrador pueden realizar esta operación.",
+                "operationId": "asignarMultiplesServiciosAPropiedad",
+                "parameters": [
+                    {
+                        "name": "propiedadId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PropiedadServicioMultiplesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resultado de la asignación múltiple",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioMultiplesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cuerpo de solicitud obligatorio",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos para gestionar la propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad o alguno de los servicios no existe",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Lista de servicios inválida",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/propiedades/{propiedadId}/servicios/{servicioId}": {
+            "delete": {
+                "tags": [
+                    "Propiedades - Servicios"
+                ],
+                "summary": "Desasignar un servicio de una propiedad",
+                "description": "Elimina la relación entre una propiedad y un servicio. Solo el propietario o un administrador pueden realizar esta operación.",
+                "operationId": "desasignarServicioDePropiedad",
+                "parameters": [
+                    {
+                        "name": "propiedadId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "servicioId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Servicio desasignado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos para gestionar la propiedad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad, el servicio o la relación no existen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "IDs inválidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropiedadServicioValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/provincias": {
+            "get": {
+                "tags": [
+                    "Provincias"
+                ],
+                "summary": "Listar provincias",
+                "description": "Obtiene las provincias ordenadas alfabéticamente por nombre. Por defecto devuelve únicamente las provincias activas. Los parámetros solo_eliminados e incluir_eliminados permiten consultar la papelera y requieren autenticación de administrador.",
+                "operationId": "listarProvincias",
+                "parameters": [
+                    {
+                        "name": "solo_eliminados",
+                        "in": "query",
+                        "description": "Si es true, devuelve únicamente las provincias eliminadas. Requiere administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "incluir_eliminados",
+                        "in": "query",
+                        "description": "Si es true, incluye provincias activas y eliminadas. Requiere administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "example": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Listado de provincias obtenido correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Se requiere autenticación para consultar la papelera.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario autenticado no tiene permisos de administrador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Provincias"
+                ],
+                "summary": "Crear provincia",
+                "description": "Crea una provincia. El nombre debe tener entre 3 y 100 caracteres y contener únicamente letras y espacios. Solo los administradores pueden realizar esta operación.",
+                "operationId": "crearProvincia",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProvinciaCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Provincia creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos de administrador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una provincia con ese nombre.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superaron la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/provincias/{id}": {
+            "get": {
+                "tags": [
+                    "Provincias"
+                ],
+                "summary": "Obtener provincia",
+                "description": "Obtiene una provincia activa por su identificador.",
+                "operationId": "obtenerProvincia",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la provincia.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provincia obtenida correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProvinciaResponse"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Provincia no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Provincias"
+                ],
+                "summary": "Actualizar provincia",
+                "description": "Actualiza el nombre de una provincia activa. Se debe enviar al menos un campo actualizable. Solo los administradores pueden realizar esta operación.",
+                "operationId": "actualizarProvincia",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la provincia.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProvinciaUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Provincia actualizada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El cuerpo está vacío o no contiene campos actualizables.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos de administrador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Provincia no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "El nombre ya está registrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superaron la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Provincias"
+                ],
+                "summary": "Eliminar provincia",
+                "description": "Realiza la eliminación lógica de una provincia. No se puede eliminar una provincia que tenga localidades asociadas. Solo los administradores pueden realizar esta operación.",
+                "operationId": "eliminarProvincia",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la provincia.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provincia eliminada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos de administrador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Provincia no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "No se puede eliminar porque tiene localidades asociadas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/provincias/{id}/restaurar": {
+            "post": {
+                "tags": [
+                    "Provincias"
+                ],
+                "summary": "Restaurar provincia",
+                "description": "Restaura una provincia eliminada lógicamente. Si ya existe una provincia activa con el mismo nombre, la operación devuelve un conflicto. Solo los administradores pueden realizar esta operación.",
+                "operationId": "restaurarProvincia",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador de la provincia eliminada.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provincia restaurada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permisos de administrador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Provincia eliminada no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una provincia activa con ese nombre.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProvinciaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/autenticador/recuperar": {
+            "post": {
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Solicitar recuperación de contraseña",
+                "description": "Solicita el envío de un enlace para restablecer la contraseña. Por seguridad, la respuesta es la misma tanto si el correo existe como si no está registrado. El enlace tiene una vigencia de 60 minutos.",
+                "operationId": "solicitarRecuperacionContrasena",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecuperarContrasenaSolicitudRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Solicitud procesada. No se revela si el correo está registrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaSuccessResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": [],
+                                    "message": "Si el correo existe, recibirás un enlace para restablecer tu contraseña"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación del correo electrónico.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/autenticador/restablecer": {
+            "post": {
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Restablecer contraseña",
+                "description": "Restablece la contraseña utilizando el correo electrónico y el token recibido. El token debe ser válido, no haber sido utilizado y encontrarse dentro de su período de vigencia de 60 minutos.",
+                "operationId": "restablecerContrasena",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecuperarContrasenaRestablecerRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Contraseña restablecida correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaSuccessResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": [],
+                                    "message": "Contraseña restablecida correctamente"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Token inválido, vencido o ya utilizado, o usuario inexistente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación de los datos enviados.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/autenticador/confirmar-cambio": {
+            "post": {
+                "tags": [
+                    "Autenticación"
+                ],
+                "summary": "Confirmar cambio de contraseña",
+                "description": "Confirma el cambio de contraseña solicitado desde el perfil mediante el token enviado por correo electrónico. El token tiene una vigencia de 60 minutos.",
+                "operationId": "confirmarCambioContrasena",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecuperarContrasenaConfirmarCambioRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cambio de contraseña confirmado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaSuccessResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": [],
+                                    "message": "Contraseña actualizada correctamente"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Token inválido, vencido o ya utilizado, o solicitud de cambio inexistente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecuperarContrasenaErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/usuarios": {
@@ -2101,7 +4703,7 @@
         "/api/admin/usuarios": {
             "post": {
                 "tags": [
-                    "Usuarios"
+                    "Administración"
                 ],
                 "summary": "Crear usuario desde administración",
                 "description": "Permite a un administrador registrar un usuario y asignarle un rol.",
@@ -2288,43 +4890,6 @@
                             }
                         },
                         "type": "object"
-                    }
-                },
-                "type": "object"
-            },
-            "RecuperarPasswordRequest": {
-                "required": [
-                    "email"
-                ],
-                "properties": {
-                    "email": {
-                        "type": "string",
-                        "format": "email",
-                        "example": "usuario@example.com"
-                    }
-                },
-                "type": "object"
-            },
-            "RestablecerPasswordRequest": {
-                "required": [
-                    "email",
-                    "token",
-                    "contrasena"
-                ],
-                "properties": {
-                    "email": {
-                        "type": "string",
-                        "format": "email",
-                        "example": "usuario@example.com"
-                    },
-                    "token": {
-                        "type": "string",
-                        "example": "7f8c9a2b4d6e8f1a3c5b7d9e0f2a4c6b8d0e1f3a5c7b9d1e3f5a7c9b0d2e4f6"
-                    },
-                    "contrasena": {
-                        "type": "string",
-                        "format": "password",
-                        "example": "NuevaPassword123"
                     }
                 },
                 "type": "object"
@@ -2865,6 +5430,1020 @@
                 },
                 "type": "object"
             },
+            "ContactoRequest": {
+                "required": [
+                    "nombre",
+                    "email",
+                    "asunto",
+                    "mensaje"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "example": "Mariano Fernández",
+                        "maxLength": 100
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "mariano@example.com"
+                    },
+                    "asunto": {
+                        "type": "string",
+                        "example": "Consulta sobre una propiedad",
+                        "maxLength": 150,
+                        "minLength": 3
+                    },
+                    "mensaje": {
+                        "type": "string",
+                        "example": "Quisiera recibir más información sobre el servicio.",
+                        "maxLength": 5000,
+                        "minLength": 10
+                    }
+                },
+                "type": "object"
+            },
+            "ContactoSuccessResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Mensaje enviado correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ContactoErrorResponse": {
+                "required": [
+                    "success",
+                    "error"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "El servicio de contacto no está configurado"
+                    }
+                },
+                "type": "object"
+            },
+            "ContactoValidationErrorResponse": {
+                "required": [
+                    "success",
+                    "error",
+                    "validation_errors"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "nombre": "El nombre es requerido",
+                            "email": "El email no es válido",
+                            "asunto": "El asunto debe tener al menos 3 caracteres",
+                            "mensaje": "El mensaje debe tener al menos 10 caracteres"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoCreateRequest": {
+                "required": [
+                    "propiedad_id"
+                ],
+                "properties": {
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 15,
+                        "minimum": 1
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoPropiedadDetalle": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadResponse"
+                    },
+                    {
+                        "properties": {
+                            "categoria": {
+                                "$ref": "#/components/schemas/PropiedadCategoria"
+                            },
+                            "localidad": {
+                                "$ref": "#/components/schemas/PropiedadLocalidad"
+                            },
+                            "imagenes": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/PropiedadImagen"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "FavoritoItem": {
+                "required": [
+                    "id",
+                    "usuario_id",
+                    "propiedad_id",
+                    "propiedad"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 42
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 8
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "propiedad": {
+                        "$ref": "#/components/schemas/FavoritoPropiedadDetalle"
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoCreateData": {
+                "required": [
+                    "propiedad_id",
+                    "es_favorito"
+                ],
+                "properties": {
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "es_favorito": {
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoListResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FavoritoItem"
+                        }
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Favoritos obtenidos correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoCreateResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/FavoritoCreateData"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Propiedad agregada a favoritos"
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoDeleteResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Propiedad eliminada de favoritos"
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoErrorResponse": {
+                "required": [
+                    "success",
+                    "error"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "La propiedad no existe"
+                    }
+                },
+                "type": "object"
+            },
+            "FavoritoValidationErrorResponse": {
+                "required": [
+                    "success",
+                    "error",
+                    "validation_errors"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "propiedad_id": "El ID de propiedad debe ser un entero positivo"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadCreateRequest": {
+                "required": [
+                    "nombre",
+                    "codigo_postal",
+                    "provincia_id"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "example": "Crespo",
+                        "maxLength": 100,
+                        "minLength": 2
+                    },
+                    "codigo_postal": {
+                        "type": "string",
+                        "example": "3116",
+                        "maxLength": 15,
+                        "minLength": 2
+                    },
+                    "provincia_id": {
+                        "type": "integer",
+                        "example": 8,
+                        "minimum": 1
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadUpdateRequest": {
+                "description": "Actualización parcial. Debe enviarse al menos un campo modificable.",
+                "minProperties": 1,
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "example": "Crespo",
+                        "maxLength": 100,
+                        "minLength": 2
+                    },
+                    "codigo_postal": {
+                        "type": "string",
+                        "example": "3116",
+                        "maxLength": 15,
+                        "minLength": 2
+                    },
+                    "provincia_id": {
+                        "type": "integer",
+                        "example": 8,
+                        "minimum": 1
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadResponse": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Crespo"
+                    },
+                    "codigo_postal": {
+                        "type": "string",
+                        "example": "3116"
+                    },
+                    "provincia_id": {
+                        "type": "integer",
+                        "example": 8
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/LocalidadResponse"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 12
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadSingleResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/LocalidadResponse"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Localidad actualizada exitosamente"
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Localidad no encontrada"
+                    }
+                },
+                "type": "object"
+            },
+            "LocalidadValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "nombre": [
+                                "El nombre no puede exceder los 100 caracteres"
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaCreateRequest": {
+                "required": [
+                    "mensaje"
+                ],
+                "properties": {
+                    "mensaje": {
+                        "type": "string",
+                        "example": "Hola, ¿sigue disponible la propiedad?",
+                        "maxLength": 2000,
+                        "minLength": 1
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaResponse": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10001
+                    },
+                    "consulta_id": {
+                        "type": "integer",
+                        "example": 5003
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "mensaje": {
+                        "type": "string",
+                        "example": "Probando mensajes"
+                    },
+                    "fecha_mensaje": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-01 17:07:01"
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaUsuarioResponse": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Juan"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Pérez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "juan@example.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "3435000000",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaHistorialItem": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/MensajeConsultaResponse"
+                    },
+                    {
+                        "properties": {
+                            "usuario": {
+                                "$ref": "#/components/schemas/MensajeConsultaUsuarioResponse"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "MensajeConsultaHistorialResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/MensajeConsultaHistorialItem"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 10
+                            },
+                            "hay_anteriores": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "hay_mas_nuevos": {
+                                "type": "boolean",
+                                "example": false
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaCreatedResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/MensajeConsultaResponse"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Mensaje enviado correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "No tienes permiso para acceder a esta consulta"
+                    }
+                },
+                "type": "object"
+            },
+            "MensajeConsultaValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "limite": "El límite debe ser un entero entre 1 y 50"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "NotificacionResponse": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "tipo": {
+                        "type": "string",
+                        "example": "mensaje_nuevo"
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "example": "Nuevo mensaje"
+                    },
+                    "mensaje": {
+                        "type": "string",
+                        "example": "Tienes un nuevo mensaje en una consulta"
+                    },
+                    "referencia_id": {
+                        "type": "integer",
+                        "example": 5003,
+                        "nullable": true
+                    },
+                    "leida": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "fecha_notificacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-01T17:07:01"
+                    }
+                },
+                "type": "object"
+            },
+            "NotificacionListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/NotificacionResponse"
+                                }
+                            },
+                            "no_leidas": {
+                                "type": "integer",
+                                "example": 3
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "NotificacionNoLeidasResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "no_leidas": {
+                                "type": "integer",
+                                "example": 3
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "NotificacionMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Notificación marcada como leída"
+                    }
+                },
+                "type": "object"
+            },
+            "NotificacionErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Notificación no encontrada"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenCreateRequest": {
+                "required": [
+                    "propiedad_id",
+                    "imagen"
+                ],
+                "properties": {
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 10013
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Frente de la propiedad",
+                        "nullable": true,
+                        "maxLength": 300
+                    },
+                    "imagen": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenPropiedad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10013
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "example": "Casa con patio"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Casa con quincho",
+                        "nullable": true
+                    },
+                    "precio": {
+                        "type": "number",
+                        "example": 500000
+                    },
+                    "expensas": {
+                        "type": "number",
+                        "example": 65000,
+                        "nullable": true
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "Los Álamos 670"
+                    },
+                    "cantidad_ambientes": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "cantidad_dormitorios": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "cantidad_banos": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "capacidad": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "acepta_mascotas": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "acepta_hijos": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "requisitos_interesados": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": []
+                    },
+                    "disponible": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "destacada": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "categoria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "localidad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "fecha_publicacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-10-30T01:36:23.000000Z"
+                    },
+                    "imagen_url": {
+                        "type": "string",
+                        "example": "/uploads/propiedades/bc3275926e41beea6d9bc904e4c68865.jpg",
+                        "nullable": true
+                    },
+                    "imagen_principal": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PropiedadImagenBase"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenBase": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 10013
+                    },
+                    "ruta": {
+                        "type": "string",
+                        "example": "/uploads/propiedades/bc3275926e41beea6d9bc904e4c68865.jpg"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "es_principal": {
+                        "type": "integer",
+                        "example": 1,
+                        "enum": [
+                            0,
+                            1
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenResponse": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PropiedadImagenBase"
+                    },
+                    {
+                        "properties": {
+                            "propiedad": {
+                                "$ref": "#/components/schemas/PropiedadImagenPropiedad"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "PropiedadImagenListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/PropiedadImagenResponse"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 10
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenSingleResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PropiedadImagenResponse"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenCreatedResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PropiedadImagenResponse"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Imagen guardada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Imagen eliminada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Imagen no encontrada"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadImagenValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "imagen": "Debe enviar una imagen"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "PropiedadResponse": {
                 "properties": {
                     "id": {
@@ -3118,11 +6697,6 @@
                         "type": "string",
                         "example": "2026-10-29 22:21:10",
                         "nullable": true
-                    },
-                    "email_verification_expires_at": {
-                        "type": "string",
-                        "example": null,
-                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -3348,7 +6922,7 @@
                         "default": false
                     },
                     "requisitos_interesados": {
-                        "description": "Objeto de requisitos o arreglo vacío.",
+                        "description": "Objeto con los requisitos del interesado o arreglo vacío para limpiarlos.",
                         "anyOf": [
                             {
                                 "properties": {
@@ -3719,6 +7293,790 @@
                     }
                 ]
             },
+            "PropiedadServicioServicio": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Luz"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioPropiedadImagen": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "ruta": {
+                        "type": "string",
+                        "example": "/uploads/propiedades/imagen.jpg",
+                        "nullable": true
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "es_principal": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioPropiedad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "example": "Casa quinta actualizada"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Descripción modificada"
+                    },
+                    "precio": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 200000
+                    },
+                    "expensas": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 7000
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "San Martin 456"
+                    },
+                    "cantidad_ambientes": {
+                        "type": "integer",
+                        "example": 6
+                    },
+                    "cantidad_dormitorios": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "cantidad_banos": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "capacidad": {
+                        "type": "integer",
+                        "example": 8,
+                        "nullable": true
+                    },
+                    "acepta_mascotas": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "acepta_hijos": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "requisitos_interesados": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "fecha_disponible_desde": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-12-01",
+                                        "nullable": true
+                                    },
+                                    "max_ocupantes": {
+                                        "type": "integer",
+                                        "example": 4,
+                                        "nullable": true,
+                                        "maximum": 50,
+                                        "minimum": 1
+                                    },
+                                    "garantias_aceptadas": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "recibo_sueldo",
+                                                "garantia_propietaria",
+                                                "seguro_caucion",
+                                                "garante"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "maxItems": 0
+                            }
+                        ]
+                    },
+                    "disponible": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "destacada": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "categoria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 6
+                    },
+                    "localidad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "fecha_publicacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-10-28T17:11:36.000000Z"
+                    },
+                    "imagen_url": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "imagen_principal": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PropiedadServicioPropiedadImagen"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "imagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PropiedadServicioPropiedadImagen"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioRelacion": {
+                "required": [
+                    "id",
+                    "propiedad_id",
+                    "servicio_id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 59
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "servicio_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "servicio": {
+                        "$ref": "#/components/schemas/PropiedadServicioServicio"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioRelacionConPropiedad": {
+                "required": [
+                    "id",
+                    "propiedad_id",
+                    "servicio_id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "servicio_id": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "propiedad": {
+                        "$ref": "#/components/schemas/PropiedadServicioPropiedad"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/PropiedadServicioRelacion"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 3
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioPropiedadesListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/PropiedadServicioRelacionConPropiedad"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 2
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioAsignarRequest": {
+                "required": [
+                    "servicio_id"
+                ],
+                "properties": {
+                    "servicio_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "minimum": 1
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioMultiplesRequest": {
+                "required": [
+                    "servicio_ids"
+                ],
+                "properties": {
+                    "servicio_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": [
+                            1,
+                            2,
+                            3
+                        ],
+                        "minItems": 1,
+                        "uniqueItems": true
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioSincronizarRequest": {
+                "required": [
+                    "servicio_ids"
+                ],
+                "properties": {
+                    "servicio_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": [
+                            1,
+                            3
+                        ],
+                        "uniqueItems": true
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioAsignarResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "propiedad_id": {
+                                "type": "integer",
+                                "example": 15
+                            },
+                            "servicio_id": {
+                                "type": "integer",
+                                "example": 5
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Servicio asignado correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioMultiplesResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "asignados": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                },
+                                "example": [
+                                    1,
+                                    2
+                                ]
+                            },
+                            "duplicados": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                },
+                                "example": [
+                                    3
+                                ]
+                            },
+                            "errores": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "example": []
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Servicios asignados correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioSincronizarResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "agregados": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                },
+                                "example": [
+                                    3
+                                ]
+                            },
+                            "eliminados": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                },
+                                "example": [
+                                    2
+                                ]
+                            },
+                            "mantenidos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                },
+                                "example": [
+                                    1
+                                ]
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Servicios sincronizados correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Servicio desasignado correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "La propiedad no existe"
+                    }
+                },
+                "type": "object"
+            },
+            "PropiedadServicioValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaResponse": {
+                "required": [
+                    "id",
+                    "nombre"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Entre Ríos"
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaListResponse": {
+                "required": [
+                    "success",
+                    "data"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "required": [
+                            "items",
+                            "total"
+                        ],
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ProvinciaResponse"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 24
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaCreateRequest": {
+                "required": [
+                    "nombre"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "pattern": "^[\\p{L}\\s]+$",
+                        "example": "Entre Ríos",
+                        "maxLength": 100,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaUpdateRequest": {
+                "minProperties": 1,
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "pattern": "^[\\p{L}\\s]+$",
+                        "example": "Entre Ríos",
+                        "maxLength": 100,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaMutationResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Provincia actualizada exitosamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaCreatedResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ProvinciaResponse"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Provincia creada exitosamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaErrorResponse": {
+                "required": [
+                    "success",
+                    "error"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Provincia no encontrada"
+                    }
+                },
+                "type": "object"
+            },
+            "ProvinciaValidationErrorResponse": {
+                "required": [
+                    "success",
+                    "error",
+                    "validation_errors"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "nombre": "El nombre debe tener al menos 3 caracteres"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "RecuperarContrasenaSolicitudRequest": {
+                "required": [
+                    "email"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "usuario@correo.com",
+                        "maxLength": 255
+                    }
+                },
+                "type": "object"
+            },
+            "RecuperarContrasenaRestablecerRequest": {
+                "required": [
+                    "email",
+                    "token",
+                    "contrasena"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "usuario@correo.com",
+                        "maxLength": 255
+                    },
+                    "token": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$",
+                        "example": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234",
+                        "maxLength": 64,
+                        "minLength": 64
+                    },
+                    "contrasena": {
+                        "type": "string",
+                        "format": "password",
+                        "example": "NuevaClave123!",
+                        "minLength": 8
+                    }
+                },
+                "type": "object"
+            },
+            "RecuperarContrasenaConfirmarCambioRequest": {
+                "required": [
+                    "email",
+                    "token"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "usuario@correo.com",
+                        "maxLength": 255
+                    },
+                    "token": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$",
+                        "example": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234",
+                        "maxLength": 64,
+                        "minLength": 64
+                    }
+                },
+                "type": "object"
+            },
+            "RecuperarContrasenaSuccessResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación realizada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "RecuperarContrasenaErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "El enlace de recuperación no es válido o ha vencido"
+                    }
+                },
+                "type": "object"
+            },
+            "RecuperarContrasenaValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "errors": {
+                        "type": "object",
+                        "example": {
+                            "email": "El correo electrónico no es válido"
+                        },
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "UsuarioResponse": {
                 "properties": {
                     "id": {
@@ -3945,6 +8303,34 @@
             "description": "Gestión de consultas entre interesados y propietarios de propiedades"
         },
         {
+            "name": "Contacto",
+            "description": "Envío de mensajes al equipo de AlquilER"
+        },
+        {
+            "name": "Favoritos",
+            "description": "Gestión de propiedades favoritas de los usuarios"
+        },
+        {
+            "name": "Localidades",
+            "description": "Consulta y gestión de localidades"
+        },
+        {
+            "name": "Mensajes de Consulta",
+            "description": "Envío y consulta del historial de mensajes"
+        },
+        {
+            "name": "Notificaciones",
+            "description": "Consulta y gestión de las notificaciones del usuario autenticado"
+        },
+        {
+            "name": "Imágenes de Propiedades",
+            "description": "Consulta y gestión de imágenes asociadas a propiedades"
+        },
+        {
+            "name": "Propiedades - Servicios",
+            "description": "Consulta y administración de los servicios asociados a propiedades"
+        },
+        {
             "name": "Autenticador",
             "description": "Autenticador"
         },
@@ -3955,6 +8341,14 @@
         {
             "name": "Propiedades",
             "description": "Propiedades"
+        },
+        {
+            "name": "Provincias",
+            "description": "Provincias"
+        },
+        {
+            "name": "Autenticación",
+            "description": "Autenticación"
         },
         {
             "name": "Usuarios",

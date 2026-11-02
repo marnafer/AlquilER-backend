@@ -110,7 +110,6 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'domicilio', type: 'string', nullable: true, example: 'Jordania'),
         new OA\Property(property: 'rol_id', type: 'integer', example: 1),
         new OA\Property(property: 'email_verified_at', type: 'string', nullable: true, example: '2026-10-29 22:21:10'),
-        new OA\Property(property: 'email_verification_expires_at', type: 'string', nullable: true, example: null),
     ]
 )]
 #[OA\Schema(
@@ -226,27 +225,47 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'acepta_mascotas', type: 'boolean', default: false, example: false),
         new OA\Property(property: 'acepta_hijos', type: 'boolean', default: false, example: false),
         new OA\Property(
-            property: 'requisitos_interesados',
-            description: 'Objeto de requisitos o arreglo vacío.',
-            anyOf: [
-                new OA\Schema(
-                    type: 'object',
-                    properties: [
-                        new OA\Property(property: 'fecha_disponible_desde', type: 'string', format: 'date', nullable: true),
-                        new OA\Property(property: 'max_ocupantes', type: 'integer', minimum: 1, maximum: 50, nullable: true),
-                        new OA\Property(
-                            property: 'garantias_aceptadas',
-                            type: 'array',
-                            items: new OA\Items(
-                                type: 'string',
-                                enum: ['recibo_sueldo', 'garantia_propietaria', 'seguro_caucion', 'garante']
+                        property: 'requisitos_interesados',
+                        description: 'Objeto con los requisitos del interesado o arreglo vacío para limpiarlos.',
+                        anyOf: [
+                            new OA\Schema(
+                                type: 'object',
+                                properties: [
+                                    new OA\Property(
+                                        property: 'fecha_disponible_desde',
+                                        type: 'string',
+                                        format: 'date',
+                                        nullable: true
+                                    ),
+                                    new OA\Property(
+                                        property: 'max_ocupantes',
+                                        type: 'integer',
+                                        minimum: 1,
+                                        maximum: 50,
+                                        nullable: true
+                                    ),
+                                    new OA\Property(
+                                        property: 'garantias_aceptadas',
+                                        type: 'array',
+                                        items: new OA\Items(
+                                            type: 'string',
+                                            enum: [
+                                                'recibo_sueldo',
+                                                'garantia_propietaria',
+                                                'seguro_caucion',
+                                                'garante'
+                                            ]
+                                        )
+                                    ),
+                                ]
+                            ),
+                            new OA\Schema(
+                                type: 'array',
+                                maxItems: 0,
+                                items: new OA\Items(type: 'string')
                             )
-                        ),
-                    ]
-                ),
-                new OA\Schema(type: 'array', maxItems: 0, items: new OA\Items(type: 'string'))
-            ]
-        ),
+                        ]
+                    ),
         new OA\Property(property: 'disponible', type: 'boolean', default: true),
         new OA\Property(property: 'destacada', type: 'boolean', default: false, description: 'Solo los administradores pueden asignar esta propiedad como destacada.'),
         new OA\Property(property: 'categoria_id', type: 'integer', minimum: 1, example: 1),

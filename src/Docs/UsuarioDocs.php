@@ -136,7 +136,7 @@ final class UsuarioDocs
         path: '/api/admin/usuarios',
         summary: 'Crear usuario desde administración',
         description: 'Permite a un administrador registrar un usuario y asignarle un rol.',
-        tags: ['Usuarios'],
+        tags: ['Administración'],
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
