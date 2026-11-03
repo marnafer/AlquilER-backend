@@ -36,7 +36,6 @@ final class ServicioServiceTest extends TestCase
             ->expects($this->once())
             ->method('create')
             ->with([
-                'id' => null,
                 'nombre' => 'WiFi',
             ])
             ->willReturn($servicio);
