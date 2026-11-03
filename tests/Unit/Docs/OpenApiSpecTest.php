@@ -1,10 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tests\Unit\Docs;
 
 use App\Docs\AutenticadorDocs;
 use App\Docs\OpenApiSpec;
+use App\Docs\RecuperarContrasenaDocs;
 use App\Docs\Schemas\AutenticadorSchemas;
 use PHPUnit\Framework\TestCase;
 
@@ -20,13 +22,15 @@ final class OpenApiSpecTest extends TestCase
         $autenticadorDocs->register();
         $autenticadorDocs->logout();
         $autenticadorDocs->refresh();
-        $autenticadorDocs->solicitarRecuperacion();
-        $autenticadorDocs->restablecerContrasena();
+
+        $recuperarContrasenaDocs = new RecuperarContrasenaDocs();
 
         $autenticadorSchemas = new AutenticadorSchemas();
 
         $this->assertInstanceOf(OpenApiSpec::class, $openApiSpec);
         $this->assertInstanceOf(AutenticadorDocs::class, $autenticadorDocs);
+        $this->assertInstanceOf(RecuperarContrasenaDocs::class, $recuperarContrasenaDocs);
         $this->assertInstanceOf(AutenticadorSchemas::class, $autenticadorSchemas);
     }
 }
+

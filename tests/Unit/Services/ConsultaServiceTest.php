@@ -102,7 +102,8 @@ class ConsultaServiceTest extends TestCase
     private function perfilInteresadoValido(): array
     {
         return [
-            'fecha_mudanza' => '2026-11-01',
+            'fecha_mudanza' => (new \DateTimeImmutable('+1 day'))
+                ->format('Y-m-d'),
             'cantidad_ocupantes' => 2,
             'tiene_mascotas' => true,
             'cantidad_mascotas' => 1,
