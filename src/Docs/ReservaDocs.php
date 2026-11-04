@@ -517,4 +517,52 @@ use OpenApi\Attributes as OA;
 )]
 final class ReservaDocs
 {
+    #[OA\Post(
+        path: '/api/admin/reservas',
+        operationId: 'crearReservaDesdeAdmin',
+        summary: 'Crear una reserva como administrador',
+        description: 'Crea una reserva para el usuario y la propiedad indicados. El administrador puede establecerla como pendiente o confirmada; si omite estado, se crea como pendiente.',
+        tags: ['Administración'],
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/ReservaAdminCreateRequest')
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Reserva creada correctamente.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReservaCreatedResponse')
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'La propiedad no está disponible o las fechas se solapan con otra reserva confirmada.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReservaErrorResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'No autenticado.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReservaErrorResponse')
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'La operación está restringida a administradores.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReservaErrorResponse')
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'La propiedad o el usuario no existe.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReservaErrorResponse')
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Los datos enviados no superan la validación.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReservaValidationErrorResponse')
+            ),
+        ]
+    )]
+    public function storeAdmin(): void
+    {
+    }
+
 }

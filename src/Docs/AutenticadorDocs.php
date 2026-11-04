@@ -144,4 +144,55 @@ public function logout(): void
 public function refresh(): void
 {
 }
+
+#[OA\Get(
+    path: '/api/autenticador/verificar-email',
+    operationId: 'verificarEmail',
+    summary: 'Verificar dirección de correo electrónico',
+    description: 'Verifica el correo electrónico usando el email y el token recibidos en el enlace enviado al usuario. El enlace debe estar vigente y solo puede utilizarse una vez.',
+    tags: ['Autenticador'],
+    parameters: [
+        new OA\Parameter(
+            name: 'email',
+            in: 'query',
+            required: true,
+            description: 'Dirección de correo electrónico asociada a la cuenta.',
+            schema: new OA\Schema(type: 'string', format: 'email'),
+            example: 'usuario@example.com'
+        ),
+        new OA\Parameter(
+            name: 'token',
+            in: 'query',
+            required: true,
+            description: 'Token de verificación incluido en el enlace del correo.',
+            schema: new OA\Schema(type: 'string'),
+            example: 'token-de-verificacion'
+        ),
+    ],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: 'Correo verificado correctamente.',
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'success', type: 'boolean', example: true),
+                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(type: 'object'), example: []),
+                    new OA\Property(property: 'message', type: 'string', example: 'Correo verificado correctamente'),
+                ],
+                type: 'object'
+            )
+        ),
+        new OA\Response(
+            response: 400,
+            description: 'El enlace de verificación es inválido o expiró.'
+        ),
+        new OA\Response(
+            response: 422,
+            description: 'Falta el email o el token de verificación.'
+        ),
+    ]
+)]
+public function verificarEmail(): void
+{
+}
 }

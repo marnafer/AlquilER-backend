@@ -32,6 +32,10 @@ use OpenApi\Attributes as OA;
         new OA\Tag(
             name: 'Administración',
             description: 'Endpoints exclusivos para administradores.'
+        ),
+        new OA\Tag(
+            name: 'Logs de actividad',
+            description: 'Consulta de registros de actividad, disponible solo para administradores.'
         )
     ]
 )]
@@ -50,5 +54,4 @@ final class OpenApiSpec
     {
     }
 }
-
 

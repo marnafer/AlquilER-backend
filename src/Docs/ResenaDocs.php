@@ -488,6 +488,55 @@ use OpenApi\Attributes as OA;
         ),
     ]
 )]
+#[OA\Post(
+    path: '/api/admin/resenas',
+    operationId: 'crearResenaDesdeAdmin',
+    summary: 'Crear una reseña como administrador',
+    description: 'Crea una reseña para una reserva finalizada. El calificador debe ser el inquilino o el propietario de la reserva; el tipo de reseña se determina automáticamente.',
+    tags: ['Administración'],
+    security: [['bearerAuth' => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(ref: '#/components/schemas/ResenaAdminCreateRequest')
+    ),
+    responses: [
+        new OA\Response(
+            response: 201,
+            description: 'Reseña creada correctamente.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaResponse')
+        ),
+        new OA\Response(
+            response: 400,
+            description: 'La reserva no está finalizada o el calificador no participa en ella.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaErrorResponse')
+        ),
+        new OA\Response(
+            response: 401,
+            description: 'No autenticado.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaErrorResponse')
+        ),
+        new OA\Response(
+            response: 403,
+            description: 'La operación está restringida a administradores.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaErrorResponse')
+        ),
+        new OA\Response(
+            response: 404,
+            description: 'La reserva o el usuario calificador no existe.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaErrorResponse')
+        ),
+        new OA\Response(
+            response: 409,
+            description: 'Ya existe una reseña del mismo tipo para esta reserva.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaErrorResponse')
+        ),
+        new OA\Response(
+            response: 422,
+            description: 'Los datos enviados no superan la validación.',
+            content: new OA\JsonContent(ref: '#/components/schemas/ResenaValidationErrorResponse')
+        ),
+    ]
+)]
 final class ResenaDocs
 {
 }

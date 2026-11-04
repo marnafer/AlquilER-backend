@@ -121,6 +121,17 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'ResenaAdminCreateRequest',
+    type: 'object',
+    required: ['reserva_id', 'calificacion', 'calificador_id'],
+    properties: [
+        new OA\Property(property: 'reserva_id', type: 'integer', minimum: 1, example: 5),
+        new OA\Property(property: 'calificacion', type: 'integer', minimum: 1, maximum: 5, example: 5),
+        new OA\Property(property: 'calificador_id', type: 'integer', minimum: 1, example: 2),
+        new OA\Property(property: 'comentario', type: 'string', nullable: true, minLength: 3, maxLength: 1000, example: 'Muy buena experiencia'),
+    ]
+)]
+#[OA\Schema(
     schema: 'ResenaUpdateRequest',
     type: 'object',
     properties: [

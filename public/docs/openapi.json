@@ -161,6 +161,74 @@
                 }
             }
         },
+        "/api/autenticador/verificar-email": {
+            "get": {
+                "tags": [
+                    "Autenticador"
+                ],
+                "summary": "Verificar dirección de correo electrónico",
+                "description": "Verifica el correo electrónico usando el email y el token recibidos en el enlace enviado al usuario. El enlace debe estar vigente y solo puede utilizarse una vez.",
+                "operationId": "verificarEmail",
+                "parameters": [
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "description": "Dirección de correo electrónico asociada a la cuenta.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "email"
+                        },
+                        "example": "usuario@example.com"
+                    },
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "description": "Token de verificación incluido en el enlace del correo.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "token-de-verificacion"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Correo verificado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            },
+                                            "example": []
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Correo verificado correctamente"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El enlace de verificación es inválido o expiró."
+                    },
+                    "422": {
+                        "description": "Falta el email o el token de verificación."
+                    }
+                }
+            }
+        },
         "/api/categorias": {
             "get": {
                 "tags": [
@@ -1842,6 +1910,133 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/logs-actividad": {
+            "get": {
+                "tags": [
+                    "Logs de actividad"
+                ],
+                "summary": "Listar logs de actividad",
+                "description": "Obtiene los registros de actividad ordenados desde el más reciente. Solo accesible para administradores.",
+                "operationId": "listarLogsActividad",
+                "responses": {
+                    "200": {
+                        "description": "Logs de actividad obtenidos correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/logs-actividad/{id}": {
+            "get": {
+                "tags": [
+                    "Logs de actividad"
+                ],
+                "summary": "Obtener un log de actividad",
+                "description": "Obtiene un registro de actividad por su identificador. Solo accesible para administradores.",
+                "operationId": "obtenerLogActividad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador positivo del registro de actividad.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 25
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Log de actividad obtenido correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No existe un log con ese identificador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "El identificador debe ser un entero positivo.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadValidationErrorResponse"
                                 }
                             }
                         }
@@ -5240,6 +5435,103 @@
                 ]
             }
         },
+        "/api/admin/resenas": {
+            "post": {
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Crear una reseña como administrador",
+                "description": "Crea una reseña para una reserva finalizada. El calificador debe ser el inquilino o el propietario de la reserva; el tipo de reseña se determina automáticamente.",
+                "operationId": "crearResenaDesdeAdmin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResenaAdminCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reseña creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no está finalizada o el calificador no participa en ella.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reserva o el usuario calificador no existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una reseña del mismo tipo para esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/reservas": {
             "get": {
                 "tags": [
@@ -6153,6 +6445,93 @@
                     },
                     "422": {
                         "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/reservas": {
+            "post": {
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Crear una reserva como administrador",
+                "description": "Crea una reserva para el usuario y la propiedad indicados. El administrador puede establecerla como pendiente o confirmada; si omite estado, se crea como pendiente.",
+                "operationId": "crearReservaDesdeAdmin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReservaAdminCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reserva creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "La propiedad no está disponible o las fechas se solapan con otra reserva confirmada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad o el usuario no existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8444,6 +8823,116 @@
                         "example": {
                             "nombre": [
                                 "El nombre no puede exceder los 100 caracteres"
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 4,
+                        "nullable": true
+                    },
+                    "accion": {
+                        "type": "string",
+                        "example": "reserva_creada"
+                    },
+                    "ip_address": {
+                        "type": "string",
+                        "example": "192.0.2.10",
+                        "nullable": true
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-03T22:29:18Z"
+                    },
+                    "usuario_nombre": {
+                        "type": "string",
+                        "example": "María Pérez",
+                        "nullable": true
+                    },
+                    "usuario_email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "maria@example.com",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LogActividad"
+                        }
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Lista de logs obtenida correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/LogActividad"
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Acceso denegado"
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "id": [
+                                "El ID debe ser mayor a 0"
                             ]
                         },
                         "additionalProperties": {
@@ -10952,6 +11441,39 @@
                 },
                 "type": "object"
             },
+            "ResenaAdminCreateRequest": {
+                "required": [
+                    "reserva_id",
+                    "calificacion",
+                    "calificador_id"
+                ],
+                "properties": {
+                    "reserva_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "minimum": 1
+                    },
+                    "calificacion": {
+                        "type": "integer",
+                        "example": 5,
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "calificador_id": {
+                        "type": "integer",
+                        "example": 2,
+                        "minimum": 1
+                    },
+                    "comentario": {
+                        "type": "string",
+                        "example": "Muy buena experiencia",
+                        "nullable": true,
+                        "maxLength": 1000,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
             "ResenaUpdateRequest": {
                 "properties": {
                     "calificacion": {
@@ -11482,6 +12004,46 @@
                         "type": "string",
                         "format": "date",
                         "example": "2027-07-01"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaAdminCreateRequest": {
+                "required": [
+                    "propiedad_id",
+                    "usuario_id",
+                    "fecha_inicio_alquiler",
+                    "fecha_fin_alquiler"
+                ],
+                "properties": {
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "minimum": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 2,
+                        "minimum": 1
+                    },
+                    "fecha_inicio_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-01"
+                    },
+                    "fecha_fin_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2027-07-01"
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "pendiente",
+                        "default": "pendiente",
+                        "enum": [
+                            "pendiente",
+                            "confirmada"
+                        ]
                     }
                 },
                 "type": "object"
@@ -12074,6 +12636,10 @@
         {
             "name": "Administración",
             "description": "Endpoints exclusivos para administradores."
+        },
+        {
+            "name": "Logs de actividad",
+            "description": "Consulta de registros de actividad, disponible solo para administradores."
         },
         {
             "name": "Consultas",

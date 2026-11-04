@@ -146,6 +146,24 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'ReservaAdminCreateRequest',
+    type: 'object',
+    required: ['propiedad_id', 'usuario_id', 'fecha_inicio_alquiler', 'fecha_fin_alquiler'],
+    properties: [
+        new OA\Property(property: 'propiedad_id', type: 'integer', minimum: 1, example: 1),
+        new OA\Property(property: 'usuario_id', type: 'integer', minimum: 1, example: 2),
+        new OA\Property(property: 'fecha_inicio_alquiler', type: 'string', format: 'date', example: '2026-07-01'),
+        new OA\Property(property: 'fecha_fin_alquiler', type: 'string', format: 'date', example: '2027-07-01'),
+        new OA\Property(
+            property: 'estado',
+            type: 'string',
+            enum: ['pendiente', 'confirmada'],
+            default: 'pendiente',
+            example: 'pendiente'
+        ),
+    ]
+)]
+#[OA\Schema(
     schema: 'ReservaUpdateRequest',
     type: 'object',
     required: ['estado'],
