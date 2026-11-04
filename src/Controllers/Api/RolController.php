@@ -17,10 +17,10 @@ class RolController
     ) {
     }
 
-    // GET /api/roles
+   // GET /api/roles
     public function index(Request $request): Response
     {
-        $this->auth->verificarSiPidePapelera($request);
+        $this->auth->soloAdmin($request);
 
         return Response::success(
             $this->service->listar($this->filtrosPapelera($request))
@@ -30,6 +30,8 @@ class RolController
     // GET /api/roles/{id}
     public function show(Request $request, $id): Response
     {
+        $this->auth->soloAdmin($request);
+
         return Response::success(
             $this->service->obtener($id)
         );

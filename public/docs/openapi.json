@@ -161,6 +161,74 @@
                 }
             }
         },
+        "/api/autenticador/verificar-email": {
+            "get": {
+                "tags": [
+                    "Autenticador"
+                ],
+                "summary": "Verificar dirección de correo electrónico",
+                "description": "Verifica el correo electrónico usando el email y el token recibidos en el enlace enviado al usuario. El enlace debe estar vigente y solo puede utilizarse una vez.",
+                "operationId": "verificarEmail",
+                "parameters": [
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "description": "Dirección de correo electrónico asociada a la cuenta.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "email"
+                        },
+                        "example": "usuario@example.com"
+                    },
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "description": "Token de verificación incluido en el enlace del correo.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "token-de-verificacion"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Correo verificado correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            },
+                                            "example": []
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Correo verificado correctamente"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "El enlace de verificación es inválido o expiró."
+                    },
+                    "422": {
+                        "description": "Falta el email o el token de verificación."
+                    }
+                }
+            }
+        },
         "/api/categorias": {
             "get": {
                 "tags": [
@@ -1842,6 +1910,133 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/LocalidadValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/logs-actividad": {
+            "get": {
+                "tags": [
+                    "Logs de actividad"
+                ],
+                "summary": "Listar logs de actividad",
+                "description": "Obtiene los registros de actividad ordenados desde el más reciente. Solo accesible para administradores.",
+                "operationId": "listarLogsActividad",
+                "responses": {
+                    "200": {
+                        "description": "Logs de actividad obtenidos correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/logs-actividad/{id}": {
+            "get": {
+                "tags": [
+                    "Logs de actividad"
+                ],
+                "summary": "Obtener un log de actividad",
+                "description": "Obtiene un registro de actividad por su identificador. Solo accesible para administradores.",
+                "operationId": "obtenerLogActividad",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador positivo del registro de actividad.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 25
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Log de actividad obtenido correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No existe un log con ese identificador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "El identificador debe ser un entero positivo.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogActividadValidationErrorResponse"
                                 }
                             }
                         }
@@ -4416,6 +4611,2750 @@
                 }
             }
         },
+        "/api/resenas": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Listar reseñas",
+                "description": "Obtiene las reseñas con filtros opcionales. La consulta normal es pública. Si se solicita la papelera mediante solo_eliminados=true o incluir_eliminados=true, se requiere autenticación de administrador. Si ambos parámetros son true, prevalece solo_eliminados.",
+                "operationId": "listarResenas",
+                "parameters": [
+                    {
+                        "name": "tipo",
+                        "in": "query",
+                        "description": "Tipo de reseña.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "propiedad",
+                                "inquilino"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "calificacion",
+                        "in": "query",
+                        "description": "Filtra por calificación exacta.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 5,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "calificacion_min",
+                        "in": "query",
+                        "description": "Calificación mínima.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 5,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "calificacion_max",
+                        "in": "query",
+                        "description": "Calificación máxima.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 5,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "calificador_id",
+                        "in": "query",
+                        "description": "Identificador del usuario que realizó la reseña.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "reserva_id",
+                        "in": "query",
+                        "description": "Identificador de la reserva.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "propiedad_id",
+                        "in": "query",
+                        "description": "Identificador de la propiedad relacionada con la reserva.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "usuario_id",
+                        "in": "query",
+                        "description": "Identificador del inquilino relacionado con la reserva.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "fecha_desde",
+                        "in": "query",
+                        "description": "Fecha inicial de publicación.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fecha_hasta",
+                        "in": "query",
+                        "description": "Fecha final de publicación.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "solo_eliminados",
+                        "in": "query",
+                        "description": "Si es true, devuelve únicamente reseñas eliminadas. Requiere administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    },
+                    {
+                        "name": "incluir_eliminados",
+                        "in": "query",
+                        "description": "Si es true, incluye reseñas activas y eliminadas. Requiere administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No se proporcionó autenticación al solicitar la papelera.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario autenticado no tiene permisos de administrador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Crear una reseña",
+                "description": "Crea una reseña para una reserva finalizada. El tipo y el calificador se determinan automáticamente según el usuario autenticado y su participación en la reserva. Solo se permite una reseña por tipo y reserva, incluso si la anterior fue eliminada.",
+                "operationId": "crearResena",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResenaCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reseña creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no está finalizada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El usuario no participa en la reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reserva no existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una reseña del mismo tipo para esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/resenas/{id}": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener una reseña",
+                "description": "Obtiene una reseña activa por su identificador, incluyendo las relaciones cargadas de reserva, propiedad, usuario y calificador.",
+                "operationId": "obtenerResena",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseña encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reseña no existe o fue eliminada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Actualizar una reseña",
+                "description": "Permite modificar la calificación y el comentario. Solo puede actualizarla el autor o un administrador. Debe enviarse al menos un campo modificable.",
+                "operationId": "actualizarResena",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResenaUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reseña actualizada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaNullResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No se enviaron campos modificables.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para modificar esta reseña.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reseña no existe o fue eliminada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Eliminar una reseña",
+                "description": "Realiza una eliminación lógica de la reseña. Solo los administradores pueden ejecutar esta operación.",
+                "operationId": "eliminarResena",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseña eliminada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo los administradores pueden eliminar reseñas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reseña no existe o ya fue eliminada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/resenas/reserva/{reservaId}": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener reseñas de una reserva",
+                "description": "Obtiene las reseñas activas asociadas a una reserva. La reserva debe existir.",
+                "operationId": "obtenerResenasPorReserva",
+                "parameters": [
+                    {
+                        "name": "reservaId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaCollectionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reserva no existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/resenas/propiedad/{propiedadId}": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener reseñas de una propiedad",
+                "description": "Obtiene las reseñas activas de tipo propiedad asociadas a una propiedad e incluye el total y el promedio de calificaciones.",
+                "operationId": "obtenerResenasPorPropiedad",
+                "parameters": [
+                    {
+                        "name": "propiedadId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaPromedioResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/resenas/usuario/{usuarioId}": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener reseñas de un usuario",
+                "description": "Obtiene las reseñas activas de tipo inquilino asociadas a un usuario e incluye el total y el promedio de calificaciones.",
+                "operationId": "obtenerResenasPorUsuario",
+                "parameters": [
+                    {
+                        "name": "usuarioId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaPromedioResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/resenas/calificador/{calificadorId}": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener reseñas realizadas por un usuario",
+                "description": "Obtiene las reseñas activas realizadas por el usuario indicado como calificador.",
+                "operationId": "obtenerResenasPorCalificador",
+                "parameters": [
+                    {
+                        "name": "calificadorId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaCollectionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/resenas/mis-propiedades": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener reseñas de mis propiedades",
+                "description": "Obtiene las reseñas activas de tipo propiedad correspondientes a las propiedades del usuario autenticado.",
+                "operationId": "obtenerMisResenasDePropiedades",
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/resenas/como-inquilino": {
+            "get": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Obtener mis reseñas como inquilino",
+                "description": "Obtiene las reseñas activas de tipo inquilino recibidas por el usuario autenticado.",
+                "operationId": "obtenerMisResenasComoInquilino",
+                "responses": {
+                    "200": {
+                        "description": "Reseñas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/resenas/{id}/restaurar": {
+            "post": {
+                "tags": [
+                    "Reseñas"
+                ],
+                "summary": "Restaurar una reseña eliminada",
+                "description": "Restaura una reseña eliminada lógicamente. Solo los administradores pueden ejecutar esta operación.",
+                "operationId": "restaurarResena",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reseña restaurada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaNullResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo los administradores pueden restaurar reseñas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontró una reseña eliminada con ese identificador.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identificador inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/resenas": {
+            "post": {
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Crear una reseña como administrador",
+                "description": "Crea una reseña para una reserva finalizada. El calificador debe ser el inquilino o el propietario de la reserva; el tipo de reseña se determina automáticamente.",
+                "operationId": "crearResenaDesdeAdmin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResenaAdminCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reseña creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no está finalizada o el calificador no participa en ella.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reserva o el usuario calificador no existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe una reseña del mismo tipo para esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResenaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas": {
+            "get": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Listar reservas",
+                "description": "Obtiene las reservas según el alcance del usuario autenticado. Los usuarios pueden consultar sus propias reservas y las reservas de sus propiedades. Los administradores reciben todas las reservas.",
+                "operationId": "0626eab86ce9e72807273c65c0209d8f",
+                "parameters": [
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "description": "Filtrar por estado de la reserva.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pendiente",
+                                "confirmada",
+                                "rechazada",
+                                "finalizada",
+                                "cancelada"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "usuario_id",
+                        "in": "query",
+                        "description": "Filtrar por ID del usuario.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "propiedad_id",
+                        "in": "query",
+                        "description": "Filtrar por ID de la propiedad.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "solo_eliminados",
+                        "in": "query",
+                        "description": "Incluir únicamente reservas eliminadas.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    },
+                    {
+                        "name": "incluir_eliminados",
+                        "in": "query",
+                        "description": "Incluir también las reservas eliminadas.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reservas obtenidas correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/ReservaListResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ReservaAdminListResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado para acceder a las reservas solicitadas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Crear una reserva",
+                "description": "Crea una reserva para una propiedad. El usuario se obtiene del token JWT y el estado inicial es pendiente. No se permite reservar una propiedad propia ni generar solapamientos con reservas confirmadas.",
+                "operationId": "2232ce9258d29302bc538218b94eba4f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReservaCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reserva creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No se permite reservar una propiedad propia.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Propiedad no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "La propiedad no está disponible o existe un solapamiento con otra reserva confirmada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Datos de la reserva inválidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas/{id}": {
+            "get": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Obtener una reserva",
+                "description": "Obtiene el detalle de una reserva, incluyendo la propiedad, el usuario y las reseñas asociadas. Puede acceder el administrador, el usuario que realizó la reserva o el propietario de la propiedad.",
+                "operationId": "cc32cb3fc37abbb1a56b297226d7a86a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva obtenida correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Reserva"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reserva encontrada",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para consultar esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Actualizar el estado de una reserva",
+                "description": "Permite al administrador modificar el estado de una reserva. Los estados admitidos para esta operación son pendiente, confirmada y rechazada.",
+                "operationId": "efa0d502ccd793788f12c75000bc19c4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReservaUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reserva actualizada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud incorrecta.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede actualizar directamente el estado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID o estado inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Eliminar una reserva",
+                "description": "Elimina lógicamente una reserva. Esta operación está restringida a administradores.",
+                "operationId": "f705be15de25ed5bb16c7fd552fcb24c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Operación de eliminación procesada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede eliminar reservas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas/{id}/confirmar": {
+            "put": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Confirmar una reserva",
+                "description": "Permite al propietario de la propiedad o a un administrador confirmar una reserva pendiente. Se verifica nuevamente que no existan solapamientos con otras reservas confirmadas.",
+                "operationId": "52d9e036839af8dcd7c19599e6eb2342",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva confirmada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no se encuentra en un estado que permita confirmarla.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para confirmar esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Existe un solapamiento con otra reserva confirmada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas/{id}/rechazar": {
+            "put": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Rechazar una reserva",
+                "description": "Permite al propietario de la propiedad o a un administrador rechazar una reserva pendiente.",
+                "operationId": "0ae519a0b2fca6d83fcfaa297a7b1be3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva rechazada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no se encuentra en un estado que permita rechazarla.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para rechazar esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas/{id}/finalizar": {
+            "put": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Finalizar una reserva",
+                "description": "Permite al propietario de la propiedad o a un administrador finalizar una reserva confirmada.",
+                "operationId": "efcd1e98dc529188ab18621e18cf5fd5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva finalizada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no se encuentra en un estado que permita finalizarla.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para finalizar esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas/{id}/cancelar": {
+            "put": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Cancelar una reserva",
+                "description": "Permite al usuario que realizó la reserva o a un administrador cancelar una reserva pendiente.",
+                "operationId": "956878154fb15b0f115e64067b39436e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva cancelada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "La reserva no se encuentra en un estado que permita cancelarla.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No tiene permiso para cancelar esta reserva.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reserva no encontrada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reservas/{id}/restaurar": {
+            "post": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Restaurar una reserva",
+                "description": "Restaura una reserva eliminada lógicamente. Esta operación está restringida a administradores.",
+                "operationId": "a425ba296bf0949e0380a0b976ccfee0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la reserva.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva restaurada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede restaurar reservas.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontró una reserva eliminada con ese ID.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "La reserva existe, pero no está eliminada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de reserva inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/admin/reservas": {
+            "post": {
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Crear una reserva como administrador",
+                "description": "Crea una reserva para el usuario y la propiedad indicados. El administrador puede establecerla como pendiente o confirmada; si omite estado, se crea como pendiente.",
+                "operationId": "crearReservaDesdeAdmin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReservaAdminCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reserva creada correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "La propiedad no está disponible o las fechas se solapan con otra reserva confirmada.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La operación está restringida a administradores.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La propiedad o el usuario no existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReservaValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/roles": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Listar roles",
+                "description": "Obtiene los roles ordenados por ID descendente. La consulta es pública normalmente. Si se solicita la papelera mediante solo_eliminados o incluir_eliminados, se requiere autenticación de administrador.",
+                "operationId": "4ad4e9f2a0f10802ad3eeec3630232ea",
+                "parameters": [
+                    {
+                        "name": "solo_eliminados",
+                        "in": "query",
+                        "description": "Si es true, devuelve únicamente los roles eliminados. Requiere administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    },
+                    {
+                        "name": "incluir_eliminados",
+                        "in": "query",
+                        "description": "Si es true, incluye también los roles eliminados. Requiere administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Roles obtenidos correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Se requiere autenticación para consultar la papelera.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Se requiere rol administrador para consultar la papelera.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Crear un rol",
+                "description": "Crea un nuevo rol. El nombre debe tener entre 3 y 30 caracteres y contener únicamente letras y espacios. No se permiten nombres duplicados.",
+                "operationId": "4abd96123ea8fbd2ddeee97818c77c68",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RolCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Rol creado exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolCreatedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede crear roles.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un rol con ese nombre.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Datos del rol inválidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/roles/{id}": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Obtener un rol",
+                "description": "Obtiene un rol activo por su ID. Requiere autenticación.",
+                "operationId": "ebfee533840795eb61fb137935bc9d2b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del rol.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rol obtenido correctamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rol no encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de rol inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Actualizar un rol",
+                "description": "Actualiza el nombre de un rol existente. Solo los administradores pueden realizar esta operación. No se permiten nombres duplicados.",
+                "operationId": "72ca5fa53e5bf7d9775c866c937a3ce5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del rol.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RolUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Rol actualizado exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No se enviaron campos para actualizar o no se enviaron campos permitidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede actualizar roles.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rol no encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "El nombre ya está registrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Nombre o ID inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Eliminar un rol",
+                "description": "Elimina lógicamente un rol. No se puede eliminar un rol que tenga usuarios asociados. Solo los administradores pueden realizar esta operación.",
+                "operationId": "0950c11ac7615b40d5525541943e864a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del rol.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rol eliminado exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede eliminar roles.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rol no encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "No se puede eliminar el rol porque tiene usuarios asociados.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de rol inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/roles/{id}/restaurar": {
+            "post": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Restaurar un rol",
+                "description": "Restaura un rol eliminado lógicamente. No se puede restaurar si ya existe un rol activo con el mismo nombre. Solo los administradores pueden realizar esta operación.",
+                "operationId": "f2ba44f4a2c56f49ce76197a030d5f64",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del rol eliminado.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rol restaurado exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Solo un administrador puede restaurar roles.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Rol eliminado no encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Ya existe un rol activo con ese nombre.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "ID de rol inválido.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RolValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/servicios": {
+            "get": {
+                "tags": [
+                    "Servicios"
+                ],
+                "summary": "Listar servicios",
+                "description": "Obtiene los servicios disponibles. Por defecto, solo devuelve servicios activos. Los parámetros de papelera requieren autenticación y permisos de administrador.",
+                "operationId": "listarServicios",
+                "parameters": [
+                    {
+                        "name": "solo_eliminados",
+                        "in": "query",
+                        "description": "Si es true, devuelve únicamente los servicios eliminados. Requiere permisos de administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "example": true
+                    },
+                    {
+                        "name": "incluir_eliminados",
+                        "in": "query",
+                        "description": "Si es true, incluye los servicios eliminados junto con los activos. Requiere permisos de administrador.",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "example": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Listado de servicios obtenido exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServicioListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Se requiere autenticación para consultar la papelera."
+                    },
+                    "403": {
+                        "description": "El usuario autenticado no tiene permisos de administrador."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Servicios"
+                ],
+                "summary": "Crear un servicio",
+                "description": "Crea un nuevo servicio. Requiere autenticación y permisos de administrador.",
+                "operationId": "crearServicio",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Piscina",
+                                        "maxLength": 50,
+                                        "minLength": 3
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Servicio creado exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServicioResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado."
+                    },
+                    "403": {
+                        "description": "Se requieren permisos de administrador."
+                    },
+                    "409": {
+                        "description": "Ya existe un servicio con ese nombre."
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/servicios/{id}": {
+            "get": {
+                "tags": [
+                    "Servicios"
+                ],
+                "summary": "Obtener un servicio",
+                "description": "Obtiene un servicio activo por su identificador. No requiere autenticación.",
+                "operationId": "obtenerServicio",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador del servicio.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Servicio obtenido exitosamente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServicioResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Servicio no encontrado."
+                    },
+                    "422": {
+                        "description": "El identificador del servicio es inválido."
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Servicios"
+                ],
+                "summary": "Actualizar un servicio",
+                "description": "Actualiza el nombre de un servicio activo. Requiere autenticación y permisos de administrador.",
+                "operationId": "actualizarServicio",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador del servicio.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Piscina climatizada",
+                                        "maxLength": 50,
+                                        "minLength": 3
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "example": {
+                                "nombre": "Piscina climatizada"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Servicio actualizado exitosamente."
+                    },
+                    "400": {
+                        "description": "No se enviaron campos actualizables."
+                    },
+                    "401": {
+                        "description": "No autenticado."
+                    },
+                    "403": {
+                        "description": "Se requieren permisos de administrador."
+                    },
+                    "404": {
+                        "description": "Servicio no encontrado."
+                    },
+                    "409": {
+                        "description": "Ya existe otro servicio con ese nombre."
+                    },
+                    "422": {
+                        "description": "Los datos enviados no superan la validación."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Servicios"
+                ],
+                "summary": "Eliminar un servicio",
+                "description": "Elimina lógicamente un servicio. No permite eliminar servicios asociados a propiedades. Requiere autenticación y permisos de administrador.",
+                "operationId": "eliminarServicio",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador del servicio.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Servicio eliminado exitosamente."
+                    },
+                    "401": {
+                        "description": "No autenticado."
+                    },
+                    "403": {
+                        "description": "Se requieren permisos de administrador."
+                    },
+                    "404": {
+                        "description": "Servicio no encontrado."
+                    },
+                    "409": {
+                        "description": "No se puede eliminar el servicio porque tiene propiedades asociadas."
+                    },
+                    "422": {
+                        "description": "El identificador del servicio es inválido."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/servicios/{id}/restaurar": {
+            "post": {
+                "tags": [
+                    "Servicios"
+                ],
+                "summary": "Restaurar un servicio",
+                "description": "Restaura un servicio eliminado. No permite restaurarlo si ya existe un servicio activo con el mismo nombre. Requiere autenticación y permisos de administrador.",
+                "operationId": "restaurarServicio",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identificador del servicio eliminado.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Servicio restaurado exitosamente."
+                    },
+                    "401": {
+                        "description": "No autenticado."
+                    },
+                    "403": {
+                        "description": "Se requieren permisos de administrador."
+                    },
+                    "404": {
+                        "description": "Servicio eliminado no encontrado."
+                    },
+                    "409": {
+                        "description": "Ya existe un servicio activo con ese nombre."
+                    },
+                    "422": {
+                        "description": "El identificador del servicio es inválido."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/usuarios": {
             "get": {
                 "tags": [
@@ -5884,6 +8823,116 @@
                         "example": {
                             "nombre": [
                                 "El nombre no puede exceder los 100 caracteres"
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 4,
+                        "nullable": true
+                    },
+                    "accion": {
+                        "type": "string",
+                        "example": "reserva_creada"
+                    },
+                    "ip_address": {
+                        "type": "string",
+                        "example": "192.0.2.10",
+                        "nullable": true
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-03T22:29:18Z"
+                    },
+                    "usuario_nombre": {
+                        "type": "string",
+                        "example": "María Pérez",
+                        "nullable": true
+                    },
+                    "usuario_email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "maria@example.com",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LogActividad"
+                        }
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Lista de logs obtenida correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/LogActividad"
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Acceso denegado"
+                    }
+                },
+                "type": "object"
+            },
+            "LogActividadValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "validation_errors": {
+                        "type": "object",
+                        "example": {
+                            "id": [
+                                "El ID debe ser mayor a 0"
                             ]
                         },
                         "additionalProperties": {
@@ -8077,6 +11126,1296 @@
                 },
                 "type": "object"
             },
+            "ResenaUsuario": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Propietario"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Prop"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "prop@gmail.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "3624123456",
+                        "nullable": true
+                    },
+                    "domicilio": {
+                        "type": "string",
+                        "example": "Prop",
+                        "nullable": true
+                    },
+                    "rol_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": null,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaImagen": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "ruta": {
+                        "type": "string",
+                        "example": "propiedades/1/imagen-1.webp"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Frente de la propiedad",
+                        "nullable": true
+                    },
+                    "es_principal": {
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaPropiedad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "example": "Casa prueba"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Prueba",
+                        "nullable": true
+                    },
+                    "precio": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 150000
+                    },
+                    "expensas": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "Prueba"
+                    },
+                    "cantidad_ambientes": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "cantidad_dormitorios": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "cantidad_banos": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "capacidad": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "acepta_mascotas": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "acepta_hijos": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "requisitos_interesados": {
+                        "type": "object",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "disponible": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "destacada": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "categoria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "localidad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "fecha_publicacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-10-28T17:11:36.000000Z",
+                        "nullable": true
+                    },
+                    "imagen_url": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "imagen_principal": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "imagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ResenaImagen"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaReserva": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "fecha_inicio_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-05-01"
+                    },
+                    "fecha_fin_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "finalizada"
+                    },
+                    "fecha_reserva": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-06-15T03:51:20.000000Z",
+                        "nullable": true
+                    },
+                    "fecha_confirmacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "propiedad": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ResenaPropiedad"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "usuario": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ResenaUsuario"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Resena": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "reserva_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "tipo": {
+                        "type": "string",
+                        "example": "inquilino",
+                        "enum": [
+                            "propiedad",
+                            "inquilino"
+                        ]
+                    },
+                    "calificador_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "calificacion": {
+                        "type": "integer",
+                        "example": 5,
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "comentario": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "fecha_publicacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-03T22:29:18.000000Z"
+                    },
+                    "reserva": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ResenaReserva"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "calificador": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ResenaUsuario"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaCreateRequest": {
+                "required": [
+                    "reserva_id",
+                    "calificacion"
+                ],
+                "properties": {
+                    "reserva_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "minimum": 1
+                    },
+                    "calificacion": {
+                        "type": "integer",
+                        "example": 5,
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "comentario": {
+                        "type": "string",
+                        "example": "Muy buena experiencia",
+                        "nullable": true,
+                        "maxLength": 1000,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaAdminCreateRequest": {
+                "required": [
+                    "reserva_id",
+                    "calificacion",
+                    "calificador_id"
+                ],
+                "properties": {
+                    "reserva_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "minimum": 1
+                    },
+                    "calificacion": {
+                        "type": "integer",
+                        "example": 5,
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "calificador_id": {
+                        "type": "integer",
+                        "example": 2,
+                        "minimum": 1
+                    },
+                    "comentario": {
+                        "type": "string",
+                        "example": "Muy buena experiencia",
+                        "nullable": true,
+                        "maxLength": 1000,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaUpdateRequest": {
+                "properties": {
+                    "calificacion": {
+                        "type": "integer",
+                        "example": 4,
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "comentario": {
+                        "type": "string",
+                        "example": "Experiencia satisfactoria",
+                        "nullable": true,
+                        "maxLength": 1000,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Resena"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reseña encontrada"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Resena"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 2
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reseñas obtenidas correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaCollectionResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Resena"
+                        }
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reseñas obtenidas correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaPromedioResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Resena"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 2
+                            },
+                            "promedio": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 4.5
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reseñas obtenidas correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reseña eliminada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaNullResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reseña actualizada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "No se encontró la reseña"
+                    }
+                },
+                "type": "object"
+            },
+            "ResenaValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "example": {
+                            "calificacion": [
+                                "La calificación debe estar entre 1 y 5"
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaUsuario": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Propietario"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Prop"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "prop@gmail.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "3624123456",
+                        "nullable": true
+                    },
+                    "domicilio": {
+                        "type": "string",
+                        "example": "Prop",
+                        "nullable": true
+                    },
+                    "rol_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": null,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaLocalidad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Crespo"
+                    },
+                    "codigo_postal": {
+                        "type": "string",
+                        "example": "3116"
+                    },
+                    "provincia_id": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaImagen": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "ruta": {
+                        "type": "string",
+                        "example": "propiedades/1/imagen-1.webp"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Frente de la propiedad",
+                        "nullable": true
+                    },
+                    "es_principal": {
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaPropiedad": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "example": "Casa prueba"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Prueba",
+                        "nullable": true
+                    },
+                    "precio": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 150000
+                    },
+                    "expensas": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "Prueba"
+                    },
+                    "cantidad_ambientes": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "cantidad_dormitorios": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "cantidad_banos": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "capacidad": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "acepta_mascotas": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "acepta_hijos": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "requisitos_interesados": {
+                        "type": "object",
+                        "example": null,
+                        "nullable": true,
+                        "additionalProperties": true
+                    },
+                    "disponible": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "destacada": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "categoria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "localidad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "fecha_publicacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-10-28T17:11:36.000000Z",
+                        "nullable": true
+                    },
+                    "imagen_url": {
+                        "type": "string",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "localidad": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ReservaLocalidad"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "imagen_principal": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ReservaImagen"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "imagenes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReservaImagen"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaResena": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "reserva_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "tipo": {
+                        "type": "string",
+                        "example": "propiedad",
+                        "enum": [
+                            "propiedad",
+                            "inquilino"
+                        ]
+                    },
+                    "calificador_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "calificacion": {
+                        "type": "integer",
+                        "example": 5,
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "comentario": {
+                        "type": "string",
+                        "example": "Muy buena experiencia",
+                        "nullable": true
+                    },
+                    "fecha_publicacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-10-28T17:11:36.000000Z",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Reserva": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "fecha_inicio_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-01"
+                    },
+                    "fecha_fin_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2027-07-01",
+                        "nullable": true
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "finalizada",
+                        "enum": [
+                            "pendiente",
+                            "confirmada",
+                            "rechazada",
+                            "finalizada",
+                            "cancelada"
+                        ]
+                    },
+                    "fecha_reserva": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-06-13T21:55:23.000000Z"
+                    },
+                    "fecha_confirmacion": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "propiedad": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ReservaPropiedad"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "usuario": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ReservaUsuario"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "resenas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReservaResena"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaCreateRequest": {
+                "required": [
+                    "propiedad_id",
+                    "fecha_inicio_alquiler",
+                    "fecha_fin_alquiler"
+                ],
+                "properties": {
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "fecha_inicio_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-01"
+                    },
+                    "fecha_fin_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2027-07-01"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaAdminCreateRequest": {
+                "required": [
+                    "propiedad_id",
+                    "usuario_id",
+                    "fecha_inicio_alquiler",
+                    "fecha_fin_alquiler"
+                ],
+                "properties": {
+                    "propiedad_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "minimum": 1
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 2,
+                        "minimum": 1
+                    },
+                    "fecha_inicio_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-01"
+                    },
+                    "fecha_fin_alquiler": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2027-07-01"
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "pendiente",
+                        "default": "pendiente",
+                        "enum": [
+                            "pendiente",
+                            "confirmada"
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaUpdateRequest": {
+                "required": [
+                    "estado"
+                ],
+                "properties": {
+                    "estado": {
+                        "type": "string",
+                        "example": "confirmada",
+                        "enum": [
+                            "pendiente",
+                            "confirmada",
+                            "rechazada"
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaCreatedResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 2
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reserva creada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "mis_reservas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Reserva"
+                                }
+                            },
+                            "reservas_de_mis_propiedades": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Reserva"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaAdminListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "mis_reservas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Reserva"
+                                },
+                                "example": []
+                            },
+                            "reservas_de_mis_propiedades": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Reserva"
+                                },
+                                "example": []
+                            },
+                            "todas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Reserva"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Reserva actualizada correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "No tienes permiso para realizar esta operación"
+                    }
+                },
+                "type": "object"
+            },
+            "ReservaValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    }
+                },
+                "type": "object"
+            },
+            "Rol": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Administrador"
+                    }
+                },
+                "type": "object"
+            },
+            "RolListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Rol"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 2
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "RolResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Rol"
+                    }
+                },
+                "type": "object"
+            },
+            "RolCreateRequest": {
+                "required": [
+                    "nombre"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "pattern": "^[\\p{L}\\s]+$",
+                        "example": "Moderador",
+                        "maxLength": 30,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "RolUpdateRequest": {
+                "required": [
+                    "nombre"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "pattern": "^[\\p{L}\\s]+$",
+                        "example": "Moderador",
+                        "maxLength": 30,
+                        "minLength": 3
+                    }
+                },
+                "type": "object"
+            },
+            "RolCreatedResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Rol"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Rol creado exitosamente"
+                    }
+                },
+                "type": "object"
+            },
+            "RolMutationResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Rol actualizado exitosamente"
+                    }
+                },
+                "type": "object"
+            },
+            "RolErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Rol no encontrado"
+                    }
+                },
+                "type": "object"
+            },
+            "RolValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error de validación"
+                    }
+                },
+                "type": "object"
+            },
+            "Servicio": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Piscina",
+                        "maxLength": 50
+                    }
+                },
+                "type": "object"
+            },
+            "ServicioListResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Servicio"
+                                }
+                            },
+                            "total": {
+                                "type": "integer",
+                                "example": 3
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ServicioResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Servicio"
+                    }
+                },
+                "type": "object"
+            },
             "UsuarioResponse": {
                 "properties": {
                     "id": {
@@ -8299,6 +12638,10 @@
             "description": "Endpoints exclusivos para administradores."
         },
         {
+            "name": "Logs de actividad",
+            "description": "Consulta de registros de actividad, disponible solo para administradores."
+        },
+        {
             "name": "Consultas",
             "description": "Gestión de consultas entre interesados y propietarios de propiedades"
         },
@@ -8349,6 +12692,22 @@
         {
             "name": "Autenticación",
             "description": "Autenticación"
+        },
+        {
+            "name": "Reseñas",
+            "description": "Reseñas"
+        },
+        {
+            "name": "Reservas",
+            "description": "Reservas"
+        },
+        {
+            "name": "Roles",
+            "description": "Roles"
+        },
+        {
+            "name": "Servicios",
+            "description": "Servicios"
         },
         {
             "name": "Usuarios",
