@@ -13,7 +13,19 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
 
     private function construirConsulta(array $filtros): Builder
     {
-        $query = Propiedad::query()
+        $query = $this->crearQueryBase();
+
+        $this->aplicarFiltroUbicacion($query, $filtros);
+        $this->aplicarFiltrosDeServicios($query, $filtros);
+        $this->aplicarFiltroPrecio($query, $filtros);
+        $this->aplicarFiltrosDeCaracteristicas($query, $filtros);
+
+        return $query;
+    }
+
+    private function crearQueryBase(): Builder
+    {
+        return Propiedad::query()
             ->addSelect([
                 'imagen_url' => PropiedadImagen::query()
                     ->select('ruta')
@@ -25,7 +37,12 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
                     ->orderBy('id')
                     ->limit(1),
             ]);
+    }
 
+    private function aplicarFiltroUbicacion(
+        Builder $query,
+        array $filtros
+    ): void {
         if (isset($filtros['categoria_id'])) {
             $query->whereIn(
                 'categoria_id',
@@ -39,27 +56,39 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
                 $filtros['localidad_id']
             );
         }
+    }
 
-        if (!empty($filtros['servicio_id'])) {
-            foreach ($filtros['servicio_id'] as $servicioId) {
-                $query->whereExists(
-                    function ($subquery) use ($servicioId) {
-                        $subquery
-                            ->selectRaw('1')
-                            ->from('propiedad_servicio')
-                            ->whereColumn(
-                                'propiedad_servicio.propiedad_id',
-                                'propiedades.id'
-                            )
-                            ->where(
-                                'propiedad_servicio.servicio_id',
-                                $servicioId
-                            );
-                    }
-                );
-            }
+    private function aplicarFiltrosDeServicios(
+        Builder $query,
+        array $filtros
+    ): void {
+        if (empty($filtros['servicio_id'])) {
+            return;
         }
 
+        foreach ($filtros['servicio_id'] as $servicioId) {
+            $query->whereExists(
+                function ($subquery) use ($servicioId) {
+                    $subquery
+                        ->selectRaw('1')
+                        ->from('propiedad_servicio')
+                        ->whereColumn(
+                            'propiedad_servicio.propiedad_id',
+                            'propiedades.id'
+                        )
+                        ->where(
+                            'propiedad_servicio.servicio_id',
+                            $servicioId
+                        );
+                }
+            );
+        }
+    }
+
+    private function aplicarFiltroPrecio(
+        Builder $query,
+        array $filtros
+    ): void {
         if (isset($filtros['precio_min'])) {
             $query->where(
                 'precio',
@@ -75,68 +104,50 @@ class EloquentPropiedadRepository implements PropiedadRepositoryInterface
                 $filtros['precio_max']
             );
         }
+    }
 
-        if (isset($filtros['cantidad_ambientes'])) {
-            $query->where(
-                'cantidad_ambientes',
-                '>=',
-                $filtros['cantidad_ambientes']
-            );
+    private function aplicarFiltrosDeCaracteristicas(
+        Builder $query,
+        array $filtros
+    ): void {
+        $this->aplicarFiltrosDeCantidades($query, $filtros);
+        $this->aplicarFiltrosDeBanderas($query, $filtros);
+    }
+
+    private function aplicarFiltrosDeCantidades(
+        Builder $query,
+        array $filtros
+    ): void {
+        $cantidades = [
+            'cantidad_ambientes',
+            'cantidad_dormitorios',
+            'cantidad_banos',
+            'capacidad',
+        ];
+
+        foreach ($cantidades as $campo) {
+            if (isset($filtros[$campo])) {
+                $query->where($campo, '>=', $filtros[$campo]);
+            }
         }
+    }
 
-        if (isset($filtros['cantidad_dormitorios'])) {
-            $query->where(
-                'cantidad_dormitorios',
-                '>=',
-                $filtros['cantidad_dormitorios']
-            );
+    private function aplicarFiltrosDeBanderas(
+        Builder $query,
+        array $filtros
+    ): void {
+        $banderas = [
+            'destacada',
+            'acepta_mascotas',
+            'acepta_hijos',
+            'disponible',
+        ];
+
+        foreach ($banderas as $campo) {
+            if (isset($filtros[$campo])) {
+                $query->where($campo, (int) $filtros[$campo]);
+            }
         }
-
-        if (isset($filtros['cantidad_banos'])) {
-            $query->where(
-                'cantidad_banos',
-                '>=',
-                $filtros['cantidad_banos']
-            );
-        }
-
-        if (isset($filtros['capacidad'])) {
-            $query->where(
-                'capacidad',
-                '>=',
-                $filtros['capacidad']
-            );
-        }
-
-        if (isset($filtros['destacada'])) {
-            $query->where(
-                'destacada',
-                (int) $filtros['destacada']
-            );
-        }
-
-        if (isset($filtros['acepta_mascotas'])) {
-            $query->where(
-                'acepta_mascotas',
-                (int) $filtros['acepta_mascotas']
-            );
-        }
-
-        if (isset($filtros['acepta_hijos'])) {
-            $query->where(
-                'acepta_hijos',
-                (int) $filtros['acepta_hijos']
-            );
-        }
-
-        if (isset($filtros['disponible'])) {
-            $query->where(
-                'disponible',
-                (int) $filtros['disponible']
-            );
-        }
-
-        return $query;
     }
 
     
