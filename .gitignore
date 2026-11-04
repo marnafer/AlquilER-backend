@@ -32,3 +32,4 @@ PLAN-SWAGGER.txt
 /storage/logs/performance.jsonl
 /storage/logs/performance.jsonl.*
 /storage/performance-dashboard/
+/storage/cache/
