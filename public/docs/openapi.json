@@ -73,7 +73,19 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Usuario registrado correctamente"
+                        "description": "Usuario registrado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutenticadorEmptySuccessResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": [],
+                                    "message": "Usuario registrado"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Error de validación"
@@ -104,7 +116,19 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Sesión cerrada correctamente"
+                        "description": "Sesión cerrada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutenticadorEmptySuccessResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": [],
+                                    "message": "Sesión cerrada correctamente"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "No autenticado"
@@ -198,24 +222,12 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            },
-                                            "example": []
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Correo verificado correctamente"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/AutenticadorEmptySuccessResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": [],
+                                    "message": "Correo verificado correctamente"
                                 }
                             }
                         }
@@ -7829,6 +7841,36 @@
                             }
                         },
                         "type": "object"
+                    },
+                    "message": {
+                        "description": "Incluido al refrescar el token; omitido durante el inicio de sesión.",
+                        "type": "string",
+                        "example": "Token refrescado correctamente"
+                    }
+                },
+                "type": "object"
+            },
+            "AutenticadorEmptySuccessResponse": {
+                "required": [
+                    "success",
+                    "data",
+                    "message"
+                ],
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "example": []
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Operación realizada correctamente"
                     }
                 },
                 "type": "object"
