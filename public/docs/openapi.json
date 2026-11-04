@@ -7,8 +7,8 @@
     },
     "servers": [
         {
-            "url": "http://localhost:8000",
-            "description": "Servidor local"
+            "url": "../",
+            "description": "API relativa a la ubicación de esta documentación"
         }
     ],
     "paths": {
