@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cache\FileCache;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
@@ -16,19 +17,46 @@ use App\Validators\LocalidadValidator;
 
 class LocalidadService
 {
+    private const LIST_CACHE_KEY = 'catalog:localities:active:v1';
+    private const LIST_CACHE_TTL_SECONDS = 300;
+
     public function __construct(
         private readonly LocalidadRepositoryInterface $localidadRepository,
-        private readonly ProvinciaRepositoryInterface $provinciaRepository
+        private readonly ProvinciaRepositoryInterface $provinciaRepository,
+        private readonly ?FileCache $cache = null
     ) {
     }
 
     public function listar(array $filtros = []): array
     {
+        if ($this->cache !== null && $filtros === []) {
+            return $this->cache->remember(
+                self::LIST_CACHE_KEY,
+                self::LIST_CACHE_TTL_SECONDS,
+                fn (): array => $this->formatearListado(
+                    $this->localidadRepository->all()
+                )
+            );
+        }
+
         $localidades = $this->localidadRepository->all($filtros);
 
         return [
             'items' => $localidades,
             'total' => $localidades->count(),
+        ];
+    }
+
+    private function formatearListado($localidades): array
+    {
+        $items = array_map(
+            static fn (Localidad $localidad): array => $localidad->toArray(),
+            $localidades->all()
+        );
+
+        return [
+            'items' => $items,
+            'total' => count($items),
         ];
     }
 
@@ -80,7 +108,10 @@ class LocalidadService
             );
         }
 
-        return $this->localidadRepository->create($data);
+        $localidad = $this->localidadRepository->create($data);
+        $this->invalidarListado();
+
+        return $localidad;
     }
 
     public function actualizar($rawId, array $rawData): void
@@ -148,6 +179,7 @@ class LocalidadService
         }
 
         $this->localidadRepository->update($localidad, $data);
+        $this->invalidarListado();
     }
 
     public function eliminar($rawId): void
@@ -161,6 +193,7 @@ class LocalidadService
         }
 
         $this->localidadRepository->delete($localidad);
+        $this->invalidarListado();
     }
 
     public function restaurar($rawId): void
@@ -194,5 +227,11 @@ class LocalidadService
         }
 
         $this->localidadRepository->restore($localidad);
+        $this->invalidarListado();
+    }
+
+    private function invalidarListado(): void
+    {
+        $this->cache?->forget(self::LIST_CACHE_KEY);
     }
 }

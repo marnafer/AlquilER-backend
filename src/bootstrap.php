@@ -24,6 +24,7 @@ use App\Controllers\Api\RecuperarContrasenaController;
 use App\Controllers\Api\ContactoController;
 
 // HELPERS - SECURITY
+use App\Cache\FileCache;
 use App\Helpers\JwtProvider;
 use App\Security\Authenticator;
 
@@ -122,6 +123,8 @@ $usuarioPolicy = new UsuarioPolicy();
 $cargaImagenValidator = new CargaImagenValidator();
 
 // INSTANCIAR SERVICES
+$catalogCache = new FileCache();
+
 $notificacionService = new NotificacionService(
     $notificacionRepository
 );
@@ -162,20 +165,24 @@ $usuarioService = new UsuarioService(
 );
 
 $categoriaService = new CategoriaService(
-    $categoriaRepository
+    $categoriaRepository,
+    $catalogCache
 );
 
 $servicioService = new ServicioService(
-    $servicioRepository
+    $servicioRepository,
+    $catalogCache
 );
 
 $provinciaService = new ProvinciaService(
-    $provinciaRepository
+    $provinciaRepository,
+    $catalogCache
 );
 
 $localidadService = new LocalidadService(
     $localidadRepository,
-    $provinciaRepository
+    $provinciaRepository,
+    $catalogCache
 );
 
 $rolService = new RolService(

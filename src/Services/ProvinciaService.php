@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cache\FileCache;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
@@ -15,18 +16,45 @@ use App\Validators\ProvinciaValidator;
 
 class ProvinciaService
 {
+    private const LIST_CACHE_KEY = 'catalog:provinces:active:v1';
+    private const LIST_CACHE_TTL_SECONDS = 300;
+
     public function __construct(
-        private readonly ProvinciaRepositoryInterface $repository
+        private readonly ProvinciaRepositoryInterface $repository,
+        private readonly ?FileCache $cache = null
     ) {
     }
 
     public function listar(array $filtros = []): array
     {
+        if ($this->cache !== null && $filtros === []) {
+            return $this->cache->remember(
+                self::LIST_CACHE_KEY,
+                self::LIST_CACHE_TTL_SECONDS,
+                fn (): array => $this->formatearListado(
+                    $this->repository->all()
+                )
+            );
+        }
+
         $provincias = $this->repository->all($filtros);
 
         return [
             'items' => $provincias,
             'total' => $provincias->count(),
+        ];
+    }
+
+    private function formatearListado($provincias): array
+    {
+        $items = array_map(
+            static fn (Provincia $provincia): array => $provincia->toArray(),
+            $provincias->all()
+        );
+
+        return [
+            'items' => $items,
+            'total' => count($items),
         ];
     }
 
@@ -71,7 +99,10 @@ class ProvinciaService
             );
         }
 
-        return $this->repository->create($data);
+        $provincia = $this->repository->create($data);
+        $this->invalidarListado();
+
+        return $provincia;
     }
 
     public function eliminar($rawId): void
@@ -85,6 +116,7 @@ class ProvinciaService
         }
 
         $this->repository->delete($provincia);
+        $this->invalidarListado();
     }
 
     public function actualizar(
@@ -147,6 +179,7 @@ class ProvinciaService
             $provincia,
             $data
         );
+        $this->invalidarListado();
     }
 
     public function restaurar($rawId): void
@@ -181,5 +214,11 @@ class ProvinciaService
         }
 
         $this->repository->restore($provincia);
+        $this->invalidarListado();
+    }
+
+    private function invalidarListado(): void
+    {
+        $this->cache?->forget(self::LIST_CACHE_KEY);
     }
 }

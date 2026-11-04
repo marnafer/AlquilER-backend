@@ -112,9 +112,34 @@ use OpenApi\Attributes as OA;
             ],
             type: 'object'
         ),
+        new OA\Property(
+            property: 'message',
+            type: 'string',
+            description: 'Incluido al refrescar el token; omitido durante el inicio de sesión.',
+            example: 'Token refrescado correctamente'
+        ),
     ],
     type: 'object'
-    )]
+)]
+#[OA\Schema(
+    schema: 'AutenticadorEmptySuccessResponse',
+    type: 'object',
+    required: ['success', 'data', 'message'],
+    properties: [
+        new OA\Property(property: 'success', type: 'boolean', example: true),
+        new OA\Property(
+            property: 'data',
+            type: 'array',
+            items: new OA\Items(type: 'object'),
+            example: []
+        ),
+        new OA\Property(
+            property: 'message',
+            type: 'string',
+            example: 'Operación realizada correctamente'
+        ),
+    ]
+)]
 final class AutenticadorSchemas
 {
 }

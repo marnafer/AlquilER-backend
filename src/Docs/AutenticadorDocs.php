@@ -59,7 +59,15 @@ final class AutenticadorDocs
     responses: [
         new OA\Response(
             response: 201,
-            description: 'Usuario registrado correctamente'
+            description: 'Usuario registrado correctamente',
+            content: new OA\JsonContent(
+                ref: '#/components/schemas/AutenticadorEmptySuccessResponse',
+                example: [
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Usuario registrado',
+                ]
+            )
         ),
         new OA\Response(
             response: 422,
@@ -92,7 +100,15 @@ public function register(): void
     responses: [
         new OA\Response(
             response: 200,
-            description: 'Sesión cerrada correctamente'
+            description: 'Sesión cerrada correctamente',
+            content: new OA\JsonContent(
+                ref: '#/components/schemas/AutenticadorEmptySuccessResponse',
+                example: [
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Sesión cerrada correctamente',
+                ]
+            )
         ),
         new OA\Response(
             response: 401,
@@ -174,12 +190,12 @@ public function refresh(): void
             response: 200,
             description: 'Correo verificado correctamente.',
             content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(property: 'success', type: 'boolean', example: true),
-                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(type: 'object'), example: []),
-                    new OA\Property(property: 'message', type: 'string', example: 'Correo verificado correctamente'),
-                ],
-                type: 'object'
+                ref: '#/components/schemas/AutenticadorEmptySuccessResponse',
+                example: [
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Correo verificado correctamente',
+                ]
             )
         ),
         new OA\Response(

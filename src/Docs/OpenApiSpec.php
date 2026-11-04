@@ -15,8 +15,8 @@ use OpenApi\Attributes as OA;
     ),
     servers: [
         new OA\Server(
-            url: 'http://localhost:8000',
-            description: 'Servidor local'
+            url: '../',
+            description: 'API relativa a la ubicación de esta documentación'
         )
     ],
     components: new OA\Components(
