@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
+use App\Http\AuthCookies;
 use App\Http\Request;
 use App\Http\Response;
 use App\Services\AutenticadorService;
@@ -17,8 +18,11 @@ class AutenticadorController
 
     public function login(Request $request): Response
     {
-        return Response::success(
-            $this->service->login($request->json())
+        $tokens = $this->service->login($request->json());
+
+        return AuthCookies::attach(
+            Response::success(['rol_id' => $tokens['rol_id']]),
+            $tokens
         );
     }
 
@@ -33,30 +37,63 @@ class AutenticadorController
     }
 
     /**
-     * Refresca el access token usando un refresh token válido
-     * POST /api/autenticador/refresh
-     * Body: { "refresh_token": "..." }
+     * Refresca los tokens usando la cookie HttpOnly del refresh token.
+     * Acepta el body JSON anterior para mantener compatibilidad con clientes existentes.
      */
     public function refresh(Request $request): Response
     {
-        $result = $this->service->refresh($request->json());
+        $result = $this->service->refresh([
+            'refresh_token' => $this->refreshToken($request),
+        ]);
 
-        return Response::success(
-            $result,
-            200,
-            'Token refrescado correctamente'
+        return AuthCookies::attach(
+            Response::success(
+                ['rol_id' => $result['rol_id']],
+                200,
+                'Token refrescado correctamente'
+            ),
+            $result
         );
     }
 
     public function logout(Request $request): Response
     {
-        $this->service->logout($request->json());
+        $refreshToken = $request->cookie(AuthCookies::REFRESH_TOKEN);
 
-        return Response::success(
-            [],
-            200,
-            'Sesión cerrada correctamente'
+        if (
+            $refreshToken === null
+            && $request->rawBody() !== null
+            && trim($request->rawBody()) !== ''
+        ) {
+            $refreshToken = $request->json()['refresh_token'] ?? null;
+        }
+
+        $this->service->logout(['refresh_token' => $refreshToken]);
+
+        return AuthCookies::clear(
+            Response::success(
+                [],
+                200,
+                'Sesión cerrada correctamente'
+            )
         );
+    }
+
+    private function refreshToken(Request $request): ?string
+    {
+        $refreshToken = $request->cookie(AuthCookies::REFRESH_TOKEN);
+
+        if ($refreshToken !== null) {
+            return $refreshToken;
+        }
+
+        if ($request->rawBody() === null || trim($request->rawBody()) === '') {
+            return null;
+        }
+
+        $token = $request->json()['refresh_token'] ?? null;
+
+        return is_string($token) ? $token : null;
     }
 
     public function verificar(Request $request): Response
@@ -70,4 +107,3 @@ class AutenticadorController
         );
     }
 }
-

@@ -7,6 +7,7 @@ use App\Performance\PerformanceMetricsBootstrap;
 use App\Http\Request;
 use App\Http\Response;
 use App\Middlewares\RateLimitMiddleware;
+use App\Middlewares\CookieCsrfMiddleware;
 use App\Routes\Router;
 use Dotenv\Dotenv;
 
@@ -48,10 +49,20 @@ $allowedOrigins = array_filter(
     )
 );
 
+$appOrigin = parse_url(APP_URL);
+if (is_array($appOrigin) && isset($appOrigin['scheme'], $appOrigin['host'])) {
+    $allowedOrigins[] = $appOrigin['scheme'] . '://' . $appOrigin['host']
+        . (isset($appOrigin['port']) ? ':' . $appOrigin['port'] : '');
+}
+$allowedOrigins = array_values(array_unique($allowedOrigins));
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+header('Vary: Origin');
 
 if (in_array($origin, $allowedOrigins, true)) {
     header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
 }
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -80,6 +91,8 @@ if ($method === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
+
+CookieCsrfMiddleware::verificar($request, $allowedOrigins);
 
 // Hacemos la variable $path global para que esté disponible en los routers
 $GLOBALS['path'] = $path;

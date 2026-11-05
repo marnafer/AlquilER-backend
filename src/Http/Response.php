@@ -19,11 +19,13 @@ final class Response
     /**
      * @param array<string, mixed>|null $payload
      * @param array<string, string> $headers
+     * @param list<array{name: string, value: string, options: array{expires: int, path: string, secure: bool, httponly: bool, samesite: string}}> $cookies
      */
     public function __construct(
         private readonly int $status = 200,
         private readonly ?array $payload = null,
         private readonly array $headers = [],
+        private readonly array $cookies = [],
     ) {
     }
 
@@ -140,6 +142,14 @@ final class Response
     }
 
     /**
+     * @return list<array{name: string, value: string, options: array{expires: int, path: string, secure: bool, httponly: bool, samesite: string}}>
+     */
+    public function cookies(): array
+    {
+        return $this->cookies;
+    }
+
+    /**
      * Devuelve una copia con un header extra (el original no se toca).
      */
     public function withHeader(string $name, string $value): self
@@ -147,7 +157,36 @@ final class Response
         return new self(
             $this->status,
             $this->payload,
-            $this->headers + [$name => $value]
+            $this->headers + [$name => $value],
+            $this->cookies
+        );
+    }
+
+    /**
+     * Devuelve una copia con una cookie de respuesta.
+     *
+     * @param array{expires: int, path: string, secure: bool, httponly: bool, samesite: string} $options
+     */
+    public function withCookie(
+        string $name,
+        string $value,
+        array $options
+    ): self {
+        $cookies = array_values(array_filter(
+            $this->cookies,
+            static fn (array $cookie): bool => $cookie['name'] !== $name
+        ));
+        $cookies[] = [
+            'name' => $name,
+            'value' => $value,
+            'options' => $options,
+        ];
+
+        return new self(
+            $this->status,
+            $this->payload,
+            $this->headers,
+            $cookies
         );
     }
 
@@ -165,6 +204,14 @@ final class Response
 
             foreach ($this->headers as $name => $value) {
                 header($name . ': ' . $value);
+            }
+
+            foreach ($this->cookies as $cookie) {
+                setcookie(
+                    $cookie['name'],
+                    $cookie['value'],
+                    $cookie['options']
+                );
             }
 
             if ($this->payload !== null) {

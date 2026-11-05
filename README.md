@@ -67,9 +67,21 @@ DB_PASSWORD=
 
 JWT_KEY=cambiar_por_una_clave_aleatoria_larga
 JWT_EXP=3600
+AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAMESITE=Lax
 
 APP_ENV=development
 APP_DEBUG=true
+
+La autenticación entrega los tokens en cookies `HttpOnly`; el access token
+se envía automáticamente con las solicitudes y el refresh token se usa en
+`/api/autenticador/refresh`. En producción, usar HTTPS y
+`AUTH_COOKIE_SECURE=true`. Para un frontend en otro sitio, configurar
+`AUTH_COOKIE_SAMESITE=None` (requiere `AUTH_COOKIE_SECURE=true`), agregar su
+origen exacto a `CORS_ALLOWED_ORIGINS` y enviar las solicitudes del navegador
+con credenciales (`credentials: 'include'`). Las operaciones que modifican
+datos también validan que el `Origin` coincida con un origen permitido para
+mitigar CSRF.
 
 * **6. Ejecutar el backend**
 *Opción A: Servidor integrado de PHP

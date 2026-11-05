@@ -7,6 +7,7 @@ namespace App\Security;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\UnauthorizedException;
 use App\Helpers\TokenProviderInterface;
+use App\Http\AuthCookies;
 use App\Http\Request;
 use App\Models\Rol;
 
@@ -40,6 +41,18 @@ class Authenticator
      */
     public function verificar(Request $request): object
     {
+        $cookieToken = $request->cookie(AuthCookies::ACCESS_TOKEN);
+
+        if ($cookieToken !== null && $cookieToken !== '') {
+            $user = $this->tokenProvider->validate($cookieToken);
+
+            if (!$user) {
+                throw new UnauthorizedException('Token inválido o expirado');
+            }
+
+            return $user;
+        }
+
         $authHeader = $request->header('Authorization');
 
         // 1. Verificar que exista

@@ -85,6 +85,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'AuthResponse',
+    description: 'Los tokens se envían en cookies HttpOnly; el cuerpo solo informa el rol.',
     properties: [
         new OA\Property(
             property: 'success',
@@ -94,16 +95,6 @@ use OpenApi\Attributes as OA;
         new OA\Property(
             property: 'data',
             properties: [
-                new OA\Property(
-                    property: 'access_token',
-                    type: 'string',
-                    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-                ),
-                new OA\Property(
-                    property: 'refresh_token',
-                    type: 'string',
-                    example: '550e8400-e29b-41d4-a716-446655440000'
-                ),
                 new OA\Property(
                     property: 'rol_id',
                     type: 'integer',
