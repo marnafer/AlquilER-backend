@@ -11,7 +11,7 @@ final class AutenticadorDocs
     #[OA\Post(
         path: '/api/autenticador/login',
         summary: 'Iniciar sesión',
-        description: 'Autentica un usuario y devuelve un access token y un refresh token.',
+        description: 'Autentica un usuario y establece cookies HttpOnly para el access token y el refresh token. Los tokens no se incluyen en el cuerpo de la respuesta.',
         tags: ['Autenticador'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -86,17 +86,8 @@ public function register(): void
 #[OA\Post(
     path: '/api/autenticador/logout',
     summary: 'Cerrar sesión',
-    description: 'Invalida el refresh token proporcionado.',
+    description: 'Invalida el refresh token de la cookie y elimina las cookies de autenticación.',
     tags: ['Autenticador'],
-    security: [
-        ['bearerAuth' => []]
-    ],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            ref: '#/components/schemas/RefreshTokenRequest'
-        )
-    ),
     responses: [
         new OA\Response(
             response: 200,
@@ -127,14 +118,8 @@ public function logout(): void
 #[OA\Post(
     path: '/api/autenticador/refresh',
     summary: 'Refrescar token',
-    description: 'Genera un nuevo access token y un nuevo refresh token a partir de un refresh token válido.',
+    description: 'Rota los tokens usando el refresh token HttpOnly y actualiza las cookies de autenticación.',
     tags: ['Autenticador'],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            ref: '#/components/schemas/RefreshTokenRequest'
-        )
-    ),
     responses: [
         new OA\Response(
             response: 200,

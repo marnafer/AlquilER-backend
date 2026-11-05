@@ -20,7 +20,8 @@ final class RequestTest extends TestCase
             body: '{"nombre":"Casa"}',
             post: ['campo' => 'valor'],
             files: ['imagen' => ['name' => 'a.jpg']],
-            headers: ['Content-Type' => 'application/json']
+            headers: ['Content-Type' => 'application/json'],
+            cookies: ['access_token' => 'jwt-cookie']
         );
 
         $this->assertSame('POST', $request->method());
@@ -36,6 +37,7 @@ final class RequestTest extends TestCase
             'application/json',
             $request->header('Content-Type')
         );
+        $this->assertSame('jwt-cookie', $request->cookie('access_token'));
     }
 
     public function test_por_defecto_es_get_en_raiz_sin_parametros(): void

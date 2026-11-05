@@ -127,4 +127,27 @@ final class ResponseTest extends TestCase
         $this->assertSame(['a' => 1], $response->payload()['data']);
         $this->assertSame(['X-Foo' => 'bar'], $response->headers());
     }
+
+    public function test_with_cookie_devuelve_una_copia_y_preserva_la_cookie(): void
+    {
+        $original = Response::success();
+        $options = [
+            'expires' => 123,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+        $conCookie = $original->withCookie('access_token', 'abc', $options);
+
+        $this->assertNotSame($original, $conCookie);
+        $this->assertSame([], $original->cookies());
+        $this->assertSame([
+            [
+                'name' => 'access_token',
+                'value' => 'abc',
+                'options' => $options,
+            ],
+        ], $conCookie->cookies());
+    }
 }

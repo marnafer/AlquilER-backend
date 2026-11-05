@@ -29,6 +29,7 @@ abstract class TestCase extends BaseTestCase
         $_GET = [];
         $_POST = [];
         $_FILES = [];
+        $_COOKIE = [];
         unset(
             $_SERVER['HTTP_AUTHORIZATION'],
             $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
@@ -125,6 +126,7 @@ abstract class TestCase extends BaseTestCase
             post: $config['post'] ?? [],
             files: $config['files'] ?? [],
             headers: $headers,
+            cookies: $config['cookies'] ?? [],
         );
     }
 
