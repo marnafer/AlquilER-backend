@@ -71,19 +71,15 @@ final class AuthCookies
      */
     private static function options(string $path, int $ttl): array
     {
-        $secure = defined('AUTH_COOKIE_SECURE')
-            ? AUTH_COOKIE_SECURE
-            : (defined('APP_ENV') && APP_ENV !== 'development');
-        $sameSite = defined('AUTH_COOKIE_SAMESITE')
-            ? AUTH_COOKIE_SAMESITE
-            : 'Lax';
+        $isDevelopment = defined('APP_ENV')
+            && strtolower((string) APP_ENV) === 'development';
 
         return [
             'expires' => $ttl === 0 ? 1 : time() + $ttl,
             'path' => $path,
-            'secure' => $secure,
+            'secure' => !$isDevelopment,
             'httponly' => true,
-            'samesite' => $sameSite,
+            'samesite' => $isDevelopment ? 'Lax' : 'None',
         ];
     }
 }
