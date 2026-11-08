@@ -112,16 +112,23 @@ class ConsultaService
 
         $consulta = $this->obtener($consultaId);
 
+        $esAdministrador = $rolId !== null
+            && $this->policy->puedeAdministrar($rolId);
+
+        // Las consultas eliminadas solo pueden ser consultadas
+        // por administradores.
+        if ($consulta->trashed() && !$esAdministrador) {
+            throw new NotFoundException(
+                'Consulta no encontrada'
+            );
+        }
+
         $participa = $this->policy->puedeParticipar(
             $usuarioLogueadoId,
             $consulta
         );
 
-        if (
-            !$participa
-            && $rolId !== null
-            && $this->policy->puedeAdministrar($rolId)
-        ) {
+        if (!$participa && $esAdministrador) {
             $participa = true;
         }
 
@@ -132,23 +139,6 @@ class ConsultaService
         }
 
         return $consulta;
-    }
-
-    /**
-     * Alias de obtenerAutorizada.
-     *
-     * MensajeConsultaService lo invoca con este nombre.
-     */
-    public function obtenerConsultaAutorizada(
-        $rawConsultaId,
-        int $usuarioLogueadoId,
-        ?int $rolId = null
-    ): Consulta {
-        return $this->obtenerAutorizada(
-            $rawConsultaId,
-            $usuarioLogueadoId,
-            $rolId
-        );
     }
     
     public function crear(array $rawData): int

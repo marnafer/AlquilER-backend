@@ -102,7 +102,8 @@ class ConsultaServiceTest extends TestCase
     private function perfilInteresadoValido(): array
     {
         return [
-            'fecha_mudanza' => '2026-11-01',
+            'fecha_mudanza' => (new \DateTimeImmutable('+1 day'))
+                ->format('Y-m-d'),
             'cantidad_ocupantes' => 2,
             'tiene_mascotas' => true,
             'cantidad_mascotas' => 1,
@@ -1080,31 +1081,6 @@ class ConsultaServiceTest extends TestCase
         $this->expectException(ValidationException::class);
 
         $this->service->obtenerAutorizada(0, 5);
-    }
-
-    public function test_obtenerConsultaAutorizada_delega_en_obtenerAutorizada(): void
-    {
-        $consulta = new Consulta();
-        $consulta->id = 10;
-
-        $this->consultaRepository
-            ->expects($this->once())
-            ->method('findById')
-            ->with(10)
-            ->willReturn($consulta);
-
-        $this->policyMock
-            ->expects($this->once())
-            ->method('puedeParticipar')
-            ->with(5, $consulta)
-            ->willReturn(true);
-
-        $resultado = $this->service->obtenerConsultaAutorizada(
-            10,
-            5
-        );
-
-        $this->assertSame($consulta, $resultado);
     }
 
     public function test_crear_rechaza_datos_invalidos(): void

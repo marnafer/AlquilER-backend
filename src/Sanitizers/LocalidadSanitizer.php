@@ -54,9 +54,8 @@ class LocalidadSanitizer
 
         $nombre = trim($nombre);
         $nombre = preg_replace('/\s+/u', ' ', $nombre);
-        $nombre = mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
 
-        return mb_substr($nombre, 0, 100);
+        return mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8');
     }
 
     public static function sanitizarCodigoPostal($codigoPostal): ?string
@@ -65,14 +64,14 @@ class LocalidadSanitizer
             $codigoPostal = (string) $codigoPostal;
         }
 
-        if ($codigoPostal === null || trim((string) $codigoPostal) === '') {
+        if ($codigoPostal === null || trim($codigoPostal) === '') {
             return null;
         }
 
-        $codigoPostal = trim((string) $codigoPostal);
+        $codigoPostal = trim($codigoPostal);
         $codigoPostal = preg_replace('/\s+/u', ' ', $codigoPostal);
 
-        return mb_substr($codigoPostal, 0, 15);
+        return $codigoPostal;
     }
 
     public static function sanitizarProvinciaId($provinciaId): ?int

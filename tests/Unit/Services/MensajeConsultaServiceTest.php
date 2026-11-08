@@ -62,7 +62,7 @@ final class MensajeConsultaServiceTest extends TestCase
         $consulta->setRelation('propiedad', null);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willReturn($consulta);
 
@@ -116,7 +116,7 @@ final class MensajeConsultaServiceTest extends TestCase
         $consulta->setRelation('propiedad', $propiedad);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willReturn($consulta);
 
@@ -174,7 +174,7 @@ final class MensajeConsultaServiceTest extends TestCase
         $consulta->setRelation('propiedad', $propiedad);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 7, null)
             ->willReturn($consulta);
 
@@ -211,7 +211,7 @@ final class MensajeConsultaServiceTest extends TestCase
     public function test_crear_mensaje_falla_con_datos_invalidos(): void
     {
         $this->consultaService->expects($this->never())
-            ->method('obtenerConsultaAutorizada');
+            ->method('obtenerAutorizada');
 
         $this->mensajeRepository->expects($this->never())
             ->method('create');
@@ -230,7 +230,7 @@ final class MensajeConsultaServiceTest extends TestCase
     public function test_crear_mensaje_falla_si_el_mensaje_es_demasiado_largo(): void
     {
         $this->consultaService->expects($this->never())
-            ->method('obtenerConsultaAutorizada');
+            ->method('obtenerAutorizada');
 
         $this->mensajeRepository->expects($this->never())
             ->method('create');
@@ -249,7 +249,7 @@ final class MensajeConsultaServiceTest extends TestCase
     public function test_crear_mensaje_falla_si_usuario_no_esta_autorizado(): void
     {
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willThrowException(
                 new ForbiddenException('No autorizado')
@@ -296,7 +296,7 @@ final class MensajeConsultaServiceTest extends TestCase
         ]);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willReturn($consulta);
 
@@ -333,7 +333,7 @@ final class MensajeConsultaServiceTest extends TestCase
         ]);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willReturn($consulta);
 
@@ -375,7 +375,7 @@ final class MensajeConsultaServiceTest extends TestCase
         ]);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willReturn($consulta);
 
@@ -405,7 +405,7 @@ final class MensajeConsultaServiceTest extends TestCase
     public function test_obtener_historial_falla_si_usuario_no_esta_autorizado(): void
     {
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willThrowException(
                 new ForbiddenException('No autorizado')
@@ -428,7 +428,7 @@ final class MensajeConsultaServiceTest extends TestCase
     public function test_obtener_historial_falla_con_limite_invalido(): void
     {
         $this->consultaService->expects($this->never())
-            ->method('obtenerConsultaAutorizada');
+            ->method('obtenerAutorizada');
 
         $this->mensajeRepository->expects($this->never())
             ->method('findLatestByConsultaId');
@@ -448,7 +448,7 @@ final class MensajeConsultaServiceTest extends TestCase
     public function test_obtener_historial_falla_si_se_usan_ambos_cursores(): void
     {
         $this->consultaService->expects($this->never())
-            ->method('obtenerConsultaAutorizada');
+            ->method('obtenerAutorizada');
 
         $this->mensajeRepository->expects($this->never())
             ->method('findLatestByConsultaId');
@@ -480,7 +480,7 @@ final class MensajeConsultaServiceTest extends TestCase
         $mensajes = new Collection([$mensaje]);
 
         $this->consultaService->expects($this->once())
-            ->method('obtenerConsultaAutorizada')
+            ->method('obtenerAutorizada')
             ->with(100, 5, null)
             ->willReturn($consulta);
 

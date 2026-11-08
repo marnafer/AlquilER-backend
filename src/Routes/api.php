@@ -155,7 +155,7 @@ $router->post('/api/reservas/{id}/restaurar',[$reservaController, 'restore']);
 
 /*
 |--------------------------------------------------------------------------
-| CONSULTAS
+| RUTAS ADMINISTRATIVAS
 |--------------------------------------------------------------------------
 */
 
@@ -164,6 +164,13 @@ $router->get('/api/admin/propiedades', [$propiedadController, 'adminIndex']);
 $router->post('/api/admin/usuarios', [$usuarioController, 'storeAdmin']);
 $router->post('/api/admin/reservas', [$reservaController, 'storeAdmin']);
 $router->post('/api/admin/resenas', [$resenaController, 'storeAdmin']);
+
+/*
+|--------------------------------------------------------------------------
+| CONSULTAS
+|--------------------------------------------------------------------------
+*/
+
 $router->get('/api/consultas', [$consultaController, 'index']);
 $router->get('/api/consultas/{id}', [$consultaController, 'show']);
 $router->get('/api/consultas/propiedad/{propiedadId}', [$consultaController, 'indexByPropiedad']);

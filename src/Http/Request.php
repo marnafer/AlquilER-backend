@@ -24,6 +24,7 @@ final class Request
      * @param array<string, mixed> $files
      * @param array<string, string> $headers Nombres de header en notación
      *        original ("Content-Type"); el lookup es case-insensitive.
+     * @param array<string, mixed> $cookies
      */
     public function __construct(
         private readonly string $method = 'GET',
@@ -33,6 +34,7 @@ final class Request
         private readonly array $post = [],
         private readonly array $files = [],
         private readonly array $headers = [],
+        private readonly array $cookies = [],
     ) {
     }
 
@@ -51,6 +53,7 @@ final class Request
             post: $_POST,
             files: $_FILES,
             headers: self::headersDesdeServidor(),
+            cookies: $_COOKIE,
         );
     }
 
@@ -131,7 +134,8 @@ final class Request
             body: $this->body,
             post: $this->post,
             files: $this->files,
-            headers: $this->headers
+            headers: $this->headers,
+            cookies: $this->cookies
         );
     }
 
@@ -194,6 +198,13 @@ final class Request
         }
 
         return null;
+    }
+
+    public function cookie(string $name): ?string
+    {
+        $value = $this->cookies[$name] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
     /**

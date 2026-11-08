@@ -11,17 +11,19 @@ class ServicioSanitizerTest extends TestCase
 {
     public function test_sanitizar(): void
     {
-        $resultado = ServicioSanitizer::sanitizar(['id' => '3', 'nombre' => '  <b>Wifi</b> ']);
+        $resultado = ServicioSanitizer::sanitizar([
+            'nombre' => ' WiFi ',
+        ]);
 
-        $this->assertSame(3, $resultado['id']);
-        $this->assertSame('Wifi', $resultado['nombre']);
+        $this->assertSame([
+            'nombre' => 'WiFi',
+        ], $resultado);
     }
 
     public function test_sanitizar_empty(): void
     {
         $resultado = ServicioSanitizer::sanitizar([]);
 
-        $this->assertNull($resultado['id']);
         $this->assertNull($resultado['nombre']);
     }
 

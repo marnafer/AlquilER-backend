@@ -4,13 +4,9 @@ namespace App\Sanitizers;
 
 class ServicioSanitizer
 {
-    public static function sanitizar(
-        array $data
-    ): array {
+    public static function sanitizar(array $data): array
+    {
         return [
-            'id' => self::sanitizarId(
-                $data['id'] ?? null
-            ),
             'nombre' => self::sanitizarNombre(
                 $data['nombre'] ?? null
             ),

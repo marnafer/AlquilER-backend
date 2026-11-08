@@ -15,8 +15,8 @@ use OpenApi\Attributes as OA;
     ),
     servers: [
         new OA\Server(
-            url: 'http://localhost:8000',
-            description: 'Servidor local'
+            url: '../',
+            description: 'API relativa a la ubicación de esta documentación'
         )
     ],
     components: new OA\Components(
@@ -27,8 +27,17 @@ use OpenApi\Attributes as OA;
             scheme: 'bearer',
             bearerFormat: 'JWT'
         )
+    ]),
+    tags: [
+        new OA\Tag(
+            name: 'Administración',
+            description: 'Endpoints exclusivos para administradores.'
+        ),
+        new OA\Tag(
+            name: 'Logs de actividad',
+            description: 'Consulta de registros de actividad, disponible solo para administradores.'
+        )
     ]
-)
 )]
 final class OpenApiSpec
 {
@@ -45,5 +54,4 @@ final class OpenApiSpec
     {
     }
 }
-
 

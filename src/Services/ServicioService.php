@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cache\FileCache;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
@@ -15,18 +16,45 @@ use App\Validators\ServicioValidator;
 
 class ServicioService
 {
+    private const LIST_CACHE_KEY = 'catalog:services:active:v1';
+    private const LIST_CACHE_TTL_SECONDS = 300;
+
     public function __construct(
-        private readonly ServicioRepositoryInterface $repository
+        private readonly ServicioRepositoryInterface $repository,
+        private readonly ?FileCache $cache = null
     ) {
     }
 
     public function listar(array $filtros = []): array
     {
+        if ($this->cache !== null && $filtros === []) {
+            return $this->cache->remember(
+                self::LIST_CACHE_KEY,
+                self::LIST_CACHE_TTL_SECONDS,
+                fn (): array => $this->formatearListado(
+                    $this->repository->all()
+                )
+            );
+        }
+
         $servicios = $this->repository->all($filtros);
 
         return [
             'items' => $servicios,
             'total' => $servicios->count(),
+        ];
+    }
+
+    private function formatearListado($servicios): array
+    {
+        $items = array_map(
+            static fn (Servicio $servicio): array => $servicio->toArray(),
+            $servicios->all()
+        );
+
+        return [
+            'items' => $items,
+            'total' => count($items),
         ];
     }
 
@@ -83,7 +111,10 @@ class ServicioService
             );
         }
 
-        return $this->repository->create($data);
+        $servicio = $this->repository->create($data);
+        $this->invalidarListado();
+
+        return $servicio;
     }
 
     public function actualizar(
@@ -147,6 +178,7 @@ class ServicioService
             $servicio,
             $data
         );
+        $this->invalidarListado();
     }
 
     public function eliminar($rawId): void
@@ -182,6 +214,7 @@ class ServicioService
         }
 
         $this->repository->delete($servicio);
+        $this->invalidarListado();
     }
 
     public function restaurar($rawId): void
@@ -220,5 +253,11 @@ class ServicioService
         }
 
         $this->repository->restore($servicio);
+        $this->invalidarListado();
+    }
+
+    private function invalidarListado(): void
+    {
+        $this->cache?->forget(self::LIST_CACHE_KEY);
     }
 }

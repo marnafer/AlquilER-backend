@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cache\FileCache;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Exceptions\BadRequestException;
@@ -15,18 +16,45 @@ use App\Validators\CategoriaValidator;
 
 Class CategoriaService
 {
+    private const LIST_CACHE_KEY = 'catalog:categories:active:v1';
+    private const LIST_CACHE_TTL_SECONDS = 300;
+
     public function __construct(
-        private readonly CategoriaRepositoryInterface $repository
+        private readonly CategoriaRepositoryInterface $repository,
+        private readonly ?FileCache $cache = null
     ) {
     }
 
     public function listar(array $filtros = []): array
     {
+        if ($this->cache !== null && $filtros === []) {
+            return $this->cache->remember(
+                self::LIST_CACHE_KEY,
+                self::LIST_CACHE_TTL_SECONDS,
+                fn (): array => $this->formatearListado(
+                    $this->repository->all()
+                )
+            );
+        }
+
         $categorias = $this->repository->all($filtros);
 
         return [
             'items' => $categorias,
             'total' => $categorias->count(),
+        ];
+    }
+
+    private function formatearListado($categorias): array
+    {
+        $items = array_map(
+            static fn (Categoria $categoria): array => $categoria->toArray(),
+            $categorias->all()
+        );
+
+        return [
+            'items' => $items,
+            'total' => count($items),
         ];
     }
 
@@ -67,7 +95,10 @@ Class CategoriaService
             );
         }
 
-        return $this->repository->create($data);
+        $categoria = $this->repository->create($data);
+        $this->invalidarListado();
+
+        return $categoria;
     }
 
     public function eliminar($rawId): void
@@ -81,6 +112,7 @@ Class CategoriaService
         }
 
         $this->repository->delete($categoria);
+        $this->invalidarListado();
     }
 
     public function actualizar($rawId, array $rawData): void
@@ -131,6 +163,7 @@ Class CategoriaService
             }
 
             $this->repository->update($categoria, $data);
+            $this->invalidarListado();
         }
 
     public function restaurar($rawId): void
@@ -163,7 +196,12 @@ Class CategoriaService
         }
 
         $this->repository->restore($categoria);
+        $this->invalidarListado();
     }
 
+    private function invalidarListado(): void
+    {
+        $this->cache?->forget(self::LIST_CACHE_KEY);
+    }
 
 }

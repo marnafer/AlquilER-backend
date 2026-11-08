@@ -93,6 +93,24 @@ final class AuthenticatorTest extends TestCase
         $this->assertSame($usuario, $resultado);
     }
 
+    public function test_verificar_acepta_el_token_de_la_cookie(): void
+    {
+        $usuario = (object) ['sub' => 8, 'rol_id' => Rol::USUARIO];
+        $provider = $this->providerQueDevuelve($usuario);
+        $provider
+            ->expects($this->once())
+            ->method('validate')
+            ->with('cookie-jwt')
+            ->willReturn($usuario);
+        $auth = new Authenticator($provider);
+
+        $resultado = $auth->verificar(
+            new Request(cookies: ['access_token' => 'cookie-jwt'])
+        );
+
+        $this->assertSame($usuario, $resultado);
+    }
+
     // ===== soloAdmin =====
 
     public function test_solo_admin_devuelve_al_admin(): void

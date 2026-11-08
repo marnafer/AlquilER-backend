@@ -65,3 +65,41 @@ define('APP_URL', rtrim((string) $_ENV['APP_URL'], '/'));
 define('JWT_KEY', $jwtKey);
 define('JWT_EXPIRATION', $jwtExpiration);
 define('JWT_ALGORITHM', 'HS256');
+
+$cookieSecure = filter_var(
+    $_ENV['AUTH_COOKIE_SECURE']
+        ?? (APP_ENV !== 'development' || str_starts_with(APP_URL, 'https://')),
+    FILTER_VALIDATE_BOOLEAN,
+    FILTER_NULL_ON_FAILURE
+);
+
+if ($cookieSecure === null) {
+    throw new RuntimeException(
+        'AUTH_COOKIE_SECURE debe ser true o false'
+    );
+}
+
+if (APP_ENV === 'production' && !$cookieSecure) {
+    throw new RuntimeException(
+        'AUTH_COOKIE_SECURE debe ser true en producción'
+    );
+}
+
+$cookieSameSite = ucfirst(strtolower(trim(
+    (string) ($_ENV['AUTH_COOKIE_SAMESITE'] ?? 'Lax')
+)));
+
+if (!in_array($cookieSameSite, ['Lax', 'Strict', 'None'], true)) {
+    throw new RuntimeException(
+        'AUTH_COOKIE_SAMESITE debe ser Lax, Strict o None'
+    );
+}
+
+if ($cookieSameSite === 'None' && !$cookieSecure) {
+    throw new RuntimeException(
+        'AUTH_COOKIE_SECURE debe ser true cuando AUTH_COOKIE_SAMESITE es None'
+    );
+}
+
+define('AUTH_COOKIE_SECURE', $cookieSecure);
+define('AUTH_COOKIE_SAMESITE', $cookieSameSite);

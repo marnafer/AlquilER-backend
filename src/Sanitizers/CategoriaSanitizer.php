@@ -44,15 +44,12 @@ class CategoriaSanitizer
         return mb_substr($nombre, 0, 50);
     }
 
-    /**
-     * Sanitiza todo el payload de categoría
-     */
     public static function sanitizarCategoria(array $data): array
     {
         return [
-            'id' => self::sanitizarIdCategoria($data['id'] ?? null),
-            'nombre' => isset($data['nombre']) && $data['nombre'] !== '' 
-                ? self::sanitizarNombre((string)$data['nombre']) : null,
+            'nombre' => isset($data['nombre']) && $data['nombre'] !== ''
+                ? self::sanitizarNombre((string) $data['nombre'])
+                : null,
         ];
     }
 

@@ -75,12 +75,16 @@ class LocalidadSanitizerTest extends TestCase
         $this->assertNull(LocalidadSanitizer::sanitizarCodigoPostal('   '));
     }
 
-    public function test_sanitizar_codigo_postal_trims_and_truncates(): void
+    public function test_sanitizar_codigo_postal_trims_and_normalizes_whitespace(): void
     {
-        $this->assertSame('B1646', LocalidadSanitizer::sanitizarCodigoPostal(' B1646 '));
         $this->assertSame(
-            15,
-            mb_strlen(LocalidadSanitizer::sanitizarCodigoPostal(str_repeat('9', 20)))
+            'B1646',
+            LocalidadSanitizer::sanitizarCodigoPostal(' B1646 ')
+        );
+
+        $this->assertSame(
+            str_repeat('9', 20),
+            LocalidadSanitizer::sanitizarCodigoPostal(str_repeat('9', 20))
         );
     }
 

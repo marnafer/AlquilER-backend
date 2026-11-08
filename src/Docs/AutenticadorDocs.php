@@ -11,7 +11,7 @@ final class AutenticadorDocs
     #[OA\Post(
         path: '/api/autenticador/login',
         summary: 'Iniciar sesión',
-        description: 'Autentica un usuario y devuelve un access token y un refresh token.',
+        description: 'Autentica un usuario y establece cookies HttpOnly para el access token y el refresh token. Los tokens no se incluyen en el cuerpo de la respuesta.',
         tags: ['Autenticador'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -59,7 +59,15 @@ final class AutenticadorDocs
     responses: [
         new OA\Response(
             response: 201,
-            description: 'Usuario registrado correctamente'
+            description: 'Usuario registrado correctamente',
+            content: new OA\JsonContent(
+                ref: '#/components/schemas/AutenticadorEmptySuccessResponse',
+                example: [
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Usuario registrado',
+                ]
+            )
         ),
         new OA\Response(
             response: 422,
@@ -78,21 +86,20 @@ public function register(): void
 #[OA\Post(
     path: '/api/autenticador/logout',
     summary: 'Cerrar sesión',
-    description: 'Invalida el refresh token proporcionado.',
+    description: 'Invalida el refresh token de la cookie y elimina las cookies de autenticación.',
     tags: ['Autenticador'],
-    security: [
-        ['bearerAuth' => []]
-    ],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            ref: '#/components/schemas/RefreshTokenRequest'
-        )
-    ),
     responses: [
         new OA\Response(
             response: 200,
-            description: 'Sesión cerrada correctamente'
+            description: 'Sesión cerrada correctamente',
+            content: new OA\JsonContent(
+                ref: '#/components/schemas/AutenticadorEmptySuccessResponse',
+                example: [
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Sesión cerrada correctamente',
+                ]
+            )
         ),
         new OA\Response(
             response: 401,
@@ -111,14 +118,8 @@ public function logout(): void
 #[OA\Post(
     path: '/api/autenticador/refresh',
     summary: 'Refrescar token',
-    description: 'Genera un nuevo access token y un nuevo refresh token a partir de un refresh token válido.',
+    description: 'Rota los tokens usando el refresh token HttpOnly y actualiza las cookies de autenticación.',
     tags: ['Autenticador'],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            ref: '#/components/schemas/RefreshTokenRequest'
-        )
-    ),
     responses: [
         new OA\Response(
             response: 200,
@@ -145,63 +146,54 @@ public function refresh(): void
 {
 }
 
-#[OA\Post(
-    path: '/api/autenticador/recuperar',
-    summary: 'Solicitar recuperación de contraseña',
-    description: 'Envía un enlace de recuperación al correo indicado. La respuesta no revela si el correo existe.',
+#[OA\Get(
+    path: '/api/autenticador/verificar-email',
+    operationId: 'verificarEmail',
+    summary: 'Verificar dirección de correo electrónico',
+    description: 'Verifica el correo electrónico usando el email y el token recibidos en el enlace enviado al usuario. El enlace debe estar vigente y solo puede utilizarse una vez.',
     tags: ['Autenticador'],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            ref: '#/components/schemas/RecuperarPasswordRequest'
-        )
-    ),
+    parameters: [
+        new OA\Parameter(
+            name: 'email',
+            in: 'query',
+            required: true,
+            description: 'Dirección de correo electrónico asociada a la cuenta.',
+            schema: new OA\Schema(type: 'string', format: 'email'),
+            example: 'usuario@example.com'
+        ),
+        new OA\Parameter(
+            name: 'token',
+            in: 'query',
+            required: true,
+            description: 'Token de verificación incluido en el enlace del correo.',
+            schema: new OA\Schema(type: 'string'),
+            example: 'token-de-verificacion'
+        ),
+    ],
     responses: [
         new OA\Response(
             response: 200,
-            description: 'Solicitud procesada correctamente'
-        ),
-        new OA\Response(
-            response: 422,
-            description: 'Error de validación'
-        ),
-        new OA\Response(
-            response: 400,
-            description: 'Cuerpo de la solicitud inválido'
-        ),
-    ]
-)]
-public function solicitarRecuperacion(): void
-{
-}
-
-#[OA\Post(
-    path: '/api/autenticador/restablecer',
-    summary: 'Restablecer contraseña',
-    description: 'Restablece la contraseña utilizando un token de recuperación válido.',
-    tags: ['Autenticador'],
-    requestBody: new OA\RequestBody(
-        required: true,
-        content: new OA\JsonContent(
-            ref: '#/components/schemas/RestablecerPasswordRequest'
-        )
-    ),
-    responses: [
-        new OA\Response(
-            response: 200,
-            description: 'Contraseña restablecida correctamente'
+            description: 'Correo verificado correctamente.',
+            content: new OA\JsonContent(
+                ref: '#/components/schemas/AutenticadorEmptySuccessResponse',
+                example: [
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Correo verificado correctamente',
+                ]
+            )
         ),
         new OA\Response(
             response: 400,
-            description: 'Enlace de recuperación inválido, utilizado o expirado'
+            description: 'El enlace de verificación es inválido o expiró.'
         ),
         new OA\Response(
             response: 422,
-            description: 'Error de validación'
+            description: 'Falta el email o el token de verificación.'
         ),
     ]
 )]
-public function restablecerContrasena(): void
+public function verificarEmail(): void
 {
 }
 }
