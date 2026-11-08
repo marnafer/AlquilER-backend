@@ -7,9 +7,11 @@ namespace Tests\Unit\Controllers\Api;
 use App\Controllers\Api\AutenticadorController;
 use App\Services\AutenticadorService;
 use Tests\TestCase;
+use PHPUnit\Framework\MockObject\MockObject;
 
 final class AutenticadorControllerTest extends TestCase
 {
+    /** @var AutenticadorService&MockObject */
     private AutenticadorService $service;
     private AutenticadorController $controller;
 
@@ -50,7 +52,7 @@ final class AutenticadorControllerTest extends TestCase
         );
         $this->assertTrue($response->cookies()[0]['options']['httponly']);
         $this->assertTrue($response->cookies()[0]['options']['secure']);
-        $this->assertSame('Lax', $response->cookies()[0]['options']['samesite']);
+        $this->assertSame('None', $response->cookies()[0]['options']['samesite']);
     }
 
     public function test_login_no_requiere_autenticacion(): void
