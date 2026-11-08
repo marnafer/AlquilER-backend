@@ -46,12 +46,19 @@ class ContactoService
             . ' (' . $data['email'] . ') escribió:' . "\n\n"
             . $data['mensaje'];
 
-        $this->mailService->enviar(
+        $enviado = $this->mailService->enviar(
             $destino,
             'Contacto - ' . $data['asunto'],
             $cuerpo,
             $texto,
             $data['email']
         );
+
+        if (!$enviado) {
+            throw new BadRequestException(
+                'No se pudo enviar el mensaje de contacto. '
+                . 'Verifique la configuracion SMTP en el servidor.'
+            );
+        }
     }
 }

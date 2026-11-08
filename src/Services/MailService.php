@@ -132,6 +132,32 @@ class MailService implements EnviadorCorreoInterface
         );
 
         if (!$this->host) {
+            // En produccion no se envia nada: se registra el error para que
+            // sea visible en los logs y se devuelve Fallido para que el caller
+            // pueda reaccionar (informar al usuario, reintentar, etc.).
+            if ($this->esProduccion()) {
+                Debugger::log(
+                    'SMTP no configurado en produccion: email no enviado',
+                    [
+                        'para' => $destinatario,
+                        'asunto' => $asunto,
+                    ],
+                    'ERROR'
+                );
+
+                // Se guarda metadata (sin el MIME completo con tokens) como
+                // respaldo para diagnostico, pero se devuelve Fallido para que
+                // el caller sepa que el email no se envio.
+                $this->guardarEnLog(
+                    $destinatario,
+                    $asunto,
+                    $mensaje,
+                    'sin SMTP configurado en produccion'
+                );
+
+                return EstadoEnvio::Fallido;
+            }
+
             return $this->guardarEnLog(
                 $destinatario,
                 $asunto,
@@ -243,8 +269,8 @@ class MailService implements EnviadorCorreoInterface
             'asunto' => $subject,
         ];
 
-        // El MIME puede contener enlaces de recuperación y tokens en texto
-        // plano: solo se persiste fuera de producción.
+        // El MIME puede contener enlaces de recuperacion y tokens en texto
+        // plano: solo se persiste fuera de produccion.
         if (!$this->esProduccion()) {
             $registro['mensaje'] = $mensaje;
         }

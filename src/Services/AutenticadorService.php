@@ -146,7 +146,7 @@ class AutenticadorService
                 . '&email='
                 . urlencode((string) $usuario->email);
 
-            $this->mailService->enviar(
+            $enviado = $this->mailService->enviar(
                 (string) $usuario->email,
                 'Verific? tu correo electr?nico',
                 '<p>Hola,</p>'
@@ -157,6 +157,19 @@ class AutenticadorService
                 'Hola,' . "\n\n" . 'Gracias por registrarte en AlquilER.'
                     . "\n\n" . 'Verific? tu correo ingresando en: ' . $enlace
                     . "\n\n" . 'El enlace es v?lido por 60 minutos.'
+            );
+
+            if (!$enviado) {
+                throw new \RuntimeException(
+                    'No se pudo enviar el correo de verificacion. '
+                    . 'Verifique la configuracion SMTP (MAIL_HOST, MAIL_PORT, '
+                    . 'MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM) en el servidor.'
+                );
+            }
+        } elseif (($_ENV['APP_ENV'] ?? (defined('APP_ENV') ? APP_ENV : 'development')) === 'production') {
+            throw new \RuntimeException(
+                'El servicio de correo no esta configurado. '
+                . 'Verifique la configuracion SMTP en el servidor.'
             );
         }
 
