@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
-const PERFORMANCE_LOG_BASE = 'storage/logs/performance.jsonl';
 const PERFORMANCE_DASHBOARD_PATH = 'storage/performance-dashboard/index.html';
 const PERFORMANCE_P95_TARGET_MS = 500.0;
 const PERFORMANCE_ERROR_TARGET_PERCENT = 1.0;
+
+$projectRoot = dirname(__DIR__);
+require $projectRoot . DIRECTORY_SEPARATOR . 'vendor'
+    . DIRECTORY_SEPARATOR . 'autoload.php';
+
+Dotenv\Dotenv::createImmutable($projectRoot)->safeLoad();
 
 $sessionFilter = null;
 $openBrowser = true;
@@ -220,9 +225,7 @@ function performanceRouteInventory(string $projectRoot): array
 try {
     $projectRoot = dirname(__DIR__);
     $routeInventory = performanceRouteInventory($projectRoot);
-    $logBasePath = $projectRoot
-        . DIRECTORY_SEPARATOR
-        . str_replace('/', DIRECTORY_SEPARATOR, PERFORMANCE_LOG_BASE);
+    $logBasePath = App\Performance\PerformanceMetricsLogger::ruta();
 
     $logFiles = [
         $logBasePath . '.3',
@@ -451,13 +454,20 @@ small { color: #596579; }
 </head>
 <body>
 <main>
-<h1>Métricas locales de AlquilER</h1>
-<p class="note" id="dashboard-summary">Generado: {$generatedAt}. Eventos analizados: {$totalRequests}; rutas registradas: {$routeCount}. Solo datos locales.</p>
+<h1>Métricas de AlquilER</h1>
+<p class="note" id="dashboard-summary">Generado: {$generatedAt}. Eventos analizados: {$totalRequests}; rutas registradas: {$routeCount}. Fuente: development.</p>
+<section class="capture-controls">
+<label for="metrics-environment">Entorno de las métricas:</label>
+<select id="metrics-environment">
+<option value="development" selected>Desarrollo local</option>
+<option value="production">Producción importada</option>
+</select>
+</section>
 <section class="capture-controls">
 <h2>Captura por sesión</h2>
 <p id="capture-status" class="note">Conecta el dashboard al servidor local para iniciar una captura.</p>
 <div class="capture-actions">
-<button id="capture-start" type="button">Iniciar captura</button>
+<button id="capture-start" type="button" disabled>Iniciar captura</button>
 <button id="capture-stop" type="button" disabled>Detener captura</button>
 <label for="capture-session">Sesión:</label>
 <select id="capture-session"><option value="">Historial general</option></select>
@@ -507,6 +517,7 @@ document.getElementById('route-filter').addEventListener('input', function () {
     const startButton = document.getElementById('capture-start');
     const stopButton = document.getElementById('capture-stop');
     const sessionSelect = document.getElementById('capture-session');
+    const environmentSelect = document.getElementById('metrics-environment');
     const routeBody = document.getElementById('route-summary');
     const recentBody = document.getElementById('recent-requests');
     const requestCount = document.getElementById('request-count');
@@ -516,16 +527,13 @@ document.getElementById('route-filter').addEventListener('input', function () {
         method: row.cells[0].textContent,
         route: row.cells[1].textContent
     }));
-    const historicRouteRows = Array.from(routeBody.rows, row => row.cloneNode(true));
-    const historicRecentRows = Array.from(recentBody.rows, row => row.cloneNode(true));
-    const historicRequestCount = requestCount.textContent;
-    const historicErrorCount = errorCount.textContent;
-    const historicSummary = summaryNode.textContent;
     let csrfToken = '';
     let selectedSessionId = '';
+    let selectedEnvironment = environmentSelect.value;
     let activeSessionId = '';
     let metricsEnabled = false;
     let historySelected = false;
+    let refreshSequence = 0;
 
     const percentile = (values, percent) => {
         if (!values.length) return 0;
@@ -625,39 +633,40 @@ document.getElementById('route-filter').addEventListener('input', function () {
         requestCount.textContent = String(events.length);
         errorCount.textContent = String(errors);
         const selected = sessionSelect.value;
-        const sessionLabel = selected ? `Captura \${selected}` : 'Historial general';
+        const sessionLabel = selectedEnvironment === 'production'
+            ? 'Producción importada'
+            : selected ? `Captura \${selected}` : 'Historial general de desarrollo';
         summaryNode.textContent = `\${sessionLabel}. Actualizado: \${new Date().toLocaleTimeString()}. Eventos analizados: \${events.length}; rutas registradas: \${rows.length}.`;
     };
 
-    const restoreHistory = () => {
-        routeBody.replaceChildren(...historicRouteRows.map(row => row.cloneNode(true)));
-        recentBody.replaceChildren(...historicRecentRows.map(row => row.cloneNode(true)));
-        requestCount.textContent = historicRequestCount;
-        errorCount.textContent = historicErrorCount;
-        summaryNode.textContent = historicSummary;
-    };
-
     const refresh = async () => {
+        const requestSequence = ++refreshSequence;
+
         if (location.protocol === 'file:') {
             statusNode.textContent = 'Para usar los controles, inicia el servidor local del dashboard y abre http://127.0.0.1:8765.';
             startButton.disabled = true;
             stopButton.disabled = true;
             sessionSelect.disabled = true;
+            environmentSelect.disabled = true;
             return;
         }
 
         try {
             const statusResponse = await fetch('?action=status', { cache: 'no-store' });
             const status = await statusResponse.json();
+            if (requestSequence !== refreshSequence) return;
             if (!statusResponse.ok) throw new Error(status.error || 'No se pudo consultar el estado.');
             csrfToken = status.csrf_token;
             metricsEnabled = status.metrics_enabled;
             activeSessionId = status.active_session_id || '';
 
+            const isProduction = selectedEnvironment === 'production';
             const sessions = status.sessions || [];
-            const requestedSession = selectedSessionId
-                || (historySelected ? '' : activeSessionId || status.last_session_id)
-                || '';
+            const requestedSession = isProduction
+                ? ''
+                : selectedSessionId
+                    || (historySelected ? '' : activeSessionId || status.last_session_id)
+                    || '';
             sessionSelect.replaceChildren();
             sessions.slice().reverse().forEach(session => {
                 const option = document.createElement('option');
@@ -674,27 +683,35 @@ document.getElementById('route-filter').addEventListener('input', function () {
                 : '';
             sessionSelect.value = selectedSessionId;
 
-            startButton.disabled = !metricsEnabled || Boolean(activeSessionId);
-            stopButton.disabled = !activeSessionId;
-            statusNode.textContent = activeSessionId
+            sessionSelect.disabled = isProduction;
+            startButton.disabled = isProduction || !metricsEnabled || Boolean(activeSessionId);
+            stopButton.disabled = isProduction || !activeSessionId;
+            statusNode.textContent = isProduction
+                ? 'Modo de solo lectura. Importa el archivo actual en storage/logs/production/performance.jsonl para consultar producción.'
+                : activeSessionId
                 ? `Captura activa desde \${sessions.find(item => item.id === activeSessionId)?.started_at || ''}. Actualizando cada 3 segundos.`
                 : metricsEnabled
                     ? 'Sin captura activa. Inicia una para aislar las próximas peticiones.'
                     : 'Activa APP_ENV=development y PERFORMANCE_METRICS_ENABLED=true en el backend para capturar.';
 
+            const eventsUrl = new URLSearchParams({
+                action: 'events',
+                environment: selectedEnvironment
+            });
             if (selectedSessionId) {
-                const eventsResponse = await fetch(
-                    `?action=events&session_id=\${encodeURIComponent(selectedSessionId)}`,
-                    { cache: 'no-store' }
-                );
-                const payload = await eventsResponse.json();
-                if (!eventsResponse.ok) throw new Error(payload.error || 'No se pudieron leer las métricas.');
-                renderEvents(payload.events);
-            } else {
-                restoreHistory();
+                eventsUrl.set('session_id', selectedSessionId);
             }
+            const eventsResponse = await fetch(`?\${eventsUrl.toString()}`, {
+                cache: 'no-store'
+            });
+            const payload = await eventsResponse.json();
+            if (requestSequence !== refreshSequence) return;
+            if (!eventsResponse.ok) throw new Error(payload.error || 'No se pudieron leer las métricas.');
+            renderEvents(payload.events);
         } catch (error) {
-            statusNode.textContent = error.message || 'No se pudo conectar con el control local de métricas.';
+            if (requestSequence === refreshSequence) {
+                statusNode.textContent = error.message || 'No se pudo conectar con el control local de métricas.';
+            }
         }
     };
 
@@ -702,10 +719,13 @@ document.getElementById('route-filter').addEventListener('input', function () {
         startButton.disabled = true;
         stopButton.disabled = true;
         try {
-            const response = await fetch(`?action=\${action}`, {
+            const response = await fetch(
+                `?action=\${action}&environment=\${encodeURIComponent(selectedEnvironment)}`,
+                {
                 method: 'POST',
                 headers: { 'X-Performance-Dashboard-Token': csrfToken }
-            });
+                }
+            );
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'No se pudo cambiar el estado de captura.');
             if (action === 'start') {
@@ -722,6 +742,13 @@ document.getElementById('route-filter').addEventListener('input', function () {
 
     startButton.addEventListener('click', () => sendControl('start'));
     stopButton.addEventListener('click', () => sendControl('stop'));
+    environmentSelect.addEventListener('change', () => {
+        selectedEnvironment = environmentSelect.value;
+        selectedSessionId = '';
+        historySelected = false;
+        renderEvents([]);
+        refresh();
+    });
     sessionSelect.addEventListener('change', () => {
         selectedSessionId = sessionSelect.value;
         historySelected = !selectedSessionId;
