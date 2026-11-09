@@ -17,16 +17,13 @@ final class PerformanceMetricsBootstrap
 
     public function start(Request $request): ?PerformanceMetricsLifecycle
     {
-        $environment = strtolower(
-            trim((string) ($_ENV['APP_ENV'] ?? 'production'))
-        );
+
         $enabled = strtolower(
             trim((string) ($_ENV['PERFORMANCE_METRICS_ENABLED'] ?? 'false'))
         );
 
         if (
-            $environment !== 'development'
-            || $enabled !== 'true'
+        $enabled !== 'true'
             || !str_starts_with($request->path(), '/api/')
         ) {
             return null;
