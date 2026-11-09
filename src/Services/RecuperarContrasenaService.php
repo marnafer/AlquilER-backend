@@ -67,7 +67,7 @@ class RecuperarContrasenaService
             . '&email='
             . urlencode($email);
 
-        $this->mailService->enviar(
+        $enviado = $this->mailService->enviar(
             $email,
             'Recuperación de contraseña',
             '<p>Hola,</p>'
@@ -87,6 +87,12 @@ class RecuperarContrasenaService
                 . 'Tu contraseña actual sigue siendo válida; por seguridad, '
                 . 'cambiá tu contraseña si sospechás que alguien más la conoce.'
         );
+        if (!$enviado && (($_ENV['APP_ENV'] ?? 'development') === 'production')) {
+            throw new \RuntimeException(
+                'No se pudo enviar el correo. '
+                . 'Verifique la configuracion SMTP en el servidor.'
+            );
+        }
     }
 
     /**
@@ -158,7 +164,7 @@ class RecuperarContrasenaService
             'Restablecimiento de contraseña'
         );
 
-        $this->mailService->enviar(
+        $enviado = $this->mailService->enviar(
             $usuario->email,
             'Tu contraseña fue restablecida',
             '<p>Hola,</p>'
@@ -171,6 +177,12 @@ class RecuperarContrasenaService
                 . "\n\nYa podés iniciar sesión con tu nueva contraseña."
                 . "\n\nSi no realizaste este cambio, contactanos de inmediato respondiendo a este correo."
         );
+        if (!$enviado && (($_ENV['APP_ENV'] ?? 'development') === 'production')) {
+            throw new \RuntimeException(
+                'No se pudo enviar el correo. '
+                . 'Verifique la configuracion SMTP en el servidor.'
+            );
+        }
     }
 
     /**
@@ -231,7 +243,7 @@ class RecuperarContrasenaService
             . '&email='
             . urlencode($email);
 
-        $this->mailService->enviar(
+        $enviado = $this->mailService->enviar(
             $email,
             'Confirmá el cambio de contraseña',
             '<p>Hola,</p>'
@@ -250,6 +262,12 @@ class RecuperarContrasenaService
                 . "\n\nTu contraseña actual sigue vigente hasta que confirmes este cambio."
                 . "\n\nSi no solicitaste este cambio, podés ignorar este correo."
         );
+        if (!$enviado && (($_ENV['APP_ENV'] ?? 'development') === 'production')) {
+            throw new \RuntimeException(
+                'No se pudo enviar el correo. '
+                . 'Verifique la configuracion SMTP en el servidor.'
+            );
+        }
     }
 
     /**
@@ -317,7 +335,7 @@ class RecuperarContrasenaService
             'Confirmación de cambio de contraseña'
         );
 
-        $this->mailService->enviar(
+        $enviado = $this->mailService->enviar(
             $usuario->email,
             'Tu contraseña fue actualizada',
             '<p>Hola,</p>'
@@ -329,5 +347,11 @@ class RecuperarContrasenaService
                 . "\n\nYa podés iniciar sesión con tu nueva contraseña."
                 . "\n\nSi no realizaste este cambio, contactanos de inmediato."
         );
+        if (!$enviado && (($_ENV['APP_ENV'] ?? 'development') === 'production')) {
+            throw new \RuntimeException(
+                'No se pudo enviar el correo. '
+                . 'Verifique la configuracion SMTP en el servidor.'
+            );
+        }
     }
 }

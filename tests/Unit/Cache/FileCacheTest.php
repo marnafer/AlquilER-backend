@@ -6,6 +6,8 @@ namespace Tests\Unit\Cache;
 
 use App\Cache\FileCache;
 use PHPUnit\Framework\TestCase;
+use App\Performance\PerformanceMetrics;
+use App\Performance\PerformanceMetricsContext;
 
 final class FileCacheTest extends TestCase
 {
@@ -91,5 +93,37 @@ final class FileCacheTest extends TestCase
 
         $this->assertSame(['total' => 2], $respuesta);
         $this->assertSame(2, $cargas);
+    }
+
+    public function test_registra_aciertos_fallos_y_duracion_del_loader(): void
+    {
+        $metrics = new PerformanceMetrics(
+            requestId: 'request-cache-1',
+            method: 'GET',
+            route: '/api/catalogos',
+        );
+        PerformanceMetricsContext::activate($metrics);
+
+        try {
+            $cache = new FileCache($this->directory);
+            $loads = 0;
+            $loader = static function () use (&$loads): array {
+                $loads++;
+
+                return ['items' => ['provincia']];
+            };
+
+            $first = $cache->remember('catalogo', 300, $loader);
+            $second = $cache->remember('catalogo', 300, $loader);
+            $event = $metrics->finish(200);
+        } finally {
+            PerformanceMetricsContext::clear();
+        }
+
+        $this->assertSame($first, $second);
+        $this->assertSame(1, $loads);
+        $this->assertSame(1, $event['cache']['miss_count']);
+        $this->assertSame(1, $event['cache']['hit_count']);
+        $this->assertGreaterThanOrEqual(0, $event['cache']['loader_ms']);
     }
 }

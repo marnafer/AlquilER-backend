@@ -21,6 +21,14 @@ final class PerformanceMetrics
 
     private int $slowQueryCount = 0;
 
+    private int $responseBytes = 0;
+
+    private int $cacheHitCount = 0;
+
+    private int $cacheMissCount = 0;
+
+    private float $cacheLoaderDurationMs = 0.0;
+
     /**
      * @var list<array{duration_ms: float, fingerprint: ?string}>
      */
@@ -79,6 +87,35 @@ final class PerformanceMetrics
         }
     }
 
+    public function recordCacheHit(): void
+    {
+        if ($this->finished) {
+            throw new LogicException(
+                'No se pueden registrar métricas de caché después de finalizar la petición.'
+            );
+        }
+
+        $this->cacheHitCount++;
+    }
+
+    public function recordCacheMiss(float $loaderDurationMs): void
+    {
+        if ($this->finished) {
+            throw new LogicException(
+                'No se pueden registrar métricas de caché después de finalizar la petición.'
+            );
+        }
+
+        if (!is_finite($loaderDurationMs) || $loaderDurationMs < 0) {
+            throw new InvalidArgumentException(
+                'La duración del loader debe ser un número finito no negativo.'
+            );
+        }
+
+        $this->cacheMissCount++;
+        $this->cacheLoaderDurationMs += $loaderDurationMs;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -115,6 +152,12 @@ final class PerformanceMetrics
             'status_code' => $statusCode,
             'duration_ms' => round($elapsedNanoseconds / 1_000_000, 2),
             'is_error' => $statusCode >= 400,
+            'response_bytes' => $this->responseBytes,
+            'cache' => [
+                'hit_count' => $this->cacheHitCount,
+                'miss_count' => $this->cacheMissCount,
+                'loader_ms' => round($this->cacheLoaderDurationMs, 2),
+            ],
             'sql' => [
                 'query_count' => $this->queryCount,
                 'total_ms' => round($this->sqlDurationMs, 2),
@@ -171,5 +214,22 @@ final class PerformanceMetrics
         }
 
         $this->route = $route;
+    }
+
+    public function setResponseBytes(int $bytes): void
+    {
+        if ($this->finished) {
+            throw new LogicException(
+                'No se puede cambiar el tamaño de respuesta después de finalizar la petición.'
+            );
+        }
+
+        if ($bytes < 0) {
+            throw new InvalidArgumentException(
+                'El tamaño de respuesta no puede ser negativo.'
+            );
+        }
+
+        $this->responseBytes = $bytes;
     }
 }

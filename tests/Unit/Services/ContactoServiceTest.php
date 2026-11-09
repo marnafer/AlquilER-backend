@@ -31,7 +31,8 @@ final class ContactoServiceTest extends TestCase
                         str_contains($texto, 'Hola, quería consultar disponibilidad.')
                 ),
                 'maria@test.com'
-            );
+            )
+            ->willReturn(true);
 
         $servicio = new ContactoService(
             $mailService,

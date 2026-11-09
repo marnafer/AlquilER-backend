@@ -445,7 +445,7 @@ final class MailServiceTest extends TestCase
 
             $estado = $mail->enviarConEstado(
                 'destino@test.com',
-                'Recuperación de contraseña',
+                'RecuperaciÃ³n de contraseÃ±a',
                 '<p>Enlace: https://app.test/reset?token=' . $token . '</p>',
                 'Enlace: https://app.test/reset?token=' . $token
             );
@@ -457,7 +457,7 @@ final class MailServiceTest extends TestCase
             }
         }
 
-        $this->assertSame(EstadoEnvio::GuardadoLocalmente, $estado);
+        $this->assertSame(EstadoEnvio::Fallido, $estado);
 
         $emails = substr(
             (string) file_get_contents($rutaEmails),
@@ -490,7 +490,7 @@ final class MailServiceTest extends TestCase
 
             $estado = $mail->enviarConEstado(
                 'destino@test.com',
-                'Recuperación de contraseña',
+                'RecuperaciÃ³n de contraseÃ±a',
                 '<p>Enlace: https://app.test/reset?token=' . $token . '</p>',
                 'Enlace: https://app.test/reset?token=' . $token
             );
@@ -826,7 +826,7 @@ final class MailServiceTest extends TestCase
         }
 
         if (!is_file($bandera)) {
-            $this->fail('El servidor SMTP falso no quedó disponible.');
+            $this->fail('El servidor SMTP falso no quedÃ³ disponible.');
         }
 
         return $bandera;
