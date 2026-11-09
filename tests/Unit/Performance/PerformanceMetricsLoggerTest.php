@@ -54,6 +54,29 @@ final class PerformanceMetricsLoggerTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_usa_un_archivo_de_log_distinto_por_entorno(): void
+    {
+        $developmentPath = PerformanceMetricsLogger::ruta('development');
+        $productionPath = PerformanceMetricsLogger::ruta('production');
+
+        $this->assertNotSame($developmentPath, $productionPath);
+        $this->assertStringContainsString(
+            DIRECTORY_SEPARATOR . 'development' . DIRECTORY_SEPARATOR,
+            $developmentPath
+        );
+        $this->assertStringContainsString(
+            DIRECTORY_SEPARATOR . 'production' . DIRECTORY_SEPARATOR,
+            $productionPath
+        );
+    }
+
+    public function test_rechaza_un_entorno_que_podria_sacar_el_log_de_storage(): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        PerformanceMetricsLogger::ruta('../production');
+    }
+
     public function test_escribe_eventos_json_validos_una_linea_por_evento(): void
     {
         $path = $this->directory

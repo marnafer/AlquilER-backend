@@ -41,6 +41,26 @@ final class PerformanceMetricsSessionTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_separa_el_estado_de_capturas_por_entorno(): void
+    {
+        $developmentDirectory = PerformanceMetricsSession::directorio(
+            'development'
+        );
+        $productionDirectory = PerformanceMetricsSession::directorio(
+            'production'
+        );
+
+        $this->assertNotSame($developmentDirectory, $productionDirectory);
+        $this->assertStringEndsWith(
+            DIRECTORY_SEPARATOR . 'development',
+            $developmentDirectory
+        );
+        $this->assertStringEndsWith(
+            DIRECTORY_SEPARATOR . 'production',
+            $productionDirectory
+        );
+    }
+
     public function test_inicia_detiene_y_conserva_el_historial_de_capturas(): void
     {
         $session = new PerformanceMetricsSession($this->directory);
