@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace App\Http;
+use App\Performance\PerformanceMetricsContext;
 
 use JsonException;
 
@@ -222,7 +223,7 @@ final class Response
 
         if ($this->payload !== null) {
             try {
-                echo json_encode(
+                $body = json_encode(
                     $this->payload,
                     JSON_PRETTY_PRINT
                     | JSON_UNESCAPED_SLASHES
@@ -232,11 +233,16 @@ final class Response
             } catch (JsonException) {
                 http_response_code(500);
 
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Error al generar JSON',
-                ]);
+                $body = '{"success":false,"error":"Error al generar JSON"}';
             }
+
+            $metrics = PerformanceMetricsContext::current();
+
+            if ($metrics !== null) {
+                $metrics->setResponseBytes(strlen($body));
+            }
+
+            echo $body;
         }
 
         exit;

@@ -112,4 +112,19 @@ final class PerformanceMetricsTest extends TestCase
 
         $this->assertSame('/api/usuarios/{id}', $event['route']);
     }
+
+    public function test_registra_el_tamano_del_cuerpo_de_respuesta_en_bytes(): void
+    {
+        $metrics = new PerformanceMetrics(
+            requestId: 'request-response-size',
+            method: 'GET',
+            route: '/api/propiedades',
+        );
+
+        $metrics->setResponseBytes(123);
+
+        $event = $metrics->finish(200);
+
+        $this->assertSame(123, $event['response_bytes']);
+    }
 }

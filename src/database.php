@@ -28,11 +28,9 @@ $capsule->addConnection([
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
-$metricsEnabled =
-    strtolower(trim((string) ($_ENV['APP_ENV'] ?? 'production'))) === 'development'
-    && strtolower(
-        trim((string) ($_ENV['PERFORMANCE_METRICS_ENABLED'] ?? 'false'))
-    ) === 'true';
+$metricsEnabled = strtolower(
+    trim((string) ($_ENV['PERFORMANCE_METRICS_ENABLED'] ?? 'false'))
+) === 'true';
 
 if ($metricsEnabled) {
     $dispatcher = new Dispatcher(new Container());

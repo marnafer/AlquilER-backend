@@ -180,19 +180,30 @@ final class PerformanceMetricsBootstrapTest extends TestCase
         );
     }
 
-    public function test_no_inicia_metricas_fuera_de_desarrollo(): void
+    public function test_inicia_metricas_en_produccion_si_estan_habilitadas(): void
     {
         $_ENV['APP_ENV'] = 'production';
         $_ENV['PERFORMANCE_METRICS_ENABLED'] = 'true';
 
-        $bootstrap = new PerformanceMetricsBootstrap();
+        $path = $this->directory
+            . DIRECTORY_SEPARATOR
+            . 'performance.jsonl';
+
+        $bootstrap = new PerformanceMetricsBootstrap(
+            new PerformanceMetricsLogger($path)
+        );
 
         $lifecycle = $bootstrap->start(
             new Request(method: 'GET', path: '/api/health')
         );
 
-        $this->assertNull($lifecycle);
+        $this->assertNotNull($lifecycle);
+        $this->assertNotNull(PerformanceMetricsContext::current());
+
+        $lifecycle->finish(200);
+
         $this->assertNull(PerformanceMetricsContext::current());
+        $this->assertFileExists($path);
     }
 
     public function test_informa_un_umbral_invalido_y_no_inicia_metricas(): void

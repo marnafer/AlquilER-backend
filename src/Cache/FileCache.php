@@ -6,6 +6,7 @@ namespace App\Cache;
 
 use JsonException;
 use RuntimeException;
+use App\Performance\PerformanceMetricsContext;
 
 final class FileCache
 {
@@ -41,6 +42,12 @@ final class FileCache
                 $entry = $this->read($path);
 
                 if ($entry['expires_at'] > time()) {
+
+                $metrics = PerformanceMetricsContext::current();
+
+                    if ($metrics !== null) {
+                        $metrics->recordCacheHit();
+                    }
                     return $entry['value'];
                 }
 
@@ -51,7 +58,21 @@ final class FileCache
                 }
             }
 
-            $value = $loader();
+            $metrics = PerformanceMetricsContext::current();
+
+            if ($metrics === null) {
+                $value = $loader();
+            } else {
+                $loaderStartedAt = hrtime(true);
+
+                try {
+                    $value = $loader();
+                } finally {
+                    $metrics->recordCacheMiss(
+                        (hrtime(true) - $loaderStartedAt) / 1_000_000
+                    );
+                }
+            }
             $this->write($path, [
                 'expires_at' => time() + $ttlSeconds,
                 'value' => $value,
