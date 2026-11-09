@@ -148,14 +148,19 @@ La medición no desglosa CPU, memoria ni tiempo exclusivo de base de datos. Para
 comparar resultados, mantener iguales los datos, el entorno y los parámetros,
 usar al menos 30 solicitudes medidas por ruta y nivel, y repetir cada corrida.
 
-### Instrumentación local de rendimiento
+### Instrumentación de rendimiento por entorno
 
 La instrumentación registra un evento JSON por línea en
-`storage/logs/performance.jsonl`. Está desactivada por defecto. Solo se activa
-cuando `.env` tiene `APP_ENV=development` y
-`PERFORMANCE_METRICS_ENABLED=true`.
+`storage/logs/<APP_ENV>/performance.jsonl`, separando automáticamente las
+métricas de cada entorno (por ejemplo, `storage/logs/development/` y
+`storage/logs/production/`). El estado de capturas del dashboard también se
+separa por entorno en `storage/performance-dashboard/<APP_ENV>/`. Está
+desactivada por defecto y se activa con `PERFORMANCE_METRICS_ENABLED=true`.
+El dashboard local permite seleccionar `development` o una copia local de
+`production`.
 
 ```dotenv
+# `.env` local
 APP_ENV=development
 PERFORMANCE_METRICS_ENABLED=true
 PERFORMANCE_METRICS_SLOW_SQL_MS=100
@@ -177,11 +182,37 @@ petición, credenciales ni valores de bindings. Las consultas fallidas no
 generan `QueryExecuted`, por lo que este contador mide consultas notificadas
 por Illuminate tras ejecutarse.
 
-El archivo tiene un límite de 5 MiB y conserva hasta tres generaciones rotadas
+Cada archivo tiene un límite de 5 MiB y conserva hasta tres generaciones rotadas
 (`performance.jsonl.1` a `.3`). Si falla el registro, el error se envía al log
 de PHP y no debe impedir la respuesta. Los archivos de métricas y de bloqueo
 están excluidos de Git; se recomienda limitar el acceso a `storage/logs/` al
 usuario local que ejecuta PHP.
+
+En producción configura `APP_ENV=production` y
+`PERFORMANCE_METRICS_ENABLED=true` en el entorno del servidor (o en su `.env`
+privado). Así se escriben en `storage/logs/production/`, sin compartir el
+archivo local. No subas credenciales ni el `.env` de producción al repositorio.
+Las métricas antiguas que estuvieran directamente en
+`storage/logs/performance.jsonl` no se mueven automáticamente; si quieres
+conservarlas en el historial local, muévelas a
+`storage/logs/development/performance.jsonl` junto con sus archivos rotados.
+
+#### Importar métricas de producción al dashboard local
+
+1. En el panel HTTPS seguro de tu hosting, descarga el archivo actual
+   `storage/logs/production/performance.jsonl` del servidor. No expongas
+   `storage/` mediante el servidor web ni crees un endpoint público para este
+   archivo.
+2. En tu equipo local, guarda o reemplaza la copia en
+   `storage/logs/production/performance.jsonl`. No hace falta copiar las
+   generaciones rotadas: la vista de producción analiza el archivo actual.
+3. Abre el dashboard local y selecciona **Producción importada** en el selector
+   de entorno. Para volver a las métricas de tu equipo, selecciona
+   **Desarrollo local**.
+
+El dashboard local permanece ligado a `127.0.0.1`; no se conecta a producción.
+Los `.gitkeep` mantienen preparadas ambas carpetas, pero los logs, incluidos
+los importados, siguen excluidos de Git.
 
 La instrumentación se inicia para rutas bajo `/api/`. Las respuestas `429`
 producidas antes del despacho pueden quedar sin plantilla de ruta. En el
@@ -191,7 +222,7 @@ sujeto a ese límite.
 Para revisar las líneas del log en PowerShell:
 
 ```powershell
-Get-Content storage/logs/performance.jsonl | ForEach-Object {
+Get-Content storage/logs/development/performance.jsonl | ForEach-Object {
     $_ | ConvertFrom-Json
 } | Select-Object timestamp_utc, request_id, method, route, status_code, duration_ms,
     @{Name='sql_count';Expression={$_.sql.query_count}},

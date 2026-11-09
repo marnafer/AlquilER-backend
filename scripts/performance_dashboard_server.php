@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Performance\PerformanceMetricsReader;
 use App\Performance\PerformanceMetricsSession;
 use Dotenv\Dotenv;
 
@@ -40,95 +41,6 @@ function dashboardMetricsEnabled(): bool
         ) === 'true';
 }
 
-function dashboardReadSessionEvents(string $sessionId): array
-{
-    $projectRoot = dirname(__DIR__);
-    $logBasePath = $projectRoot
-        . DIRECTORY_SEPARATOR
-        . 'storage'
-        . DIRECTORY_SEPARATOR
-        . 'logs'
-        . DIRECTORY_SEPARATOR
-        . 'performance.jsonl';
-
-    if (!is_dir(dirname($logBasePath))) {
-        return [];
-    }
-
-    $lock = @fopen($logBasePath . '.lock', 'c');
-
-    if ($lock === false) {
-        throw new RuntimeException('No se pudo abrir el bloqueo del log de métricas.');
-    }
-
-    try {
-        if (!@flock($lock, LOCK_SH)) {
-            throw new RuntimeException('No se pudo bloquear el log de métricas para lectura.');
-        }
-
-        $events = [];
-
-        foreach ([
-            $logBasePath . '.3',
-            $logBasePath . '.2',
-            $logBasePath . '.1',
-            $logBasePath,
-        ] as $logPath) {
-            if (!is_file($logPath)) {
-                continue;
-            }
-
-            if (!is_readable($logPath)) {
-                throw new RuntimeException("No se puede leer el log: {$logPath}");
-            }
-
-            $lines = file($logPath, FILE_IGNORE_NEW_LINES);
-
-            if ($lines === false) {
-                throw new RuntimeException("No se pudo cargar el log: {$logPath}");
-            }
-
-            foreach ($lines as $lineNumber => $line) {
-                if (trim($line) === '') {
-                    continue;
-                }
-
-                $event = json_decode($line, true);
-
-                if (!is_array($event)) {
-                    throw new RuntimeException(
-                        "JSON inválido en {$logPath}, línea " . ($lineNumber + 1) . '.'
-                    );
-                }
-
-                if (($event['session_id'] ?? null) !== $sessionId) {
-                    continue;
-                }
-
-                $events[] = [
-                    'timestamp_utc' => $event['timestamp_utc'] ?? '',
-                    'method' => $event['method'] ?? '',
-                    'route' => $event['route'] ?? null,
-                    'status_code' => (int) ($event['status_code'] ?? 0),
-                    'duration_ms' => (float) ($event['duration_ms'] ?? 0),
-                    'sql' => [
-                        'query_count' => (int) ($event['sql']['query_count'] ?? 0),
-                        'total_ms' => (float) ($event['sql']['total_ms'] ?? 0),
-                        'slow_query_count' => (int) (
-                            $event['sql']['slow_query_count'] ?? 0
-                        ),
-                    ],
-                ];
-            }
-        }
-
-        return $events;
-    } finally {
-        @flock($lock, LOCK_UN);
-        fclose($lock);
-    }
-}
-
 try {
     if ($action === 'status') {
         $state = $sessionManager->status();
@@ -143,26 +55,49 @@ try {
     }
 
     if ($action === 'events') {
-        $sessionId = $_GET['session_id'] ?? '';
+        $environment = $_GET['environment'] ?? 'development';
 
         if (
-            !is_string($sessionId)
-            || !preg_match('/^[a-f0-9]{32}$/', $sessionId)
-            || !in_array(
-                $sessionId,
-                array_column($sessionManager->sessions(), 'id'),
-                true
-            )
+            !is_string($environment)
+            || !in_array($environment, ['development', 'production'], true)
         ) {
-            dashboardJson(['error' => 'La sesión solicitada no existe.'], 404);
+            dashboardJson(['error' => 'El entorno solicitado no es válido.'], 400);
         }
 
+        $sessionId = $_GET['session_id'] ?? null;
+
+        if ($sessionId !== null) {
+            if (
+                $environment !== 'development'
+                || !is_string($sessionId)
+                || !preg_match('/^[a-f0-9]{32}$/', $sessionId)
+                || !in_array(
+                    $sessionId,
+                    array_column($sessionManager->sessions(), 'id'),
+                    true
+                )
+            ) {
+                dashboardJson(['error' => 'La sesión solicitada no existe.'], 404);
+            }
+        }
+
+        $events = (new PerformanceMetricsReader())->read(
+            $environment,
+            $sessionId
+        );
+
         dashboardJson([
-            'events' => dashboardReadSessionEvents($sessionId),
+            'events' => $events,
         ]);
     }
 
     if ($action === 'start' || $action === 'stop') {
+        if (($_GET['environment'] ?? 'development') !== 'development') {
+            dashboardJson([
+                'error' => 'Las capturas solo están disponibles en desarrollo.',
+            ], 409);
+        }
+
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             dashboardJson(['error' => 'Método no permitido.'], 405);
         }

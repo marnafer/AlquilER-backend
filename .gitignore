@@ -28,8 +28,9 @@ PLAN-SWAGGER.txt
 /storage/stress-tests/*.json
 /storage/stress-tests/*.csv
 
-# Métricas locales de rendimiento y archivos rotados/bloqueo
-/storage/logs/performance.jsonl
-/storage/logs/performance.jsonl.*
+# Métricas de rendimiento por entorno y archivos rotados/bloqueo
+/storage/logs/*/performance.jsonl*
+# Ubicación anterior a la separación por entorno
+/storage/logs/performance.jsonl*
 /storage/performance-dashboard/
 /storage/cache/

@@ -12,15 +12,31 @@ final class PerformanceMetricsSession
 
     public function __construct(?string $directory = null)
     {
-        $directory ??= dirname(__DIR__, 2)
-            . DIRECTORY_SEPARATOR
-            . 'storage'
-            . DIRECTORY_SEPARATOR
-            . 'performance-dashboard';
+        $directory ??= self::directorio();
 
         $this->statePath = $directory
             . DIRECTORY_SEPARATOR
             . 'sessions.json';
+    }
+
+    public static function directorio(?string $environment = null): string
+    {
+        $environment ??= $_ENV['APP_ENV'] ?? 'production';
+        $environment = strtolower(trim($environment));
+
+        if (!preg_match('/\A[a-z0-9_-]+\z/', $environment)) {
+            throw new RuntimeException(
+                'APP_ENV debe contener solo letras, números, guiones o guiones bajos.'
+            );
+        }
+
+        return dirname(__DIR__, 2)
+            . DIRECTORY_SEPARATOR
+            . 'storage'
+            . DIRECTORY_SEPARATOR
+            . 'performance-dashboard'
+            . DIRECTORY_SEPARATOR
+            . $environment;
     }
 
     public function activeSessionId(): ?string

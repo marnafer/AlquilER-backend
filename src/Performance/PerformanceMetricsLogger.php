@@ -35,13 +35,24 @@ final class PerformanceMetricsLogger
         $this->path = $path ?? self::ruta();
     }
 
-    public static function ruta(): string
+    public static function ruta(?string $environment = null): string
     {
+        $environment ??= $_ENV['APP_ENV'] ?? 'production';
+        $environment = strtolower(trim($environment));
+
+        if (!preg_match('/\A[a-z0-9_-]+\z/', $environment)) {
+            throw new RuntimeException(
+                'APP_ENV debe contener solo letras, números, guiones o guiones bajos.'
+            );
+        }
+
         return dirname(__DIR__, 2)
             . DIRECTORY_SEPARATOR
             . 'storage'
             . DIRECTORY_SEPARATOR
             . 'logs'
+            . DIRECTORY_SEPARATOR
+            . $environment
             . DIRECTORY_SEPARATOR
             . 'performance.jsonl';
     }
