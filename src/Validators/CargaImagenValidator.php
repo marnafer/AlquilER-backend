@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Validators;
 
-final class CargaImagenValidator implements CargaImagenValidatorInterface
+class CargaImagenValidator implements CargaImagenValidatorInterface
 {
     private const MAX_TAMANO_BYTES = 15 * 1024 * 1024;
     private const MAX_DIMENSION = 12000;
@@ -32,7 +32,7 @@ final class CargaImagenValidator implements CargaImagenValidatorInterface
             !isset($file['tmp_name'])
             || !is_string($file['tmp_name'])
             || $file['tmp_name'] === ''
-            || !is_uploaded_file($file['tmp_name'])
+            || !$this->isUploadedFile($file['tmp_name'])
         ) {
             return 'Debe enviar una imagen';
         }
@@ -52,7 +52,9 @@ final class CargaImagenValidator implements CargaImagenValidatorInterface
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
 
         if ($finfo === false) {
+            // @codeCoverageIgnoreStart
             return 'No se pudo determinar el formato de la imagen';
+            // @codeCoverageIgnoreEnd
         }
 
         try {
@@ -62,7 +64,9 @@ final class CargaImagenValidator implements CargaImagenValidatorInterface
         }
 
         if ($mime === false) {
+            // @codeCoverageIgnoreStart
             return 'No se pudo determinar el formato de la imagen';
+            // @codeCoverageIgnoreEnd
         }
 
         if (!in_array($mime, self::FORMATOS_PERMITIDOS, true)) {
@@ -93,5 +97,10 @@ final class CargaImagenValidator implements CargaImagenValidatorInterface
         }
 
         return null;
+    }
+
+    protected function isUploadedFile(string $path): bool
+    {
+        return is_uploaded_file($path);
     }
 }

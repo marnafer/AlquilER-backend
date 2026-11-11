@@ -127,4 +127,146 @@ final class PerformanceMetricsTest extends TestCase
 
         $this->assertSame(123, $event['response_bytes']);
     }
+
+    public function test_rechaza_umbral_sql_negativo(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new PerformanceMetrics(
+            requestId: 'r',
+            method: 'GET',
+            route: '/',
+            slowSqlThresholdMs: -1,
+        );
+    }
+
+    public function test_no_permite_registrar_consulta_tras_finalizar(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+        $metrics->finish(200);
+
+        $this->expectException(\LogicException::class);
+        $metrics->recordQuery(1, 'select 1');
+    }
+
+    public function test_rechaza_duracion_sql_invalida(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $metrics->recordQuery(-1, 'select 1');
+    }
+
+    public function test_no_permite_cache_hit_tras_finalizar(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+        $metrics->finish(200);
+
+        $this->expectException(\LogicException::class);
+        $metrics->recordCacheHit();
+    }
+
+    public function test_no_permite_cache_miss_tras_finalizar(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+        $metrics->finish(200);
+
+        $this->expectException(\LogicException::class);
+        $metrics->recordCacheMiss(1);
+    }
+
+    public function test_rechaza_duracion_loader_invalida(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $metrics->recordCacheMiss(-1);
+    }
+
+    public function test_no_permite_finalizar_dos_veces(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+        $metrics->finish(200);
+
+        $this->expectException(\LogicException::class);
+        $metrics->finish(200);
+    }
+
+    public function test_rechaza_codigo_http_invalido(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $metrics->finish(99);
+    }
+
+    public function test_falla_si_el_reloj_retrocede(): void
+    {
+        $times = [2_000_000_000, 1_000_000_000];
+        $reads = 0;
+        $metrics = new PerformanceMetrics(
+            requestId: 'r',
+            method: 'GET',
+            route: '/',
+            monotonicClock: static function () use (&$reads, $times): int {
+                return $times[$reads++];
+            },
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $metrics->finish(200);
+    }
+
+    public function test_falla_si_el_reloj_no_devuelve_entero(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        new PerformanceMetrics(
+            requestId: 'r',
+            method: 'GET',
+            route: '/',
+            monotonicClock: static fn (): float => 1.5,
+        );
+    }
+
+    public function test_query_fingerprint_devuelve_null_si_preg_replace_falla(): void
+    {
+        $metrics = new class ('r', 'GET', '/') extends PerformanceMetrics {
+            protected function replaceDigits(string $sql): ?string
+            {
+                return null;
+            }
+        };
+
+        $method = (new \ReflectionClass($metrics))->getMethod('queryFingerprint');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($metrics, 'select 1');
+        $this->assertNull($result);
+    }
+
+    public function test_no_permite_cambiar_ruta_tras_finalizar(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+        $metrics->finish(200);
+
+        $this->expectException(\LogicException::class);
+        $metrics->setRoute('/otra');
+    }
+
+    public function test_no_permite_cambiar_bytes_tras_finalizar(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+        $metrics->finish(200);
+
+        $this->expectException(\LogicException::class);
+        $metrics->setResponseBytes(1);
+    }
+
+    public function test_rechaza_bytes_negativos(): void
+    {
+        $metrics = new PerformanceMetrics('r', 'GET', '/');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $metrics->setResponseBytes(-1);
+    }
 }

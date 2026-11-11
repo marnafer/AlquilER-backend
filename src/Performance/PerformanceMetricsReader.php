@@ -8,7 +8,7 @@ use JsonException;
 use InvalidArgumentException;
 use RuntimeException;
 
-final class PerformanceMetricsReader
+class PerformanceMetricsReader
 {
     /**
      * @return list<array{
@@ -44,7 +44,7 @@ final class PerformanceMetricsReader
         }
 
         $lockPath = $logPath . '.lock';
-        $lock = @fopen($lockPath, 'c');
+        $lock = $this->openLock($lockPath);
 
         if ($lock === false) {
             throw new RuntimeException(
@@ -53,7 +53,7 @@ final class PerformanceMetricsReader
         }
 
         try {
-            if (!@flock($lock, LOCK_SH)) {
+            if (!$this->acquireSharedLock($lock)) {
                 throw new RuntimeException(
                     "No se pudo bloquear el log de métricas: {$lockPath}"
                 );
@@ -74,13 +74,13 @@ final class PerformanceMetricsReader
                     continue;
                 }
 
-                if (!is_readable($filePath)) {
+                if (!$this->isReadable($filePath)) {
                     throw new RuntimeException(
                         "No se puede leer el log de métricas: {$filePath}"
                     );
                 }
 
-                $lines = file($filePath, FILE_IGNORE_NEW_LINES);
+                $lines = $this->readLines($filePath);
 
                 if ($lines === false) {
                     throw new RuntimeException(
@@ -184,5 +184,25 @@ final class PerformanceMetricsReader
             @flock($lock, LOCK_UN);
             fclose($lock);
         }
+    }
+
+    protected function openLock(string $path): mixed
+    {
+        return @fopen($path, 'c');
+    }
+
+    protected function acquireSharedLock(mixed $handle): bool
+    {
+        return @flock($handle, LOCK_SH);
+    }
+
+    protected function readLines(string $path): array|false
+    {
+        return file($path, FILE_IGNORE_NEW_LINES);
+    }
+
+    protected function isReadable(string $path): bool
+    {
+        return is_readable($path);
     }
 }

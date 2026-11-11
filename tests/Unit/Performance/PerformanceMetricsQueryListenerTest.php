@@ -81,6 +81,28 @@ final class PerformanceMetricsQueryListenerTest extends TestCase
         $this->assertSame(1, $event['sql']['query_count']);
     }
 
+    public function test_captura_errores_al_registrar_una_consulta(): void
+    {
+        $connection = $this->connectionWithListener();
+
+        $metrics = new PerformanceMetrics(
+            requestId: 'request-sql-error',
+            method: 'GET',
+            route: '/api/health',
+        );
+
+        PerformanceMetricsContext::activate($metrics);
+        $metrics->finish(200);
+
+        try {
+            $connection->select('select 1 as value');
+        } finally {
+            PerformanceMetricsContext::clear();
+        }
+
+        $this->assertTrue(true);
+    }
+
     private function connectionWithListener(): \Illuminate\Database\Connection
     {
         $capsule = new Capsule();

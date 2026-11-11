@@ -8,7 +8,7 @@ use JsonException;
 use LengthException;
 use RuntimeException;
 
-final class PerformanceMetricsLogger
+class PerformanceMetricsLogger
 {
     private const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
     private const DEFAULT_MAX_BACKUPS = 3;
@@ -81,7 +81,7 @@ final class PerformanceMetricsLogger
 
         if (
             !is_dir($directory)
-            && !@mkdir($directory, 0700, true)
+            && !$this->makeDirectory($directory, 0700, true)
             && !is_dir($directory)
         ) {
             throw new RuntimeException(
@@ -90,7 +90,7 @@ final class PerformanceMetricsLogger
         }
 
         $lockPath = $this->path . '.lock';
-        $lockHandle = @fopen($lockPath, 'c');
+        $lockHandle = $this->openLock($lockPath);
 
         if ($lockHandle === false) {
             throw new RuntimeException(
@@ -101,7 +101,7 @@ final class PerformanceMetricsLogger
         $locked = false;
 
         try {
-            if (!@flock($lockHandle, LOCK_EX)) {
+            if (!$this->acquireLock($lockHandle)) {
                 throw new RuntimeException(
                     "No se pudo bloquear el archivo de métricas: {$lockPath}"
                 );
@@ -126,7 +126,7 @@ final class PerformanceMetricsLogger
         }
 
         clearstatcache(true, $this->path);
-        $currentBytes = @filesize($this->path);
+        $currentBytes = $this->fileSize($this->path);
 
         if ($currentBytes === false) {
             throw new RuntimeException(
@@ -150,14 +150,14 @@ final class PerformanceMetricsLogger
 
             if (
                 is_file($destination)
-                && !@unlink($destination)
+                && !$this->deleteFile($destination)
             ) {
                 throw new RuntimeException(
                     "No se pudo eliminar el log rotado: {$destination}"
                 );
             }
 
-            if (!@rename($source, $destination)) {
+            if (!$this->renameFile($source, $destination)) {
                 throw new RuntimeException(
                     "No se pudo rotar el log {$source} a {$destination}"
                 );
@@ -167,7 +167,7 @@ final class PerformanceMetricsLogger
 
     private function appendLine(string $line): void
     {
-        $handle = @fopen($this->path, 'c+b');
+        $handle = $this->openLog($this->path);
 
         if ($handle === false) {
             throw new RuntimeException(
@@ -176,13 +176,13 @@ final class PerformanceMetricsLogger
         }
 
         try {
-            if (fseek($handle, 0, SEEK_END) !== 0) {
+            if ($this->seekLog($handle, 0, SEEK_END) !== 0) {
                 throw new RuntimeException(
                     "No se pudo posicionar el log: {$this->path}"
                 );
             }
 
-            $originalBytes = ftell($handle);
+            $originalBytes = $this->tellLog($handle);
 
             if ($originalBytes === false) {
                 throw new RuntimeException(
@@ -194,7 +194,7 @@ final class PerformanceMetricsLogger
             $lineLength = strlen($line);
 
             while ($offset < $lineLength) {
-                $written = @fwrite($handle, substr($line, $offset));
+                $written = $this->writeLog($handle, substr($line, $offset));
 
                 if ($written === false || $written === 0) {
                     $this->rollback($handle, $originalBytes);
@@ -207,7 +207,7 @@ final class PerformanceMetricsLogger
                 $offset += $written;
             }
 
-            if (!@fflush($handle)) {
+            if (!$this->flushLog($handle)) {
                 $this->rollback($handle, $originalBytes);
 
                 throw new RuntimeException(
@@ -225,12 +225,74 @@ final class PerformanceMetricsLogger
     private function rollback($handle, int $originalBytes): void
     {
         if (
-            !@ftruncate($handle, $originalBytes)
-            || !@fflush($handle)
+            !$this->truncateLog($handle, $originalBytes)
+            || !$this->flushLog($handle)
         ) {
             throw new RuntimeException(
                 "No se pudo revertir una escritura incompleta en: {$this->path}"
             );
         }
+    }
+
+    protected function makeDirectory(string $directory, int $mode, bool $recursive): bool
+    {
+        return @mkdir($directory, $mode, $recursive);
+    }
+
+    protected function openLock(string $path): mixed
+    {
+        return @fopen($path, 'c');
+    }
+
+    protected function acquireLock(mixed $handle): bool
+    {
+        return @flock($handle, LOCK_EX);
+    }
+
+    protected function fileSize(string $path): int|false
+    {
+        clearstatcache(true, $path);
+
+        return @filesize($path);
+    }
+
+    protected function deleteFile(string $path): bool
+    {
+        return @unlink($path);
+    }
+
+    protected function renameFile(string $source, string $destination): bool
+    {
+        return @rename($source, $destination);
+    }
+
+    protected function openLog(string $path): mixed
+    {
+        return @fopen($path, 'c+b');
+    }
+
+    protected function seekLog(mixed $handle, int $offset, int $whence): int
+    {
+        return fseek($handle, $offset, $whence);
+    }
+
+    protected function tellLog(mixed $handle): int|false
+    {
+        return ftell($handle);
+    }
+
+    protected function writeLog(mixed $handle, string $data): int|false
+    {
+        return @fwrite($handle, $data);
+    }
+
+    protected function flushLog(mixed $handle): bool
+    {
+        return @fflush($handle);
+    }
+
+    protected function truncateLog(mixed $handle, int $size): bool
+    {
+        return @ftruncate($handle, $size);
     }
 }

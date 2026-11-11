@@ -173,6 +173,32 @@ final class DebugControllerTest extends TestCase
         }
     }
 
+    public function test_clear_log_con_archivo_limpia_el_log(): void
+    {
+        $archivo = \App\Debug\Debugger::getLogFile();
+        $existia = file_exists($archivo);
+        $respaldo = $existia ? file_get_contents($archivo) : null;
+
+        file_put_contents($archivo, 'contenido previo');
+
+        try {
+            $response = $this->controller->clearLog($this->makeRequest());
+
+            $this->assertSame(200, $response->status());
+            $this->assertSame(
+                'Log limpiado exitosamente',
+                $response->payload()['message']
+            );
+            $this->assertSame('', file_get_contents($archivo));
+        } finally {
+            if ($existia) {
+                file_put_contents($archivo, $respaldo);
+            } else {
+                @unlink($archivo);
+            }
+        }
+    }
+
     public function test_clear_log_sin_archivo_devuelve_mensaje(): void
     {
         $archivo = \App\Debug\Debugger::getLogFile();

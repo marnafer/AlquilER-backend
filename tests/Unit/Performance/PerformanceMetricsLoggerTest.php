@@ -159,6 +159,187 @@ final class PerformanceMetricsLoggerTest extends TestCase
         $logger->write(['request_id' => 'request-error']);
     }
 
+    public function test_rechaza_max_bytes_no_positivo(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        new PerformanceMetricsLogger(
+            path: $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl',
+            maxBytes: 0,
+        );
+    }
+
+    public function test_rechaza_max_backups_no_positivo(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        new PerformanceMetricsLogger(
+            path: $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl',
+            maxBackups: 0,
+        );
+    }
+
+    public function test_falla_si_no_puede_abrir_bloqueo(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $lockPath = $path . '.lock';
+        mkdir($lockPath);
+
+        try {
+            $logger = new PerformanceMetricsLogger($path);
+            $this->expectException(\RuntimeException::class);
+            $logger->write(['request_id' => 'x']);
+        } finally {
+            @rmdir($lockPath);
+        }
+    }
+
+    public function test_falla_si_no_puede_bloquear(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $logger = new class ($path) extends PerformanceMetricsLogger {
+            protected function acquireLock(mixed $handle): bool
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_consultar_tamano(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, str_repeat('x', 90));
+        $logger = new class ($path, 100) extends PerformanceMetricsLogger {
+            protected function fileSize(string $path): int|false
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_eliminar_log_rotado(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, str_repeat('x', 90));
+        file_put_contents($path . '.1', 'viejo');
+        $logger = new class ($path, 100, 1) extends PerformanceMetricsLogger {
+            protected function deleteFile(string $path): bool
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_rotar_log(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, str_repeat('x', 90));
+        $logger = new class ($path, 100) extends PerformanceMetricsLogger {
+            protected function renameFile(string $source, string $destination): bool
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_abrir_log(): void
+    {
+        $path = $this->directory; // directorio, no archivo
+        $logger = new PerformanceMetricsLogger($path);
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_posicionar_log(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $logger = new class ($path) extends PerformanceMetricsLogger {
+            protected function seekLog(mixed $handle, int $offset, int $whence): int
+            {
+                return -1;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_obtener_posicion_log(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $logger = new class ($path) extends PerformanceMetricsLogger {
+            protected function tellLog(mixed $handle): int|false
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_escribir_evento(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $logger = new class ($path) extends PerformanceMetricsLogger {
+            protected function writeLog(mixed $handle, string $data): int|false
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_vaciar_buffer(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $logger = new class ($path) extends PerformanceMetricsLogger {
+            private int $calls = 0;
+
+            protected function flushLog(mixed $handle): bool
+            {
+                $this->calls++;
+
+                return $this->calls > 1;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
+    public function test_falla_si_no_puede_revertir_escritura_incompleta(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $logger = new class ($path) extends PerformanceMetricsLogger {
+            protected function writeLog(mixed $handle, string $data): int|false
+            {
+                return false;
+            }
+
+            protected function truncateLog(mixed $handle, int $size): bool
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $logger->write(['request_id' => 'x']);
+    }
+
     private function readNumber(string $path): int
     {
         $contents = file_get_contents($path);
