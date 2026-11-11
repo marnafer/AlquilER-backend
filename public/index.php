@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\GlobalExceptionHandler;
+use App\Http\RequestId;
 use App\Performance\PerformanceMetricsBootstrap;
 use App\Http\Request;
 use App\Http\Response;
@@ -13,9 +14,12 @@ use Dotenv\Dotenv;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+$requestId = RequestId::generate();
+header('X-Request-ID: ' . $requestId);
+
 set_exception_handler(
-    static function (\Throwable $exception): void {
-        $response = GlobalExceptionHandler::handle($exception);
+    static function (\Throwable $exception) use ($requestId): void {
+        $response = GlobalExceptionHandler::handle($exception, $requestId);
         $response->emit();
     }
 );
@@ -27,7 +31,10 @@ $request = Request::fromGlobals();
 $method = $request->method();
 $path = $request->path();
 
-$metricsLifecycle = (new PerformanceMetricsBootstrap())->start($request);
+$metricsLifecycle = (new PerformanceMetricsBootstrap())->start(
+    $request,
+    $requestId
+);
 
 require_once __DIR__ . '/../src/database.php';
 require_once __DIR__ . '/../config/config.php';
@@ -67,6 +74,7 @@ if (in_array($origin, $allowedOrigins, true)) {
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Expose-Headers: X-Request-ID');
 
 // ============================================
 // SERVIDOR EMBEBIDO (php -S): servir archivos

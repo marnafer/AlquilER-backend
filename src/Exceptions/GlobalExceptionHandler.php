@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace App\Exceptions;
 
 use App\Helpers\ErrorLog;
+use App\Http\RequestId;
 use App\Http\Response;
 use Throwable;
 
 class GlobalExceptionHandler
 {
-    public static function handle(Throwable $exception): Response
+    public static function handle(
+        Throwable $exception,
+        ?string $requestId = null
+    ): Response
     {
+        $requestId ??= RequestId::generate();
+
         $esExcepcionControlada =
             $exception instanceof BadRequestException
             || $exception instanceof UnauthorizedException
@@ -42,7 +48,7 @@ class GlobalExceptionHandler
 
             // Registrar el error tanto en produccion como en desarrollo, con el detalle
             // tecnico completo (SQLSTATE, consulta, traza) en storage/errores.log
-            ErrorLog::registrar($exception);
+            ErrorLog::registrar($exception, $requestId);
         }
 
         $payload = [
@@ -52,6 +58,11 @@ class GlobalExceptionHandler
 
         if ($exception instanceof ValidationException) {
             $payload['validation_errors'] = $exception->errors();
+        }
+
+        if (!$esExcepcionControlada) {
+            $payload['code'] = 'ERR_INTERNAL';
+            $payload['requestId'] = $requestId;
         }
 
         return Response::json($payload, $status);
