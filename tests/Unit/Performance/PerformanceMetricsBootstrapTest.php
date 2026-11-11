@@ -148,9 +148,11 @@ final class PerformanceMetricsBootstrapTest extends TestCase
             new PerformanceMetricsLogger($path),
             $sessions
         );
+        $requestId = 'performance-request-123';
 
         $lifecycle = $bootstrap->start(
-            new Request(method: 'GET', path: '/api/propiedades')
+            new Request(method: 'GET', path: '/api/propiedades'),
+            $requestId
         );
 
         $this->assertNotNull($lifecycle);
@@ -174,10 +176,7 @@ final class PerformanceMetricsBootstrapTest extends TestCase
         $this->assertSame($sessionId, $event['session_id']);
         $this->assertSame(200, $event['status_code']);
         $this->assertSame(0, $event['sql']['query_count']);
-        $this->assertMatchesRegularExpression(
-            '/^[a-f0-9]{32}$/',
-            $event['request_id']
-        );
+        $this->assertSame($requestId, $event['request_id']);
     }
 
     public function test_inicia_metricas_en_produccion_si_estan_habilitadas(): void

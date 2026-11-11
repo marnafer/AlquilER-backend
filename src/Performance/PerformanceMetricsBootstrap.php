@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Performance;
 
 use App\Http\Request;
+use App\Http\RequestId;
 use Throwable;
 
 final class PerformanceMetricsBootstrap
@@ -15,7 +16,10 @@ final class PerformanceMetricsBootstrap
     ) {
     }
 
-    public function start(Request $request): ?PerformanceMetricsLifecycle
+    public function start(
+        Request $request,
+        ?string $requestId = null
+    ): ?PerformanceMetricsLifecycle
     {
 
         $enabled = strtolower(
@@ -42,7 +46,7 @@ final class PerformanceMetricsBootstrap
             }
 
             $metrics = new PerformanceMetrics(
-                requestId: bin2hex(random_bytes(16)),
+                requestId: $requestId ?? RequestId::generate(),
                 method: $request->method(),
                 route: null,
                 slowSqlThresholdMs: $threshold,

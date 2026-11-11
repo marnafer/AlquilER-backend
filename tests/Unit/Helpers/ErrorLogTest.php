@@ -53,7 +53,8 @@ class ErrorLogTest extends TestCase
     {
         $this->conRespaldoDeLogs(function (): void {
             ErrorLog::registrar(
-                new RuntimeException('marca-unica-12345')
+                new RuntimeException('marca-unica-12345'),
+                'request-errorlog-123'
             );
 
             $this->assertFileExists($this->ruta);
@@ -66,6 +67,10 @@ class ErrorLogTest extends TestCase
             );
             $this->assertStringContainsString(
                 'marca-unica-12345',
+                $contenido
+            );
+            $this->assertStringContainsString(
+                'request_id=request-errorlog-123',
                 $contenido
             );
         });

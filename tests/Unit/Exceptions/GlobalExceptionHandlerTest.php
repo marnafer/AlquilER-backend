@@ -114,6 +114,7 @@ final class GlobalExceptionHandlerTest extends TestCase
 
     public function test_maneja_excepcion_no_controlada_con_500_generico(): void
     {
+        $requestId = 'request-error-123';
         $ruta = $this->rutaLogTempora();
         $original = is_file($ruta) ? (string) file_get_contents($ruta) : null;
 
@@ -127,7 +128,8 @@ final class GlobalExceptionHandlerTest extends TestCase
 
         try {
             $response = GlobalExceptionHandler::handle(
-                new \RuntimeException('boom SQLSTATE 42S02 tabla usuarios')
+                new \RuntimeException('boom SQLSTATE 42S02 tabla usuarios'),
+                $requestId
             );
 
             $this->assertSame(500, $response->status());
@@ -136,9 +138,12 @@ final class GlobalExceptionHandlerTest extends TestCase
                 'Error interno del servidor',
                 $response->payload()['error']
             );
+            $this->assertSame('ERR_INTERNAL', $response->payload()['code']);
+            $this->assertSame($requestId, $response->payload()['requestId']);
 
             $this->assertFileExists($ruta);
             $contenido = (string) file_get_contents($ruta);
+            $this->assertStringContainsString('request_id=' . $requestId, $contenido);
             $this->assertStringContainsString('RuntimeException', $contenido);
             $this->assertStringContainsString('boom SQLSTATE 42S02 tabla usuarios', $contenido);
             $this->assertStringContainsString('origen:', $contenido);

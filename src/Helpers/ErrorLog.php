@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Helpers;
 
+use App\Http\RequestId;
 use Throwable;
 
 /**
@@ -36,9 +37,13 @@ class ErrorLog
      * jamas debe lanzar: un fallo al escribir el log no puede convertirse
      * en un error 500 sin respuesta para el cliente.
      */
-    public static function registrar(Throwable $exception): void
+    public static function registrar(
+        Throwable $exception,
+        ?string $requestId = null
+    ): void
     {
         try {
+            $requestId ??= RequestId::generate();
             $archivo = self::ruta();
             $directorio = dirname($archivo);
 
@@ -51,8 +56,9 @@ class ErrorLog
             self::rotarSiCorresponde($archivo);
 
             $linea = sprintf(
-                "[%s] %s: %s%s    origen: %s:%d%s    traza: %s%s%s",
+                "[%s] request_id=%s %s: %s%s    origen: %s:%d%s    traza: %s%s%s",
                 date('Y-m-d H:i:s'),
+                $requestId,
                 get_class($exception),
                 $exception->getMessage(),
                 PHP_EOL,
@@ -69,7 +75,9 @@ class ErrorLog
             // Se mantiene tambien el log del servidor (Apache lo captura en
             // el error_log de php.ini) para no perder nada si el archivo no
             // se puede escribir.
-            error_log($exception->__toString());
+            error_log(
+                '[request_id=' . $requestId . '] ' . $exception->__toString()
+            );
             // @codeCoverageIgnoreStart
         } catch (Throwable $falloAlRegistrar) {
             // Silencio intencional: ver la nota de este metodo.
