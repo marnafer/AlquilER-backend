@@ -8,7 +8,7 @@ use JsonException;
 use RuntimeException;
 use App\Performance\PerformanceMetricsContext;
 
-final class FileCache
+class FileCache
 {
     public function __construct(
         private readonly string $directory
@@ -51,7 +51,7 @@ final class FileCache
                     return $entry['value'];
                 }
 
-                if (!@unlink($path) && is_file($path)) {
+                if (!$this->deleteFile($path) && is_file($path)) {
                     throw new RuntimeException(
                         "No se pudo eliminar una entrada de caché expirada: {$path}"
                     );
@@ -87,7 +87,7 @@ final class FileCache
         $this->withLock($key, function () use ($key): void {
             $path = $this->pathFor($key);
 
-            if (is_file($path) && !@unlink($path) && is_file($path)) {
+            if (is_file($path) && !$this->deleteFile($path) && is_file($path)) {
                 throw new RuntimeException(
                     "No se pudo invalidar la entrada de caché: {$path}"
                 );
@@ -114,7 +114,7 @@ final class FileCache
      */
     private function read(string $path): array
     {
-        $contents = @file_get_contents($path);
+        $contents = $this->readFileContents($path);
 
         if ($contents === false) {
             throw new RuntimeException(
@@ -164,7 +164,7 @@ final class FileCache
             );
         }
 
-        $temporaryPath = tempnam($this->directory, 'cache-');
+        $temporaryPath = $this->createTempFile($this->directory, 'cache-');
 
         if ($temporaryPath === false) {
             throw new RuntimeException(
@@ -173,7 +173,7 @@ final class FileCache
         }
 
         try {
-            if (file_put_contents($temporaryPath, $contents, LOCK_EX) === false) {
+            if ($this->writeFileContents($temporaryPath, $contents) === false) {
                 throw new RuntimeException(
                     "No se pudo escribir el archivo temporal de caché: {$temporaryPath}"
                 );
@@ -222,7 +222,7 @@ final class FileCache
         }
 
         try {
-            if (!flock($lock, LOCK_EX)) {
+            if (!$this->acquireLock($lock)) {
                 throw new RuntimeException(
                     "No se pudo bloquear la entrada de caché: {$lockPath}"
                 );
@@ -237,5 +237,30 @@ final class FileCache
                 fclose($lock);
             }
         }
+    }
+
+    protected function deleteFile(string $path): bool
+    {
+        return @unlink($path);
+    }
+
+    protected function readFileContents(string $path): string|false
+    {
+        return @file_get_contents($path);
+    }
+
+    protected function createTempFile(string $directory, string $prefix): string|false
+    {
+        return tempnam($directory, $prefix);
+    }
+
+    protected function writeFileContents(string $path, string $contents): int|false
+    {
+        return file_put_contents($path, $contents, LOCK_EX);
+    }
+
+    protected function acquireLock(mixed $lock): bool
+    {
+        return flock($lock, LOCK_EX);
     }
 }
