@@ -71,6 +71,22 @@ class GestorArchivosLocales implements GestorArchivosInterface
             );
         }
 
+        // Genera una versión WebP para optimizar la entrega en el frontend.
+        if (function_exists('imagewebp')) {
+            $imagen = @imagecreatefromjpeg($destino);
+
+            if ($imagen instanceof \GdImage) {
+                $webpPath = preg_replace(
+                    '/\.jpg$/i',
+                    '.webp',
+                    $destino
+                );
+
+                @imagewebp($imagen, $webpPath, 80);
+                imagedestroy($imagen);
+            }
+        }
+
         return $nombreArchivo;
     }
 
@@ -86,6 +102,12 @@ class GestorArchivosLocales implements GestorArchivosInterface
             throw new BadRequestException(
                 'No se pudo eliminar la imagen'
             );
+        }
+
+        $webpPath = preg_replace('/\.jpg$/i', '.webp', $rutaFisica);
+
+        if (is_string($webpPath) && is_file($webpPath)) {
+            @unlink($webpPath);
         }
     }
 
