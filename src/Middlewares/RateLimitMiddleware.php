@@ -69,6 +69,13 @@ final class RateLimitMiddleware
         ?string $metodo = null,
         ?string $ruta = null
     ): void {
+        if (
+            ($_ENV['DISABLE_RATE_LIMIT'] ?? '') === '1'
+            || ($_ENV['APP_ENV'] ?? '') === 'testing'
+        ) {
+            return;
+        }
+
         $metodo ??= strtoupper(
             trim($_SERVER['REQUEST_METHOD'] ?? 'GET')
         );
