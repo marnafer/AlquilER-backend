@@ -456,3 +456,17 @@ El objetivo es obtener una API REST más mantenible, segura, escalable y prepara
 [POST-PROPIEDADES-1](./docs/capturas/post-propiedades-1.png)
 [POST-PROPIEDADES-2](./docs/capturas/post-propiedades-2.png)
 [PUT-PROPIEDADES](./docs/capturas/put-propiedades-1.png)
+
+
+## 10. Migraciones y seeders
+
+- Esquema base: `create_database.sql`
+- Migraciones incrementales: `scripts/migrations/*.sql`
+- Para poblar datos de desarrollo, ejecutar los scripts SQL en `storage/` (si existen) sobre `sistema_alquiler_db_dev`.
+
+## 11. Tests y cobertura
+
+- Ejecutar: `composer test` (todos), `composer test:unit`, `composer test:integration`
+- Integración requiere MySQL corriendo y servidor en `127.0.0.1:8000`.
+- Cobertura (Xdebug): 100% líneas, métodos y clases (2.300 tests, 7.115 assertions).
+- Reporte HTML: `vendor/bin/phpunit --coverage-html coverage/`

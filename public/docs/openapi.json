@@ -18,7 +18,7 @@
                     "Autenticador"
                 ],
                 "summary": "Iniciar sesión",
-                "description": "Autentica un usuario y devuelve un access token y un refresh token.",
+                "description": "Autentica un usuario y establece cookies HttpOnly para el access token y el refresh token. Los tokens no se incluyen en el cuerpo de la respuesta.",
                 "operationId": "9057c45d3ed5cd70364b9f45a341255b",
                 "requestBody": {
                     "required": true,
@@ -102,18 +102,8 @@
                     "Autenticador"
                 ],
                 "summary": "Cerrar sesión",
-                "description": "Invalida el refresh token proporcionado.",
+                "description": "Invalida el refresh token de la cookie y elimina las cookies de autenticación.",
                 "operationId": "aa7b65c6130af5b8c1d452bb204dcf50",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RefreshTokenRequest"
-                            }
-                        }
-                    }
-                },
                 "responses": {
                     "200": {
                         "description": "Sesión cerrada correctamente",
@@ -136,12 +126,7 @@
                     "400": {
                         "description": "Cuerpo de la solicitud inválido"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/autenticador/refresh": {
@@ -150,18 +135,8 @@
                     "Autenticador"
                 ],
                 "summary": "Refrescar token",
-                "description": "Genera un nuevo access token y un nuevo refresh token a partir de un refresh token válido.",
+                "description": "Rota los tokens usando el refresh token HttpOnly y actualiza las cookies de autenticación.",
                 "operationId": "3687bf378110b8f8a5ceb1c0f8e475b1",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RefreshTokenRequest"
-                            }
-                        }
-                    }
-                },
                 "responses": {
                     "200": {
                         "description": "Token refrescado correctamente",
@@ -7820,6 +7795,7 @@
                 "type": "object"
             },
             "AuthResponse": {
+                "description": "Los tokens se envían en cookies HttpOnly; el cuerpo solo informa el rol.",
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -7827,14 +7803,6 @@
                     },
                     "data": {
                         "properties": {
-                            "access_token": {
-                                "type": "string",
-                                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                            },
-                            "refresh_token": {
-                                "type": "string",
-                                "example": "550e8400-e29b-41d4-a716-446655440000"
-                            },
                             "rol_id": {
                                 "type": "integer",
                                 "example": 1
