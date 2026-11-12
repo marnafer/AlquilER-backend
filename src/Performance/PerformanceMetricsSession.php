@@ -6,7 +6,7 @@ namespace App\Performance;
 
 use RuntimeException;
 
-final class PerformanceMetricsSession
+class PerformanceMetricsSession
 {
     private readonly string $statePath;
 
@@ -137,7 +137,7 @@ final class PerformanceMetricsSession
 
         if (
             !is_dir($directory)
-            && !@mkdir($directory, 0700, true)
+            && !$this->makeDirectory($directory, 0700, true)
             && !is_dir($directory)
         ) {
             throw new RuntimeException(
@@ -146,7 +146,7 @@ final class PerformanceMetricsSession
         }
 
         $lockPath = $this->statePath . '.lock';
-        $lock = @fopen($lockPath, 'c');
+        $lock = $this->openLock($lockPath);
 
         if ($lock === false) {
             throw new RuntimeException(
@@ -155,7 +155,7 @@ final class PerformanceMetricsSession
         }
 
         try {
-            if (!@flock($lock, LOCK_EX)) {
+            if (!$this->acquireLock($lock)) {
                 throw new RuntimeException(
                     "No se pudo bloquear el estado de sesiones: {$lockPath}"
                 );
@@ -195,7 +195,7 @@ final class PerformanceMetricsSession
             ];
         }
 
-        $contents = file_get_contents($this->statePath);
+        $contents = $this->readStateContents($this->statePath);
 
         if ($contents === false) {
             throw new RuntimeException(
@@ -231,12 +231,37 @@ final class PerformanceMetricsSession
             JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
 
-        if (file_put_contents($this->statePath, $json, LOCK_EX) === false) {
+        if ($this->writeStateContents($this->statePath, $json) === false) {
             throw new RuntimeException(
                 "No se pudo guardar el estado de sesiones: {$this->statePath}"
             );
         }
 
         @chmod($this->statePath, 0600);
+    }
+
+    protected function makeDirectory(string $directory, int $mode, bool $recursive): bool
+    {
+        return @mkdir($directory, $mode, $recursive);
+    }
+
+    protected function openLock(string $path): mixed
+    {
+        return @fopen($path, 'c');
+    }
+
+    protected function acquireLock(mixed $handle): bool
+    {
+        return @flock($handle, LOCK_EX);
+    }
+
+    protected function readStateContents(string $path): string|false
+    {
+        return file_get_contents($path);
+    }
+
+    protected function writeStateContents(string $path, string $contents): int|false
+    {
+        return @file_put_contents($path, $contents, LOCK_EX);
     }
 }

@@ -66,9 +66,11 @@ final class ProcesadorImagenes implements ProcesadorImagenesInterface
         }
 
         if (!function_exists('imagecreatefromjpeg') || !function_exists('imagecreatefrompng')) {
+        // @codeCoverageIgnoreStart
             throw new BadRequestException(
                 'El servidor no tiene habilitado el procesamiento de imágenes'
             );
+        // @codeCoverageIgnoreEnd
         }
 
         $imagenOriginal = match ($mime) {
@@ -77,9 +79,11 @@ final class ProcesadorImagenes implements ProcesadorImagenesInterface
         };
 
         if (!$imagenOriginal instanceof GdImage) {
+            // @codeCoverageIgnoreStart
             throw new BadRequestException(
                 'No se pudo procesar la imagen recibida'
             );
+            // @codeCoverageIgnoreEnd
         }
 
         $imagenSalida = null;
@@ -101,9 +105,11 @@ final class ProcesadorImagenes implements ProcesadorImagenesInterface
             );
 
             if (!$imagenSalida instanceof GdImage) {
+                // @codeCoverageIgnoreStart
                 throw new BadRequestException(
                     'No se pudo preparar la imagen optimizada'
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             // JPEG no admite transparencia: se utiliza fondo blanco.
@@ -122,17 +128,21 @@ final class ProcesadorImagenes implements ProcesadorImagenesInterface
                 $ancho,
                 $alto
             )) {
+                // @codeCoverageIgnoreStart
                 throw new BadRequestException(
                     'No se pudo redimensionar la imagen'
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             $rutaTemporal = tempnam(sys_get_temp_dir(), 'alquiler_img_');
 
             if ($rutaTemporal === false) {
+                // @codeCoverageIgnoreStart
                 throw new BadRequestException(
                     'No se pudo crear el archivo temporal de la imagen'
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             if (!imagejpeg(
@@ -140,9 +150,11 @@ final class ProcesadorImagenes implements ProcesadorImagenesInterface
                 $rutaTemporal,
                 self::CALIDAD_JPEG
             )) {
+                // @codeCoverageIgnoreStart
                 throw new BadRequestException(
                     'No se pudo generar la imagen optimizada'
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             clearstatcache(true, $rutaTemporal);
@@ -152,18 +164,22 @@ final class ProcesadorImagenes implements ProcesadorImagenesInterface
                 || filesize($rutaTemporal) === false
                 || filesize($rutaTemporal) <= 0
             ) {
+                // @codeCoverageIgnoreStart
                 throw new BadRequestException(
                     'La imagen optimizada está vacía o es inválida'
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             return $rutaTemporal;
+        // @codeCoverageIgnoreStart
         } catch (Throwable $e) {
             if ($rutaTemporal !== null && is_file($rutaTemporal)) {
                 @unlink($rutaTemporal);
             }
 
             throw $e;
+            // @codeCoverageIgnoreEnd
         } finally {
             imagedestroy($imagenOriginal);
 

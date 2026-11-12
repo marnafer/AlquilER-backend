@@ -140,4 +140,79 @@ final class AutenticadorControllerTest extends TestCase
             $response->payload()['message']
         );
     }
+
+    public function test_logout_usa_refresh_token_del_body_si_no_hay_cookie(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('logout')
+            ->with(['refresh_token' => 'del-body']);
+
+        $response = $this->controller->logout($this->makeRequest([
+            'method' => 'POST',
+            'rawBody' => json_encode(['refresh_token' => 'del-body']),
+        ]));
+
+        $this->assertSame(200, $response->status());
+    }
+
+    public function test_refresh_usa_body_si_no_hay_cookie(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('refresh')
+            ->with(['refresh_token' => 'del-body'])
+            ->willReturn([
+                'access_token' => 'nuevo',
+                'refresh_token' => 'refresh-nuevo',
+                'rol_id' => 3,
+            ]);
+
+        $response = $this->controller->refresh($this->makeRequest([
+            'method' => 'POST',
+            'rawBody' => json_encode(['refresh_token' => 'del-body']),
+        ]));
+
+        $this->assertSame(200, $response->status());
+    }
+
+    public function test_refresh_devuelve_null_si_body_vacio(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('refresh')
+            ->with(['refresh_token' => null])
+            ->willReturn([
+                'access_token' => 'nuevo',
+                'refresh_token' => 'refresh-nuevo',
+                'rol_id' => 3,
+            ]);
+
+        $response = $this->controller->refresh($this->makeRequest([
+            'method' => 'POST',
+            'rawBody' => '',
+        ]));
+
+        $this->assertSame(200, $response->status());
+    }
+
+    public function test_verificar_devuelve_200(): void
+    {
+        $this->service
+            ->expects($this->once())
+            ->method('verificarEmail')
+            ->with(['token' => 'abc']);
+
+        $response = $this->controller->verificar($this->makeRequest([
+            'method' => 'GET',
+            'query' => ['token' => 'abc'],
+        ]));
+
+        $this->assertSame(200, $response->status());
+        $this->assertSame([], $response->payload()['data']);
+        $this->assertSame(
+            'Correo verificado correctamente',
+            $response->payload()['message']
+        );
+    }
 }

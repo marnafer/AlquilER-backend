@@ -6,7 +6,7 @@ namespace App\Repositories;
 
 use App\Exceptions\BadRequestException;
 
-final class GestorArchivosLocales implements GestorArchivosInterface
+class GestorArchivosLocales implements GestorArchivosInterface
 {
     public function upload(string $rutaTemporal, string $directory): string
     {
@@ -28,7 +28,7 @@ final class GestorArchivosLocales implements GestorArchivosInterface
             }
         }
 
-        if (!is_writable($directory)) {
+        if (!$this->isWritable($directory)) {
             throw new BadRequestException(
                 'No se puede escribir en el directorio de imágenes'
             );
@@ -51,7 +51,7 @@ final class GestorArchivosLocales implements GestorArchivosInterface
             . DIRECTORY_SEPARATOR
             . $nombreArchivo;
 
-        if (!@copy($rutaTemporal, $destino)) {
+        if (!$this->copyFile($rutaTemporal, $destino)) {
             throw new BadRequestException(
                 'Error al guardar la imagen procesada'
             );
@@ -61,8 +61,8 @@ final class GestorArchivosLocales implements GestorArchivosInterface
 
         if (
             !is_file($destino)
-            || filesize($destino) === false
-            || filesize($destino) <= 0
+            || $this->fileSize($destino) === false
+            || $this->fileSize($destino) <= 0
         ) {
             @unlink($destino);
 
@@ -82,10 +82,32 @@ final class GestorArchivosLocales implements GestorArchivosInterface
             return;
         }
 
-        if (!unlink($rutaFisica)) {
+        if (!$this->deleteFile($rutaFisica)) {
             throw new BadRequestException(
                 'No se pudo eliminar la imagen'
             );
         }
+    }
+
+    protected function isWritable(string $path): bool
+    {
+        return is_writable($path);
+    }
+
+    protected function copyFile(string $source, string $destination): bool
+    {
+        return @copy($source, $destination);
+    }
+
+    protected function fileSize(string $path): int|false
+    {
+        clearstatcache(true, $path);
+
+        return @filesize($path);
+    }
+
+    protected function deleteFile(string $path): bool
+    {
+        return @unlink($path);
     }
 }

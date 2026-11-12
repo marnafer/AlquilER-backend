@@ -1499,5 +1499,33 @@ class ConsultaServiceTest extends TestCase
             ],
         ]);
     }
-    
+
+    public function test_obtenerAutorizada_rechaza_consulta_eliminada_para_no_admin(): void
+    {
+        $consulta = new \App\Models\Consulta();
+        $consulta->id = 10;
+        $consulta->deleted_at = '2026-01-01 00:00:00';
+
+        $this->consultaRepository
+            ->expects($this->once())
+            ->method('findById')
+            ->with(10)
+            ->willReturn($consulta);
+
+        $this->policyMock
+            ->expects($this->once())
+            ->method('puedeAdministrar')
+            ->with(3)
+            ->willReturn(false);
+
+        $this->expectException(\App\Exceptions\NotFoundException::class);
+        $this->expectExceptionMessage('Consulta no encontrada');
+
+        $this->service->obtenerAutorizada(
+            10,
+            5,
+            3
+        );
+    }
+
 }

@@ -143,6 +143,132 @@ final class PerformanceMetricsReaderTest extends TestCase
     /**
      * @param array<string, mixed> $event
      */
+    public function test_rechaza_sesion_en_produccion(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new PerformanceMetricsReader())->read(
+            'production',
+            'sesion',
+            $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl'
+        );
+    }
+
+    public function test_devuelve_vacio_si_no_existe_directorio(): void
+    {
+        $missingDirectory = $this->directory . DIRECTORY_SEPARATOR . 'inexistente';
+        $path = $missingDirectory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+
+        $events = (new PerformanceMetricsReader())->read(
+            'production',
+            logPath: $path
+        );
+
+        $this->assertSame([], $events);
+    }
+
+    public function test_falla_si_no_puede_abrir_bloqueo(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $lockPath = $path . '.lock';
+        mkdir($lockPath);
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            (new PerformanceMetricsReader())->read('production', logPath: $path);
+        } finally {
+            @rmdir($lockPath);
+        }
+    }
+
+    public function test_falla_si_no_puede_bloquear_log(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, json_encode($this->event('x')) . PHP_EOL);
+
+        $reader = new class ($path) extends PerformanceMetricsReader {
+            protected function acquireSharedLock(mixed $handle): bool
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $reader->read('production', logPath: $path);
+    }
+
+    public function test_ignora_lineas_vacias(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, PHP_EOL . json_encode($this->event('x')) . PHP_EOL);
+
+        $events = (new PerformanceMetricsReader())->read('production', logPath: $path);
+
+        $this->assertCount(1, $events);
+    }
+
+    public function test_falla_si_json_es_invalido(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, "{invalido" . PHP_EOL);
+
+        $this->expectException(\RuntimeException::class);
+        (new PerformanceMetricsReader())->read('production', logPath: $path);
+    }
+
+    public function test_falla_si_estructura_es_invalida(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, json_encode(['foo' => 'bar']) . PHP_EOL);
+
+        $this->expectException(\RuntimeException::class);
+        (new PerformanceMetricsReader())->read('production', logPath: $path);
+    }
+
+    public function test_falla_si_duracion_es_invalida(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        $event = $this->event('x');
+        $event['duration_ms'] = -1;
+        $event['sql']['total_ms'] = 1;
+        file_put_contents($path, json_encode($event) . PHP_EOL);
+
+        $this->expectException(\RuntimeException::class);
+        (new PerformanceMetricsReader())->read('production', logPath: $path);
+    }
+
+    public function test_falla_si_no_se_puede_leer_log(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, json_encode($this->event('x')) . PHP_EOL);
+
+        $reader = new class ($path) extends PerformanceMetricsReader {
+            protected function isReadable(string $path): bool
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $reader->read('production', logPath: $path);
+    }
+
+    public function test_falla_si_no_puede_cargar_log(): void
+    {
+        $path = $this->directory . DIRECTORY_SEPARATOR . 'performance.jsonl';
+        file_put_contents($path, json_encode($this->event('x')) . PHP_EOL);
+
+        $reader = new class ($path) extends PerformanceMetricsReader {
+            protected function readLines(string $path): array|false
+            {
+                return false;
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $reader->read('production', logPath: $path);
+    }
+
     private function writeEvent(string $path, array $event): void
     {
         $contents = json_encode($event, JSON_THROW_ON_ERROR) . PHP_EOL;

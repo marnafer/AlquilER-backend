@@ -233,4 +233,16 @@ final class AuthenticatorTest extends TestCase
             new Request(query: ['solo_eliminados' => '1'])
         );
     }
+
+    public function test_verificar_rechaza_cookie_token_invalido(): void
+    {
+        $provider = $this->providerQueDevuelve(null);
+        $auth = new Authenticator($provider);
+
+        $this->expectException(UnauthorizedException::class);
+        $this->expectExceptionMessage('Token inválido o expirado');
+
+        $auth->verificar(new Request(cookies: ['access_token' => 'cookie-mala']));
+    }
+
 }

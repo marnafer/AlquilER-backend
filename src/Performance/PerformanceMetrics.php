@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use LogicException;
 use RuntimeException;
 
-final class PerformanceMetrics
+class PerformanceMetrics
 {
     private const MAX_SLOW_QUERIES = 10;
 
@@ -82,7 +82,7 @@ final class PerformanceMetrics
         if (count($this->slowQueries) < self::MAX_SLOW_QUERIES) {
             $this->slowQueries[] = [
                 'duration_ms' => round($durationMs, 2),
-                'fingerprint' => self::queryFingerprint($sql),
+                'fingerprint' => $this->queryFingerprint($sql),
             ];
         }
     }
@@ -182,17 +182,13 @@ final class PerformanceMetrics
         return $now;
     }
 
-    private static function queryFingerprint(string $sql): ?string
+    protected function queryFingerprint(string $sql): ?string
     {
         if (str_contains($sql, "'") || str_contains($sql, '"')) {
             return null;
         }
 
-        $normalized = preg_replace(
-            '/\b\d+(?:\.\d+)?\b/',
-            '?',
-            $sql
-        );
+        $normalized = $this->replaceDigits($sql);
 
         if ($normalized === null) {
             return null;
@@ -203,6 +199,15 @@ final class PerformanceMetrics
         );
 
         return hash('sha256', $normalized);
+    }
+
+    protected function replaceDigits(string $sql): ?string
+    {
+        return preg_replace(
+            '/\b\d+(?:\.\d+)?\b/',
+            '?',
+            $sql
+        );
     }
 
     public function setRoute(?string $route): void

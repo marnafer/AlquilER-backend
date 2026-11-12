@@ -208,4 +208,29 @@ final class PerformanceMetricsLifecycleTest extends TestCase
         $this->assertIsArray($lines);
         $this->assertCount(1, $lines);
     }
+
+    public function test_finish_on_shutdown_finaliza_la_peticion(): void
+    {
+        $path = $this->directory
+            . DIRECTORY_SEPARATOR
+            . 'performance.jsonl';
+
+        $metrics = new PerformanceMetrics(
+            requestId: 'request-lifecycle-shutdown',
+            method: 'GET',
+            route: '/api/health',
+        );
+
+        $lifecycle = new PerformanceMetricsLifecycle(
+            $metrics,
+            new PerformanceMetricsLogger($path)
+        );
+
+        $lifecycle->finishOnShutdown();
+
+        $this->assertFileExists($path);
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        $this->assertIsArray($lines);
+        $this->assertCount(1, $lines);
+    }
 }

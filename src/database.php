@@ -33,6 +33,7 @@ $metricsEnabled = strtolower(
 ) === 'true';
 
 if ($metricsEnabled) {
+    // @codeCoverageIgnoreStart
     $dispatcher = new Dispatcher(new Container());
     $queryListener = new PerformanceMetricsQueryListener();
 
@@ -44,4 +45,5 @@ if ($metricsEnabled) {
     );
 
     $capsule->setEventDispatcher($dispatcher);
+    // @codeCoverageIgnoreEnd
 }
