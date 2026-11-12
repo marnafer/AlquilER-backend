@@ -85,9 +85,10 @@ class ErrorLog
         // @codeCoverageIgnoreEnd
     }
 
+    private const MAX_BACKUPS = 3;
+
     /**
-     * Conserva una sola generacion anterior para que el log no crezca sin
-     * limite si una ruta empieza a fallar en repetidas peticiones.
+     * Rota el log conservando hasta 3 generaciones.
      */
     private static function rotarSiCorresponde(string $archivo): void
     {
@@ -101,6 +102,23 @@ class ErrorLog
             return;
         }
 
-        @rename($archivo, $archivo . '.1');
+        for ($generation = self::MAX_BACKUPS; $generation >= 1; $generation--) {
+            $source = $generation === 1
+                ? $archivo
+                : $archivo . '.' . ($generation - 1);
+            $destination = $archivo . '.' . $generation;
+
+            if (!is_file($source)) {
+                continue;
+            }
+
+            if (is_file($destination)) {
+                // @codeCoverageIgnoreStart
+                @unlink($destination);
+                // @codeCoverageIgnoreEnd
+            }
+
+            @rename($source, $destination);
+        }
     }
 }
