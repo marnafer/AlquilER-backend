@@ -13,11 +13,11 @@ class AutenticadorSanitizerTest extends TestCase
     {
         $resultado = AutenticadorSanitizer::sanitizarLogin([
             'email' => '  usuario@example.com ',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
 
         $this->assertSame('usuario@example.com', $resultado['email']);
-        $this->assertSame('secreto', $resultado['contrasena']);
+        $this->assertSame('Secreta1', $resultado['contrasena']);
     }
 
     public function test_sanitizar_login_keeps_non_string_email(): void

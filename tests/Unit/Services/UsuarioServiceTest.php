@@ -458,13 +458,13 @@ final class UsuarioServiceTest extends TestCase
             ->with(
                 $usuario,
                 'actual',
-                'secreto'
+                'Secreta1'
             );
 
         $this->crearServicio(null, $recuperar)->actualizar(
             1,
             [
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
                 'contrasena_actual' => 'actual',
             ],
             1,
@@ -499,7 +499,7 @@ final class UsuarioServiceTest extends TestCase
 
         $this->crearServicio()->actualizar(
             1,
-            ['contrasena' => 'secreto'],
+            ['contrasena' => 'Secreta1'],
             1,
             Rol::USUARIO
         );
@@ -533,7 +533,7 @@ final class UsuarioServiceTest extends TestCase
         $this->crearServicio()->actualizar(
             1,
             [
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
                 'contrasena_actual' => 'incorrecta',
             ],
             1,
@@ -565,7 +565,7 @@ final class UsuarioServiceTest extends TestCase
                     static function (array $data): bool {
                         return isset($data['contrasena'])
                             && password_verify(
-                                'nueva123',
+                                'Nueva123',
                                 $data['contrasena']
                             );
                     }
@@ -580,7 +580,7 @@ final class UsuarioServiceTest extends TestCase
 
         $this->crearServicio()->actualizar(
             5,
-            ['contrasena' => 'nueva123'],
+            ['contrasena' => 'Nueva123'],
             99,
             Rol::ADMIN
         );
@@ -1035,7 +1035,7 @@ final class UsuarioServiceTest extends TestCase
                         return $data['nombre'] === 'Ana'
                             && $data['email'] === 'ana@example.com'
                             && password_verify(
-                                'secreto',
+                                'Secreta1',
                                 $data['contrasena']
                             );
                     }
@@ -1056,7 +1056,7 @@ final class UsuarioServiceTest extends TestCase
                 'email' => 'ana@example.com',
                 'telefono' => '123456',
                 'domicilio' => 'Calle 123',
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
                 'rol_id' => Rol::USUARIO,
             ],
             99
@@ -1104,7 +1104,7 @@ final class UsuarioServiceTest extends TestCase
                 'email' => 'ana@example.com',
                 'telefono' => '123456',
                 'domicilio' => 'Calle 123',
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
                 'rol_id' => 99,
             ],
             99
@@ -1137,7 +1137,7 @@ final class UsuarioServiceTest extends TestCase
                 'email' => 'ana@example.com',
                 'telefono' => '123456',
                 'domicilio' => 'Calle 123',
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
                 'rol_id' => Rol::ADMIN,
             ],
             99
@@ -1175,7 +1175,7 @@ final class UsuarioServiceTest extends TestCase
         $servicio->actualizar(
             1,
             [
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
                 'contrasena_actual' => 'actual',
             ],
             1,

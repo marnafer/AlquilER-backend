@@ -62,7 +62,7 @@ final class RecuperarContrasenaValidatorTest extends TestCase
         $resultado = RecuperarContrasenaValidator::validarRestablecer([
             'email' => 'juan@correo.com',
             'token' => 'token-abc123',
-            'contrasena' => 'nuevaclave1',
+            'contrasena' => 'NuevaClave1',
         ]);
 
         $this->assertTrue($resultado['success']);
@@ -73,7 +73,7 @@ final class RecuperarContrasenaValidatorTest extends TestCase
     {
         $resultado = RecuperarContrasenaValidator::validarRestablecer([
             'email' => 'juan@correo.com',
-            'contrasena' => 'nuevaclave1',
+            'contrasena' => 'NuevaClave1',
         ]);
 
         $this->assertFalse($resultado['success']);
@@ -88,7 +88,7 @@ final class RecuperarContrasenaValidatorTest extends TestCase
         $resultado = RecuperarContrasenaValidator::validarRestablecer([
             'email' => 'juan@correo.com',
             'token' => '   ',
-            'contrasena' => 'nuevaclave1',
+            'contrasena' => 'NuevaClave1',
         ]);
 
         $this->assertFalse($resultado['success']);
@@ -108,7 +108,7 @@ final class RecuperarContrasenaValidatorTest extends TestCase
 
         $this->assertFalse($resultado['success']);
         $this->assertSame(
-            ['contrasena' => 'La contraseña debe tener al menos 6 caracteres'],
+            ['contrasena' => 'La contraseña debe tener al menos 8 caracteres'],
             $resultado['errors']
         );
     }
@@ -134,7 +134,7 @@ final class RecuperarContrasenaValidatorTest extends TestCase
         $resultado = RecuperarContrasenaValidator::validarRestablecer([
             'email' => $email,
             'token' => 'token-abc123',
-            'contrasena' => 'nuevaclave1',
+            'contrasena' => 'NuevaClave1',
         ]);
 
         $this->assertFalse($resultado['success']);
@@ -167,7 +167,7 @@ final class RecuperarContrasenaValidatorTest extends TestCase
             [
                 'email' => 'El email no es válido',
                 'token' => 'El token es requerido',
-                'contrasena' => 'La contraseña debe tener al menos 6 caracteres',
+                'contrasena' => 'La contraseña debe tener al menos 8 caracteres',
             ],
             $resultado['errors']
         );

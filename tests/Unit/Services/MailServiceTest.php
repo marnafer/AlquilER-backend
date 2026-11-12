@@ -245,7 +245,7 @@ final class MailServiceTest extends TestCase
             '127.0.0.1',
             $puerto,
             'usuario',
-            'secreto',
+            'Secreta1',
             'emisor@test.com',
             'Emisor',
             'none'
@@ -394,7 +394,7 @@ final class MailServiceTest extends TestCase
                 '127.0.0.1',
                 $puerto,
                 $usuario,
-                $usuario !== null ? 'secreto' : null,
+                $usuario !== null ? 'Secreta1' : null,
                 'emisor@test.com',
                 'Emisor',
                 $encryption
@@ -440,7 +440,7 @@ final class MailServiceTest extends TestCase
         $_ENV['APP_ENV'] = 'production';
 
         try {
-            $token = 'token-secreto-123';
+            $token = 'token-Secreta1-123';
             $mail = new MailService();
 
             $estado = $mail->enviarConEstado(
@@ -485,7 +485,7 @@ final class MailServiceTest extends TestCase
         $_ENV['APP_ENV'] = 'development';
 
         try {
-            $token = 'token-secreto-123';
+            $token = 'token-Secreta1-123';
             $mail = new MailService();
 
             $estado = $mail->enviarConEstado(
@@ -752,7 +752,7 @@ final class MailServiceTest extends TestCase
             '127.0.0.1',
             $puerto,
             'usuario',
-            'secreto',
+            'Secreta1',
             'emisor@test.com',
             'Emisor',
             'tls'

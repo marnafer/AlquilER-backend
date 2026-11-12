@@ -323,7 +323,7 @@ final class UsuarioValidatorTest extends TestCase
             'vacia' => ['', 'La contraseña es requerida'],
             'corta' => [
                 'abcde',
-                'La contraseña debe tener al menos 6 caracteres',
+                'La contraseña debe tener al menos 8 caracteres',
             ],
             'larga' => [
                 str_repeat('a', 256),
@@ -344,8 +344,8 @@ final class UsuarioValidatorTest extends TestCase
     public static function contrasenasValidas(): array
     {
         return [
-            'minima' => ['abc123'],
-            'larga' => [str_repeat('a', 255)],
+            'minima' => ['Secreta12'],
+            'larga' => [str_repeat('A', 254) . '1'],
         ];
     }
 
@@ -357,7 +357,7 @@ final class UsuarioValidatorTest extends TestCase
             'email' => 'ana@mail.com',
             'telefono' => '1122334455',
             'domicilio' => 'Av. Siempreviva 742',
-            'contrasena' => 'secreta1',
+            'contrasena' => 'Secreta1',
         ]);
 
         $this->assertTrue($resultado['success']);
@@ -390,7 +390,7 @@ final class UsuarioValidatorTest extends TestCase
             'email' => 'no-es-email',
             'telefono' => '1122334455',
             'domicilio' => 'Av. Siempreviva 742',
-            'contrasena' => 'secreta1',
+            'contrasena' => 'Secreta1',
         ]);
 
         $this->assertFalse($resultado['success']);
@@ -446,7 +446,7 @@ final class UsuarioValidatorTest extends TestCase
             [
                 'nombre' => 'El nombre debe tener al menos 2 caracteres',
                 'contrasena' =>
-                    'La contraseña debe tener al menos 6 caracteres',
+                    'La contraseña debe tener al menos 8 caracteres',
             ],
             $resultado['errors']
         );
