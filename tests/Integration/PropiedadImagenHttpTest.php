@@ -47,15 +47,24 @@ final class PropiedadImagenHttpTest extends TestCase
         }
 
         // Protección: este test nunca debe escribir en producción.
+        // Los tests de esta clase corren en un proceso separado en el que
+        // PHPUnit no propaga variables_order: la variable llega por el entorno
+        // ($_SERVER/getenv) pero no queda en $_ENV. Se consultan las tres.
+        $variableEntorno = static function (string $nombre): string {
+            $valor = $_ENV[$nombre] ?? $_SERVER[$nombre] ?? getenv($nombre);
+
+            return is_string($valor) ? trim($valor) : '';
+        };
+
         self::assertSame(
             'development',
-            trim((string) ($_ENV['APP_ENV'] ?? '')),
+            $variableEntorno('APP_ENV'),
             'La prueba solo puede ejecutarse con APP_ENV=development.'
         );
 
         self::assertSame(
             'sistema_alquiler_db_dev',
-            trim((string) ($_ENV['DB_DATABASE'] ?? '')),
+            $variableEntorno('DB_DATABASE'),
             'La prueba solo puede ejecutarse sobre sistema_alquiler_db_dev.'
         );
 
