@@ -107,6 +107,12 @@ interesados, ejecutar una vez el script
 
 Si Apache está configurado para utilizar otro puerto, utilizar el puerto correspondiente en la URL.
 
+### Integración y despliegue continuo
+
+El workflow de GitHub Actions ejecuta las pruebas unitarias y PHP Lint. La
+configuración y el procedimiento de CD a AlwaysData, incluidas sus condiciones
+de activación y rollback, están documentados en [docs/CI_CD.md](docs/CI_CD.md).
+
 ### Prueba de carga local
 
 El script `scripts/stress_test.php` ejecuta una prueba escalonada sobre rutas
