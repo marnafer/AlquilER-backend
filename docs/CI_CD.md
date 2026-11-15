@@ -2,28 +2,14 @@
 
 ## Estado
 
-El workflow y el script de despliegue están preparados; CD sigue desactivado
-(`CD_ENABLED` ausente o `false`). El PR #46 está abierto contra `master`.
-PHPUnit, PHP Lint y la simulación de activación y rollback pasaron en GitHub
-Actions; todavía no se ha desplegado una release nueva.
-
-Preparación actual de AlwaysData:
-
-- `~/www/alquiler-backend-cd/` existe. La copia inicial se conserva en
-  `shared-initial-snapshot/`.
-- Los seis targets de `shared/` son symlinks a los datos que usa la aplicación
-  antigua. Es una transición deliberada para no perder logs/uploads escritos
-  durante el cambio; hay que conservar el árbol antiguo mientras `shared`
-  dependa de él.
-- `current` apunta al backend antiguo, como bootstrap y destino de rollback.
-- El DocumentRoot es
-  `/home/alquiler/www/alquiler-backend-cd/current/public`. El health check
-  confirmó que Apache/PHP-FCGI siguen el symlink.
-- El hook `post-receive` está conservado, pero no es ejecutable; se guardó una
-  copia con sufijo `.backup-cd-*`.
-
-No habilitar CD hasta completar la verificación final. El primer `push` a
-`master` con `CD_ENABLED=true` realizará el despliegue real.
+El workflow y el script de despliegue del repositorio están preparados, pero el
+CD **permanece desactivado por defecto**. No se debe establecer la variable
+`CD_ENABLED=true` hasta completar la preparación del servidor, desactivar el
+despliegue actual del hook, configurar DocumentRoot/`current` y verificar los
+respaldos. En AlwaysData ya se creó `~/www/alquiler-backend-cd/` y se copió
+allí una primera instantánea de los datos persistentes. La aplicación activa,
+el hook y el DocumentRoot no se han modificado; antes del cutover habrá que
+sincronizar de nuevo los datos que puedan haber cambiado desde esa copia.
 
 Esta separación permite integrar el código de CI/CD sin que un push a `master`
 intente publicar antes de que el servidor esté listo.
@@ -51,10 +37,10 @@ intente publicar antes de que el servidor esté listo.
 8. CI también ejecuta una prueba aislada del script que simula una activación
    correcta y un health check fallido con rollback; no se conecta a AlwaysData.
 
-El hook `post-receive` anterior publicaba mediante checkout y Composer. Ya está
-deshabilitado para evitar que el `git push` de Actions publique dos veces. Su
-copia de respaldo permite restaurarlo si hay que abortar antes de la primera
-release.
+El hook `post-receive` actual todavía publica mediante checkout y Composer.
+**No activar CD mientras ese hook siga haciendo el deploy**, porque se
+publicaría dos veces. El hook debe convertirse en no-op o retirarse de forma
+coordinada antes de habilitar el job.
 
 ## Runtime de CI
 
@@ -64,9 +50,11 @@ acercar la validación al runtime de producción. PHPUnit es el suite Unit
 existente; el workflow no ejecuta pruebas de integración contra la base de
 producción.
 
-Antes de fusionar el PR, el bare repository confirmó como `master` el commit
-`d7f836a4055393080bfa0ef9d042ea28b8c07bb9`. El hook no es ejecutable. El job
-de Actions actualizará el bare `master` y ejecutará el script por SSH.
+El bare repository de producción confirmó como `master` el commit
+`d7f836a4055393080bfa0ef9d042ea28b8c07bb9`. El hook `post-receive` sigue
+existiendo y es ejecutable; conserva el comportamiento de publicación anterior.
+No se modificó. Debe desactivarse coordinadamente durante el cutover, nunca
+antes de tener preparado y verificado el nuevo camino de despliegue.
 
 ## Rutas del servidor
 
@@ -80,10 +68,11 @@ DocumentRoot actual y dentro de un árbol `www` ya accesible por el sitio:
 └── current -> releases/<sha>
 ```
 
-El DocumentRoot es
-`~/www/alquiler-backend-cd/current/public`. Ya se comprobó el symlink en el
-filesystem y el health check HTTP siguió funcionando después del cambio.
-AlwaysData reporta Apache, `mod_fcgid` y `FollowSymLinks` habilitado.
+El DocumentRoot final propuesto es
+`~/www/alquiler-backend-cd/current/public`. AlwaysData reporta Apache,
+`mod_fcgid` y `FollowSymLinks` habilitado. Aun así, hay que comprobar permisos,
+que el DocumentRoot siga el enlace y que PHP-FCGI funcione allí antes del
+cambio del sitio.
 
 Los targets compartidos que exige el script:
 
@@ -96,12 +85,6 @@ shared/storage/errores.log
 shared/storage/emails.log
 ```
 
-En el primer despliegue estos targets enlazan a las rutas de la instalación
-antigua para que ambas versiones usen el mismo estado mutable. La copia inicial
-permanece en `shared-initial-snapshot/`. No eliminar la instalación antigua ni
-la instantánea; trasladar los datos físicamente a `shared/` debe hacerse por
-separado y con una sincronización controlada.
-
 `storage/cache` permanece dentro de cada release porque es regenerable.
 `storage/performance-dashboard` también es estado local/regenerable del
 mecanismo de captura; el dashboard se usa localmente y no importa sesiones de
@@ -112,9 +95,10 @@ compartido de logs como historial legacy; no se mezcla con
 `storage/logs/production/performance.jsonl`.
 
 No usar `rsync --delete`, `git clean` ni una limpieza recursiva sobre la
-instalación actual. Mantener originales y respaldos hasta validar deploy y
-rollback. Proteger `.env` y logs con permisos privados compatibles con el
-usuario/grupo real de PHP-FCGI.
+instalación actual. Preparar shared copiando los archivos requeridos y
+verificando tamaños/checksums; mantener originales y respaldos hasta validar
+deploy y rollback. Proteger `.env` y logs con permisos privados compatibles con
+el usuario/grupo real de PHP-FCGI.
 
 ## Configuración requerida en GitHub
 
@@ -147,32 +131,35 @@ privada o el contenido de `.env` en logs, issues o conversaciones.
 1. Confirmar con soporte/una prueba aislada que Apache sirve
    `current/public` mediante symlink y ejecuta PHP-FCGI en su destino.
 2. Confirmado por SSH: PHP 8.4.27, Composer 2.9.8 y los comandos `git`, `tar`,
-   `curl` y `xargs`. El primer workflow verificará la autenticación no
-   interactiva y la disponibilidad de estos comandos antes de activar una
-   release. El script usa Composer/PHP CLI del servidor.
+   `curl` y `xargs`. Antes del cutover, comprobar también que Actions pueda
+   ejecutar esos comandos en una sesión SSH no interactiva. El script usa
+   Composer/PHP CLI del servidor.
 3. Respaldar la instalación activa, `.env`, `debug.log`, uploads, logs actuales
    y legacy, `errores.log`, `emails.log` y el hook actual. No mostrar
    contenidos sensibles.
-4. **Completado:** crear `~/www/alquiler-backend-cd/releases` y `shared`.
-   Conservar la copia inicial en `shared-initial-snapshot/`; los targets vivos
-   de `shared/` son symlinks a los datos antiguos para que escrituras
-   concurrentes no se pierdan.
+4. **Completado inicialmente:** crear `~/www/alquiler-backend-cd/releases` y
+   `shared` y copiar el estado persistente sin borrar ni sobrescribir el árbol
+   activo:
+   - `.env` y `debug.log`;
+   - `public/uploads/`;
+   - todo `storage/logs/`, incluidos locks y archivos actuales/legacy;
+   - `storage/errores.log` y `storage/emails.log`.
 5. Mantener `storage/cache` fuera de shared. No trasladar
    `public/storage/cache` (directorio legacy sin uso detectado) ni el estado de
    sesiones del dashboard.
-6. **Completado:** `current` apunta a la aplicación anterior y sirve como
-   destino de rollback.
-7. **Completado:** el PR #46 pasa los checks. La nueva release se verificará
-   mediante el primer deploy real, no antes de apuntar el DocumentRoot a
-   `current/public`.
-8. **Completado:** DocumentRoot usa
-   `~/www/alquiler-backend-cd/current/public`; el health check funciona. Si una
-   verificación posterior falla, volver al DocumentRoot anterior.
-9. **Completado:** `post-receive` se conservó como copia, pero se retiró su bit
-   ejecutable. No reactivarlo al habilitar Actions.
-10. **Completado salvo activación:** secrets y variables del Environment
-    `production` están configurados. Mantener `CD_ENABLED` desactivada hasta
-    estar listo para fusionar el PR #46 y desplegar.
+6. Inicializar `current` a un árbol productivo que ya funcione y que sirva
+   como destino anterior para rollback. No apuntar DocumentRoot a un `current`
+   inexistente.
+7. Preparar/revisar el script, permisos, dependencias y release candidata sin
+   activar tráfico.
+8. Hacer una ventana de cambio: cambiar DocumentRoot a
+   `~/www/alquiler-backend-cd/current/public`, comprobar el sitio y, ante
+   cualquier fallo, volver al DocumentRoot previo.
+9. Desactivar el comportamiento de deploy del `post-receive`, conservando una
+   copia verificable. El hook existe y es ejecutable en el estado actual. No
+   dejar dos mecanismos de publicación activos.
+10. Solo después de validar lo anterior, configurar los secrets/variables
+    GitHub y activar `CD_ENABLED=true`.
 
 Como no hay staging, el primer cambio real es directamente en producción.
 Programarlo, verificar copias y rollback, no incluir migraciones de base de
