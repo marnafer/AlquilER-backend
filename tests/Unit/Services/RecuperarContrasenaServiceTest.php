@@ -497,7 +497,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
                         && $data['usado'] === 0
                         && isset($data['contrasena_temporal'])
                         && password_verify(
-                            'nueva123',
+                            'Nueva123',
                             $data['contrasena_temporal']
                         );
                 }
@@ -527,7 +527,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
         $servicio->solicitarCambioDesdePerfil(
             $usuario,
             'actual',
-            'nueva123'
+            'Nueva123'
         );
     }
 
@@ -564,13 +564,13 @@ final class RecuperarContrasenaServiceTest extends TestCase
         $servicio->solicitarCambioDesdePerfil(
             $usuario,
             'incorrecta',
-            'nueva123'
+            'Nueva123'
         );
     }
 
     public function test_confirmar_cambio_aplica_la_contrasena_guardada_y_marca_usado(): void
     {
-        $hashNuevo = password_hash('nueva123', PASSWORD_DEFAULT);
+        $hashNuevo = password_hash('Nueva123', PASSWORD_DEFAULT);
 
         $usuario = new Usuario();
         $usuario->id = 10;
@@ -650,7 +650,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
             'token' => 'token-valido',
             'expiracion' => date('Y-m-d H:i:s', time() + 3600),
             'usado' => 1,
-            'contrasena_temporal' => password_hash('nueva123', PASSWORD_DEFAULT),
+            'contrasena_temporal' => password_hash('Nueva123', PASSWORD_DEFAULT),
         ]);
         $registro->id = 1;
 
@@ -729,7 +729,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
             'token' => 'token-valido',
             'expiracion' => date('Y-m-d H:i:s', time() - 3600),
             'usado' => 0,
-            'contrasena_temporal' => password_hash('nueva123', PASSWORD_DEFAULT),
+            'contrasena_temporal' => password_hash('Nueva123', PASSWORD_DEFAULT),
         ]);
         $registro->id = 1;
 
@@ -799,7 +799,7 @@ final class RecuperarContrasenaServiceTest extends TestCase
             'token' => 'token-valido',
             'expiracion' => date('Y-m-d H:i:s', time() + 3600),
             'usado' => 0,
-            'contrasena_temporal' => password_hash('nueva123', PASSWORD_DEFAULT),
+            'contrasena_temporal' => password_hash('Nueva123', PASSWORD_DEFAULT),
         ]);
         $registro->id = 1;
 

@@ -77,11 +77,28 @@ final class GestorArchivosLocalesCoverageTest extends TestCase
         $gestor->upload($this->temporal, $this->directory);
     }
 
+    public function test_delete_elimina_tambien_el_webp(): void
+    {
+        $ruta = '/coverage-delete-ok.jpg';
+        $fisica = dirname(__DIR__, 3) . '/public' . $ruta;
+        $webp = preg_replace('/\.jpg$/i', '.webp', $fisica);
+        file_put_contents($fisica, 'x');
+        file_put_contents($webp, 'x');
+
+        $gestor = new GestorArchivosLocales();
+
+        $gestor->delete($ruta);
+
+        $this->assertFileDoesNotExist($fisica);
+        $this->assertFileDoesNotExist($webp);
+    }
+
     public function test_delete_falla_si_no_se_puede_eliminar(): void
     {
         $ruta = '/coverage-delete.jpg';
         $fisica = dirname(__DIR__, 3) . '/public' . $ruta;
         file_put_contents($fisica, 'x');
+        file_put_contents(preg_replace('/\.jpg$/i', '.webp', $fisica), 'x');
 
         $gestor = new class extends GestorArchivosLocales {
             protected function deleteFile(string $path): bool
@@ -95,6 +112,7 @@ final class GestorArchivosLocalesCoverageTest extends TestCase
             $gestor->delete($ruta);
         } finally {
             @unlink($fisica);
+            @unlink(preg_replace('/\.jpg$/i', '.webp', $fisica));
         }
     }
 }

@@ -44,6 +44,9 @@ class Debugger {
         ];
         
         $logLine = json_encode($logEntry, JSON_UNESCAPED_UNICODE) . PHP_EOL;
+
+        self::rotarSiCorresponde(self::getLogFile());
+
         file_put_contents(self::getLogFile(), $logLine, FILE_APPEND);
     }
     
@@ -152,6 +155,41 @@ class Debugger {
         ];
     }
     
+    private const MAX_BYTES = 5 * 1024 * 1024;
+    private const MAX_BACKUPS = 3;
+
+    private static function rotarSiCorresponde(string $archivo): void
+    {
+        // @codeCoverageIgnoreStart
+        if (!is_file($archivo)) {
+            return;
+        }
+
+        $tamano = @filesize($archivo);
+
+        if ($tamano === false || $tamano < self::MAX_BYTES) {
+            return;
+        }
+
+        for ($generation = self::MAX_BACKUPS; $generation >= 1; $generation--) {
+            $source = $generation === 1
+                ? $archivo
+                : $archivo . '.' . ($generation - 1);
+            $destination = $archivo . '.' . $generation;
+
+            if (!is_file($source)) {
+                continue;
+            }
+
+            if (is_file($destination)) {
+                @unlink($destination);
+            }
+
+            @rename($source, $destination);
+        }
+        // @codeCoverageIgnoreEnd
+    }
+
     /**
      * Limpiar archivo de log
      */

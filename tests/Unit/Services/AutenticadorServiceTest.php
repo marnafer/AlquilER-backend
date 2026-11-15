@@ -27,7 +27,7 @@ final class AutenticadorServiceTest extends TestCase
     {
         $usuario = new Usuario([
             'email' => 'ana@example.com',
-            'contrasena' => password_hash('secreto', PASSWORD_DEFAULT),
+            'contrasena' => password_hash('Secreta1', PASSWORD_DEFAULT),
         ]);
 
         $usuario->id = 7;
@@ -98,7 +98,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $resultado = $service->login([
             'email' => ' ANA@EXAMPLE.COM ',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
 
         $this->assertSame([
@@ -112,7 +112,7 @@ final class AutenticadorServiceTest extends TestCase
     {
         $usuario = new Usuario([
             'email' => 'admin@example.com',
-            'contrasena' => password_hash('secreto', PASSWORD_DEFAULT),
+            'contrasena' => password_hash('Secreta1', PASSWORD_DEFAULT),
         ]);
 
         $usuario->id = 2;
@@ -175,7 +175,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $resultado = $service->login([
             'email' => 'admin@example.com',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
 
         $this->assertSame(2, $resultado['rol_id']);
@@ -233,7 +233,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $service->login([
             'email' => 'ana@example.com',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
     }
 
@@ -304,7 +304,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $service->login([
             'email' => 'email-invalido',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
     }
 
@@ -313,7 +313,7 @@ final class AutenticadorServiceTest extends TestCase
         $usuario = new Usuario([
             'email' => 'ana@example.com',
             'contrasena' => password_hash(
-                'secreto-correcto',
+                'Secreta1-correcto',
                 PASSWORD_DEFAULT
             ),
         ]);
@@ -371,7 +371,7 @@ final class AutenticadorServiceTest extends TestCase
 
         $service->login([
             'email' => 'ana@example.com',
-            'contrasena' => 'secreto-incorrecto',
+            'contrasena' => 'Secreta1-incorrecto',
         ]);
     }
 
@@ -407,7 +407,7 @@ final class AutenticadorServiceTest extends TestCase
         try {
             $service->login([
                 'email' => 123456,
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
             ]);
 
             $this->fail('Se esperaba una ValidationException');
@@ -469,9 +469,9 @@ final class AutenticadorServiceTest extends TestCase
                         && $data['telefono'] === '11 1234-5678'
                         && $data['domicilio'] === 'Av. Siempre Viva 123'
                         && isset($data['contrasena'])
-                        && $data['contrasena'] !== 'secreto'
+                        && $data['contrasena'] !== 'Secreta1'
                         && password_verify(
-                            'secreto',
+                            'Secreta1',
                             $data['contrasena']
                         )
                         && !isset($data['rol_id'])
@@ -500,7 +500,7 @@ final class AutenticadorServiceTest extends TestCase
             'email' => ' ANA@EXAMPLE.COM ',
             'telefono' => '11 1234-5678',
             'domicilio' => ' Av. Siempre Viva 123 ',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
             'rol_id' => 2,
         ]);
 
@@ -567,7 +567,7 @@ final class AutenticadorServiceTest extends TestCase
             'email' => 'usuario@example.com',
             'telefono' => '11 1234-5678',
             'domicilio' => 'Av. Siempre Viva 123',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
             'rol_id' => 2,
         ]);
 
@@ -629,7 +629,7 @@ final class AutenticadorServiceTest extends TestCase
             'email' => 'dueno@example.com',
             'telefono' => '11 1234-5678',
             'domicilio' => 'Av. Siempre Viva 123',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
             'rol' => 'propietario',
         ]);
 
@@ -691,7 +691,7 @@ final class AutenticadorServiceTest extends TestCase
             'email' => 'usuario@example.com',
             'telefono' => '11 1234-5678',
             'domicilio' => 'Av. Siempre Viva 123',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
             'rol_id' => 999,
         ]);
 
@@ -779,7 +779,7 @@ final class AutenticadorServiceTest extends TestCase
             'email' => 'ana@example.com',
             'telefono' => '11 1234-5678',
             'domicilio' => 'Av. Siempre Viva 123',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
     }
 

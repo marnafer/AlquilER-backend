@@ -14,7 +14,7 @@ final class AutenticadorValidatorTest extends TestCase
     {
         $resultado = AutenticadorValidator::validarLogin([
             'email' => 'juan@correo.com',
-            'contrasena' => 'secreta123',
+            'contrasena' => 'Secreta123',
         ]);
 
         $this->assertTrue($resultado['success']);
@@ -25,7 +25,7 @@ final class AutenticadorValidatorTest extends TestCase
     {
         $resultado = AutenticadorValidator::validarLogin([
             'email' => null,
-            'contrasena' => 'secreta123',
+            'contrasena' => 'Secreta123',
         ]);
 
         $this->assertFalse($resultado['success']);
@@ -41,7 +41,7 @@ final class AutenticadorValidatorTest extends TestCase
     ): void {
         $resultado = AutenticadorValidator::validarLogin([
             'email' => $email,
-            'contrasena' => 'secreta123',
+            'contrasena' => 'Secreta123',
         ]);
 
         $this->assertFalse($resultado['success']);
@@ -94,7 +94,7 @@ final class AutenticadorValidatorTest extends TestCase
     {
         return [
             'entero' => [123456],
-            'arreglo' => [['secreta123']],
+            'arreglo' => [['Secreta123']],
         ];
     }
 

@@ -280,10 +280,10 @@ class UsuarioValidator
 
         $len = mb_strlen($contrasena);
 
-        if ($len < 6) {
+        if ($len < 8) {
             return [
                 'success' => false,
-                'error' => 'La contraseña debe tener al menos 6 caracteres'
+                'error' => 'La contraseña debe tener al menos 8 caracteres'
             ];
         }
 
@@ -291,6 +291,20 @@ class UsuarioValidator
             return [
                 'success' => false,
                 'error' => 'La contraseña no puede exceder los 255 caracteres'
+            ];
+        }
+
+        if (!preg_match('/[A-Z]/', $contrasena)) {
+            return [
+                'success' => false,
+                'error' => 'La contraseña debe contener al menos una mayúscula'
+            ];
+        }
+
+        if (!preg_match('/[0-9]/', $contrasena)) {
+            return [
+                'success' => false,
+                'error' => 'La contraseña debe contener al menos un número'
             ];
         }
 

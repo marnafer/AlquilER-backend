@@ -257,6 +257,41 @@ class MailService implements EnviadorCorreoInterface
         return quoted_printable_encode(rtrim($texto));
     }
 
+    private const MAX_BYTES = 5 * 1024 * 1024;
+    private const MAX_BACKUPS = 3;
+
+    private static function rotarSiCorresponde(string $archivo): void
+    {
+        // @codeCoverageIgnoreStart
+        if (!is_file($archivo)) {
+            return;
+        }
+
+        $tamano = @filesize($archivo);
+
+        if ($tamano === false || $tamano < self::MAX_BYTES) {
+            return;
+        }
+
+        for ($generation = self::MAX_BACKUPS; $generation >= 1; $generation--) {
+            $source = $generation === 1
+                ? $archivo
+                : $archivo . '.' . ($generation - 1);
+            $destination = $archivo . '.' . $generation;
+
+            if (!is_file($source)) {
+                continue;
+            }
+
+            if (is_file($destination)) {
+                @unlink($destination);
+            }
+
+            @rename($source, $destination);
+        }
+        // @codeCoverageIgnoreEnd
+    }
+
     private function guardarEnLog(
         string $to,
         string $subject,
@@ -293,6 +328,8 @@ class MailService implements EnviadorCorreoInterface
             @mkdir($directorio, 0777, true);
             // @codeCoverageIgnoreEnd
         }
+
+        self::rotarSiCorresponde($archivo);
 
         $guardado = @file_put_contents($archivo, $linea, FILE_APPEND) !== false;
 

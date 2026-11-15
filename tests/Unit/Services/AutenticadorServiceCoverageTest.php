@@ -22,7 +22,7 @@ final class AutenticadorServiceCoverageTest extends TestCase
     {
         $usuario = new Usuario([
             'email' => 'ana@example.com',
-            'contrasena' => password_hash('secreto', PASSWORD_DEFAULT),
+            'contrasena' => password_hash('Secreta1', PASSWORD_DEFAULT),
         ]);
         $usuario->id = 7;
         $usuario->rol_id = 1;
@@ -51,7 +51,7 @@ final class AutenticadorServiceCoverageTest extends TestCase
 
         $service->login([
             'email' => 'ana@example.com',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
     }
 
@@ -88,7 +88,7 @@ final class AutenticadorServiceCoverageTest extends TestCase
             'email' => 'ana@example.com',
             'telefono' => '11 1234-5678',
             'domicilio' => 'Av. Siempre Viva 123',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
 
         $this->assertSame($usuario, $resultado);
@@ -129,7 +129,7 @@ final class AutenticadorServiceCoverageTest extends TestCase
             'email' => 'ana@example.com',
             'telefono' => '11 1234-5678',
             'domicilio' => 'Av. Siempre Viva 123',
-            'contrasena' => 'secreto',
+            'contrasena' => 'Secreta1',
         ]);
     }
 
@@ -170,7 +170,7 @@ final class AutenticadorServiceCoverageTest extends TestCase
                 'email' => 'ana@example.com',
                 'telefono' => '11 1234-5678',
                 'domicilio' => 'Av. Siempre Viva 123',
-                'contrasena' => 'secreto',
+                'contrasena' => 'Secreta1',
             ]);
         } finally {
             if ($previousEnv === null) {
