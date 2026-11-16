@@ -25,13 +25,23 @@ jobs:
         with:
           php-version: '8.4'
           extensions: pdo, pdo_mysql, gd, mbstring, xml
-          coverage: none
+          coverage: xdebug
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Run unit tests
-        run: composer test:unit
+      - name: Run unit tests with coverage
+        run: |
+          mkdir -p coverage
+          XDEBUG_MODE=coverage composer test:unit -- --coverage-text --coverage-html=coverage/html --coverage-clover=coverage/clover.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-coverage-${{ github.sha }}
+          path: coverage/
+          if-no-files-found: warn
 
   lint:
     name: PHP Lint

@@ -329,6 +329,10 @@ final class UsuarioValidatorTest extends TestCase
                 str_repeat('a', 256),
                 'La contraseña no puede exceder los 255 caracteres',
             ],
+            'sin_mayuscula_acentuada' => [
+                'ñandu1234',
+                'La contraseña debe contener al menos una mayúscula',
+            ],
         ];
     }
 
@@ -346,6 +350,9 @@ final class UsuarioValidatorTest extends TestCase
         return [
             'minima' => ['Secreta12'],
             'larga' => [str_repeat('A', 254) . '1'],
+            'mayuscula_acentuada' => ['Árbol1234'],
+            'enie_mayuscula' => ['Ñandu1234'],
+            'dieresis_mayuscula' => ['Über1234'],
         ];
     }
 
