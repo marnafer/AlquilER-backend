@@ -210,6 +210,8 @@ class MailService implements EnviadorCorreoInterface
 
         $headers = [];
         $headers[] = 'From: ' . $this->encabezado($fromName) . ' <' . $from . '>';
+        $headers[] = 'To: <' . $this->encabezado($to) . '>';
+        $headers[] = 'Subject: ' . $this->codificarAsunto($subject);
 
         if ($replyTo !== null && trim($replyTo) !== '') {
             $headers[] = 'Reply-To: <' . trim($replyTo) . '>';
@@ -238,6 +240,22 @@ class MailService implements EnviadorCorreoInterface
             '',
             trim($valor)
         );
+    }
+
+    /**
+     * Codifica el asunto segun RFC 2047 cuando tiene caracteres no ASCII.
+     * Los clientes SMTP (Resend incluido) rechazan el mensaje si falta la
+     * cabecera Subject.
+     */
+    private function codificarAsunto(string $asunto): string
+    {
+        $asunto = trim(str_replace(["\r", "\n"], '', $asunto));
+
+        if ($asunto !== '' && preg_match('/[^\x20-\x7E]/', $asunto) === 1) {
+            return '=?UTF-8?B?' . base64_encode($asunto) . '?=';
+        }
+
+        return $asunto;
     }
 
     private function textoAPlain(string $textPlain, string $htmlBody): string

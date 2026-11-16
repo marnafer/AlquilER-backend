@@ -294,7 +294,9 @@ class UsuarioValidator
             ];
         }
 
-        if (!preg_match('/[A-Z]/', $contrasena)) {
+        // Se consideran mayúsculas Unicode (A-Z, Á, É, Í, Ó, Ú, Ü, Ñ,
+        // y cualquier otra letra en mayúscula de otros alfabetos).
+        if (!preg_match('/\p{Lu}/u', $contrasena)) {
             return [
                 'success' => false,
                 'error' => 'La contraseña debe contener al menos una mayúscula'
