@@ -743,6 +743,87 @@ final class MailServiceTest extends TestCase
         );
     }
 
+    public function test_construir_mime_incluye_destinatario_y_asunto(): void
+    {
+        $mail = new MailService(
+            null,
+            null,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor'
+        );
+
+        $metodo = new \ReflectionMethod($mail, 'construirMime');
+        $mime = (string) $metodo->invoke(
+            $mail,
+            'destino@test.com',
+            'Verifica tu cuenta',
+            '<p>Hola</p>',
+            'Hola',
+            null
+        );
+
+        $this->assertStringContainsString("To: <destino@test.com>\r\n", $mime);
+        $this->assertStringContainsString("Subject: Verifica tu cuenta\r\n", $mime);
+    }
+
+    public function test_construir_mime_codifica_asunto_no_ascii(): void
+    {
+        $mail = new MailService(
+            null,
+            null,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor'
+        );
+
+        $metodo = new \ReflectionMethod($mail, 'construirMime');
+        $mime = (string) $metodo->invoke(
+            $mail,
+            'destino@test.com',
+            'Verificación de cuenta',
+            '<p>Hola</p>',
+            'Hola',
+            null
+        );
+
+        $esperado = 'Subject: =?UTF-8?B?'
+            . base64_encode('Verificación de cuenta')
+            . '?=';
+
+        $this->assertStringContainsString($esperado, $mime);
+    }
+
+    public function test_construir_mime_elimina_saltos_de_linea_del_asunto(): void
+    {
+        $mail = new MailService(
+            null,
+            null,
+            null,
+            null,
+            'emisor@test.com',
+            'Emisor'
+        );
+
+        $metodo = new \ReflectionMethod($mail, 'construirMime');
+        $mime = (string) $metodo->invoke(
+            $mail,
+            'destino@test.com',
+            "Asunto\r\nBcc: copia@test.com",
+            '<p>Hola</p>',
+            'Hola',
+            null
+        );
+
+        $this->assertStringNotContainsString("\r\nBcc:", $mime);
+        $this->assertStringContainsString(
+            'Subject: AsuntoBcc: copia@test.com',
+            $mime
+        );
+    }
+
     public function test_autentica_cuando_starttls_no_esta_disponible(): void
     {
         $puerto = $this->puertoLibre();
