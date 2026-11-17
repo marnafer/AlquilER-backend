@@ -22,8 +22,10 @@ intente publicar antes de que el servidor esté listo.
 3. Solo un `push` a `master` puede satisfacer la condición del job `Deploy`.
 4. El job depende de PHPUnit y PHP Lint. Además exige que la variable de
    entorno GitHub `CD_ENABLED` sea exactamente `true`.
-5. Actions envía el SHA exacto de GitHub al bare repository de AlwaysData por
-   SSH.
+5. Actions hace checkout del historial completo para que el commit aprobado
+   conserve su relación de ancestros y pueda actualizar `master` de AlwaysData
+   mediante fast-forward. Luego envía el SHA exacto de GitHub al bare repository
+   por SSH.
 6. Actions transmite `scripts/deploy/alwaysdata-release.sh` por SSH. El script
    comprueba que el SHA sea el `master` recibido, prepara una release nueva,
    instala dependencias, comprueba los requisitos de plataforma y la sintaxis
