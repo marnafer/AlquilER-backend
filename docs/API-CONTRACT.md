@@ -1,297 +1,200 @@
-# Documentacion — API Contract AlquilER
-
-> Documento operativo unificado. Contiene las reglas generales y la referencia rápida de todos los endpoints del sistema.
-
----
-
-## 1. Información General
-* **Sistema:** AlquilER (Gestión y alquiler de propiedades).
-* **Roles (`rol_id`):** `1` (Usuario) y `2` (Administrador). 
-* **Regla de Negocio Base:** El rol no determina si es propietario o inquilino. Un mismo usuario puede publicar, alquilar, reservar y reseñar sin necesidad de cuentas separadas.
-
-## 2. Autenticación y Formato
-* **Formato:** JSON, UTF-8. Métodos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
-* **Seguridad:** Tokens JWT requeridos en endpoints protegidos.
-* **Header requerido:** `Authorization: Bearer {token}`
-
-### Cuerpo de las solicitudes
-
-Las solicitudes que reciben datos deben utilizar:
-
-```http
-Content-Type: application/json
-```
-
-El cuerpo debe ser un objeto JSON válido.
-
-* Cuerpo vacío o ausente: `400 Bad Request`.
-* JSON mal formado: `400 Bad Request`.
-* JSON válido pero con campos faltantes o inválidos: `422 Unprocessable Entity`.
-
-## 3. Convenciones de Respuesta y Arquitectura
-
-Todas las respuestas de la API utilizan formato JSON y mantienen una estructura uniforme.
-
-### Respuestas exitosas
-
-Las operaciones exitosas utilizan:
-
-* `success: true` para indicar que la operación terminó correctamente.
-* `data` para contener el resultado de la operación.
-* `message` de forma opcional para informar el resultado al cliente.
-
-En respuestas de colecciones, `data` contiene:
-
-* `items`: registros obtenidos.
-* `total`: cantidad total de registros.
-
-Las operaciones de creación utilizan `201 Created`. Las consultas, actualizaciones, eliminaciones y demás operaciones exitosas utilizan `200 OK`.
-
-### Respuestas de error
-
-Las operaciones fallidas utilizan:
-
-* `success: false` para indicar que la operación no pudo completarse.
-* `error` para describir el motivo general del error.
-* `validation_errors` opcionalmente, cuando el error corresponde a datos inválidos o incompletos.
-
-Cada campo dentro de `validation_errors` contiene un arreglo de mensajes,
-incluso cuando solo existe un error.
-
-Ejemplo de respuesta de validación:
-
-{
-  "success": false,
-  "error": "Error de validación",
-  "validation_errors": {
-    "id": ["El ID de servicio es requerido"],
-    "nombre": ["El nombre del servicio es requerido"]
-  }
-}
-
-### Códigos HTTP
-
-* `200 OK`: operación exitosa.
-* `201 Created`: recurso creado correctamente.
-* `204 No Content`: operación exitosa sin contenido de respuesta.
-* `400 Bad Request`: solicitud mal formada, cuerpo vacío o JSON inválido.
-* `401 Unauthorized`: falta autenticación o el token no es válido.
-* `403 Forbidden`: el usuario está autenticado, pero no tiene permisos suficientes.
-* `404 Not Found`: recurso inexistente o eliminado.
-* `405 Method Not Allowed`: método HTTP no permitido para la ruta.
-* `409 Conflict`: conflicto con el estado actual o restricciones de integridad.
-* `422 Unprocessable Entity`: datos válidos en formato, pero incorrectos según las reglas de negocio.
-* `500 Internal Server Error`: error inesperado del servidor.
-
-**Arquitectura de Eliminación:**
-* **SoftDeletes:** Aplicado por defecto a entidades principales (Usuarios, Propiedades, Categorías, Reservas, etc.). Las peticiones `GET` públicas excluyen registros eliminados automáticamente.
-* **Eliminación Física:** Usada estrictamente en Relaciones Intermedias (ej. Propiedad-Servicio), Favoritos y Reseñas.
-
-### Convención de actualización por entidad
-
-Las entidades con actualizaciones no parciales siguen el mismo patrón de validación y sanitización:
-
-* El ID del recurso se valida desde la URL y no se recibe como campo del *body*.
-* El *payload* recibido se filtra para los campos permitidos.
-* El nombre o datos de la entidad se sanitizan antes de validarse.
-* La validación se realiza sobre el *payload* ya normalizado.
-* La comprobación de conflictos de negocio se realiza luego de la validación.
-
-Este patrón aplica a entidades como **Categoría**, **Provincia**, **Localidad**, **Servicio** y **Rol**.
-
-Las actualizaciones parciales solo se permiten en casos donde la entidad admite cambios selectivos, como **Usuario** y **Propiedad**. En esos casos se usa un validador específico para actualización parcial y se restringen los campos modificables.
-
-**Regla general:**
-* Entidad "no parcial" → validador normal
-* Entidad "parcial" → validador específico
-
----
-
-## 4. Autenticador
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `POST /api/autenticador/login` | Inicia sesión. | No | • Emite JWT; • credenciales inválidas => `401` |
-| `POST /api/autenticador/register` | Registra usuario. | No | • Email único; • rol por defecto: usuario |
-| `POST /api/autenticador/logout` | Cierra sesión. | Sí - Usuario | • Requiere JWT válido |
-
----
-
-## 5. Usuarios
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/usuarios` | Lista usuarios. | Sí - Admin | • Solo admin; • no expone password |
-| `GET /api/usuarios/{id}` | Consulta un usuario. | Sí - Usr/Admin | • Usuario solo ve su perfil; • admin ve todos |
-| `GET /api/usuarios/me` | Devuelve usuario actual. | Sí - Usuario | • Identifica por JWT |
-| `PUT /api/usuarios/{id}` | Actualiza datos. | Sí - Usr/Admin | • Admite actualización parcial o total; • no permite cambiar `rol_id`; • email único |
-| `DELETE /api/usuarios/{id}` | Elimina usuario. | Sí - Usr/Admin | • SoftDeletes; • propio o admin |
-| `POST /api/usuarios/{id}/restaurar` | Restaura usuario. | Sí - Admin | • SoftDeletes; • solo admin |
-**Actualización de usuarios:** El endpoint `PUT /api/usuarios/{id}` admite actualizaciones parciales y totales. Los campos omitidos conservan su valor actual. El campo `rol_id` no puede modificarse.
----
-
-## 6. Propiedades
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/propiedades` | Lista propiedades paginadas. | No | • Excluye SoftDeletes; • filtros opcionales; • usa `page` y `per_page` (1-50, predeterminado 10); • incluye `imagen_url` de portada, sin colecciones de imágenes o servicios |
-| `GET /api/propiedades/{id}` | Consulta propiedad. | No | • `id` positivo; • eliminadas devuelven `404` |
-| `POST /api/propiedades` | Crea propiedad. | Sí - Usuario | • `usuario_id` tomado del JWT |
-| `PUT /api/propiedades/{id}` | Actualiza propiedad. | Sí - Usr/Admin | • Solo dueño o admin; • no modifica `usuario_id` |
-| `DELETE /api/propiedades/{id}` | Elimina propiedad. | Sí - Usr/Admin | • SoftDeletes; • solo dueño o admin |
-| `POST /api/propiedades/{id}/restaurar`| Restaura propiedad. | Sí - Usr/Admin | • SoftDeletes; • solo dueño o admin |
-
----
-
-El listado devuelve una sola `imagen_url` por propiedad: prioriza la imagen
-principal y, si no existe, usa la imagen de menor ID. Para obtener todas las
-imágenes y servicios se debe consultar el detalle `GET /api/propiedades/{id}`.
-
-## 7. Imágenes de propiedades
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/propiedad-imagenes` | Lista imágenes. | No | • Excluye imágenes de propiedades eliminadas |
-| `GET /api/propiedad-imagenes/{id}` | Consulta imagen. | No | • `id` positivo |
-| `POST /api/propiedad-imagenes` | Crea imagen. | Sí - Usr/Admin | • Una sola imagen principal por propiedad |
-| `PUT /.../{id}/principal` | Define principal. | Sí - Usr/Admin | • Desactiva la principal anterior |
-| `DELETE /api/propiedad-imagenes/{id}`| Elimina imagen. | Sí - Usr/Admin | • Si era principal, queda sin principal |
-
----
-
-## 8. Categorías
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/categorias` | Lista categorías. | No | • Excluye SoftDeletes |
-| `GET /api/categorias/{id}` | Consulta categoría. | No | • Eliminadas devuelven `404` |
-| `POST /api/categorias` | Crea categoría. | Sí - Admin | • Unicidad por nombre |
-| `PUT /api/categorias/{id}` | Actualiza categoría. | Sí - Admin | • No modifica `id`; • evita duplicados |
-| `DELETE /api/categorias/{id}` | Elimina categoría. | Sí - Admin | • `409 Conflict` si tiene propiedades; • SoftDeletes |
-| `POST /api/categorias/{id}/restaurar` | Restaura categoría. | Sí - Admin | • SoftDeletes |
-
----
-
-## 9. Provincias
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/provincias` | Lista provincias. | No | • Excluye SoftDeletes |
-| `GET /api/provincias/{id}` | Consulta provincia. | No | • Eliminadas devuelven `404` |
-| `POST /api/provincias` | Crea provincia. | Sí - Admin | • Unicidad por nombre |
-| `PUT /api/provincias/{id}` | Actualiza provincia. | Sí - Admin | • Admite actualización parcial |
-| `DELETE /api/provincias/{id}` | Elimina provincia. | Sí - Admin | • `409 Conflict` si tiene localidades; • SoftDeletes |
-| `POST /api/provincias/{id}/restaurar` | Restaura provincia. | Sí - Admin | • SoftDeletes |
-
----
-
-## 10. Localidades
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/localidades` | Lista localidades. | No | • Filtro opcional por `provincia_id` |
-| `GET /api/localidades/{id}` | Consulta localidad. | No | • Eliminadas devuelven `404` |
-| `POST /api/localidades` | Crea localidad. | Sí - Admin | • Unicidad dentro de la misma provincia |
-| `PUT /api/localidades/{id}` | Actualiza localidad. | Sí - Admin | • `provincia_id` debe existir y estar activa |
-| `DELETE /api/localidades/{id}` | Elimina localidad. | Sí - Admin | • `409 Conflict` si tiene propiedades; • SoftDeletes |
-| `POST /api/localidades/{id}/restaurar`| Restaura localidad. | Sí - Admin | • `409 Conflict` si su provincia está eliminada |
-
----
-
-## 11. Roles
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/roles` | Lista roles. | No | • Excluye SoftDeletes |
-| `GET /api/roles/{id}` | Consulta un rol. | No | • Eliminados devuelven `404` |
-| `POST /api/roles` | Crea rol. | Sí - Admin | • Nombre no debe existir en activos |
-| `PUT /api/roles/{id}` | Actualiza rol. | Sí - Admin | • Evita conflictos de nombre |
-| `DELETE /api/roles/{id}` | Elimina rol. | Sí - Admin | • `409 Conflict` si tiene usuarios; • SoftDeletes |
-| `POST /api/roles/{id}/restaurar` | Restaura rol. | Sí - Admin | • `409 Conflict` si hay rol activo con mismo nombre |
-
----
-
-## 12. Favoritos
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/favoritos` | Lista favs del usuario. | Sí - Usuario | • Excluye propiedades eliminadas |
-| `POST /api/favoritos` | Agrega a favoritos. | Sí - Usuario | • `usuario_id` del JWT; • `409 Conflict` si ya existe |
-| `DELETE /api/favoritos/prop/{id}` | Quita de favoritos. | Sí - Usuario | • Eliminación FÍSICA de la relación |
-| `GET /api/usuarios/{id}/favoritos` | Consulta favs de otro. | Sí - Usr/Admin | • Admin ve todos, usuario solo los suyos |
-
----
-
-## 13. Consultas
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/consultas` | Lista consultas. | Sí - Usr/Admin | • Usuario ve emitidas/recibidas; • SoftDeletes |
-| `GET /api/consultas/{id}` | Consulta específica. | Sí - Usr/Admin | • Permisos por autor/propietario/admin |
-| `POST /api/consultas` | Crea consulta. | Sí - Usuario | • `usuario_id` del JWT |
-| `PUT /api/consultas/{id}` | Actualiza mensaje. | Sí - Usr/Admin | • Solo autor o admin |
-| `DELETE /api/consultas/{id}` | Elimina consulta. | Sí - Usr/Admin | • SoftDeletes; • no elimina propiedad ni usuario |
-| `POST /api/consultas/{id}/restaurar`| Restaura consulta. | Sí - Usr/Admin | • `409 Conflict` si la propiedad fue eliminada |
-
----
-
-## 14. Reservas
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/reservas` | Lista reservas. | Sí - Usr/Admin | • Participación como inquilino o propietario |
-| `GET /api/reservas/{id}` | Consulta reserva. | Sí - Usr/Admin | • Eliminadas devuelven `404` |
-| `POST /api/reservas` | Solicita reserva. | Sí - Usuario | • Estado inicial `pendiente`; • valida disponibilidad |
-| `PUT /api/reservas/{id}` | Actualiza fechas. | Sí - Usr/Admin | • No altera `estado`; • valida disponibilidad `409` |
-| `DELETE /api/reservas/{id}` | Elimina reserva. | Sí - Usr/Admin | • SoftDeletes; • solo autor o admin |
-| `POST /api/reservas/{id}/restaurar`| Restaura reserva. | Sí - Usr/Admin | • Revalida disponibilidad `409` |
-
-> **Flujos de estado:** `pendiente → confirmada → finalizada`, `pendiente → rechazada`, `pendiente → cancelada`.
-
----
-
-## 15. Reseñas
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/resenas` | Lista reseñas. | No | • Información pública |
-| `GET /api/resenas/{id}` | Consulta reseña. | No | • `404` si no existe |
-| `POST /api/resenas` | Crea reseña. | Sí - Usuario | • Requiere reserva finalizada; • Unicidad (1 por reserva) `409` |
-| `PUT /api/resenas/{id}` | Actualiza texto/nota. | Sí - Usr/Admin | • Solo autor o admin; • calificación 1-5 |
-| `DELETE /api/resenas/{id}` | Elimina reseña. | Sí - Usr/Admin | • Eliminación FÍSICA (Sin SoftDeletes) |
-
----
-
-## 16. Servicios
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/servicios` | Lista servicios activos. | No | • Excluye SoftDeletes |
-| `GET /api/servicios/{id}` | Consulta servicio. | No | • Eliminados devuelven `404` |
-| `POST /api/servicios` | Crea servicio. | Sí - Admin | • Nombre único |
-| `PUT /api/servicios/{id}` | Actualiza servicio. | Sí - Admin | • Evita duplicados |
-| `DELETE /api/servicios/{id}` | Elimina servicio. | Sí - Admin | • `409 Conflict` si está asociado a propiedades; • SoftDeletes |
-| `POST /api/servicios/{id}/restaurar`| Restaura servicio. | Sí - Admin | • Respeta integridad de asociaciones `409` |
-
----
-
-## 17. Servicios de Propiedades (Asociaciones)
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/propiedades/{id}/servicios` | Lista servicios. | No | • Propiedad debe estar activa |
-| `POST /api/propiedades/{id}/servicios`| Asocia servicios. | Sí - Usr/Admin | • Dueño o admin; • no duplicar el mismo servicio |
-| `DELETE /.../{p_id}/servicios/{s_id}` | Desasocia servicio. | Sí - Usr/Admin | • Eliminación FÍSICA de la tabla intermedia |
-| `PUT /api/propiedades/{id}/servicios` | Sincroniza servicios. | Sí - Usr/Admin | • Reemplaza lista: crea nuevas, elimina omitidas |
-
-> **Regla de integridad:** `propiedad_servicio` es una tabla pivote intermedia y no utiliza SoftDeletes.
-
----
-
-## 18. Logs de Actividad
-
-| Endpoint | Acción | Auth & Rol | Reglas Clave |
-|---|---|---|---|
-| `GET /api/logs-actividad` | Lista historial. | Sí - Admin | • Orden cronológico; • exclusivo administradores |
-| `GET /api/logs-actividad/{id}` | Consulta log puntual. | Sí - Admin | • Solo lectura |
-| *No expuestos* | CRUD manual | N/A | • Logs autogenerados por el sistema, inmutables |
+# Contrato de API — AlquilER
+
+Referencia de las rutas HTTP registradas por el backend. Los esquemas de
+solicitud/respuesta, parámetros, códigos por operación y descripciones
+detalladas están en [OpenAPI](../public/docs/openapi.json), también disponible
+en `GET /docs/` al iniciar el servidor.
+
+## 1. Convenciones
+
+- Base local con PHP integrado: `http://127.0.0.1:8000`.
+- Todas las rutas de recursos están bajo `/api`; `GET /api/health` informa si
+  la API está respondiendo.
+- Los cuerpos JSON usan `Content-Type: application/json`. La carga de imágenes
+  usa `multipart/form-data`. Los campos requeridos y los formatos se detallan
+  en el esquema de cada operación OpenAPI.
+- Las rutas marcadas **Pública** no declaran JWT. Las marcadas **JWT** requieren
+  autenticación; además pueden aplicar permisos de administrador, titularidad
+  del recurso u otras reglas de negocio. La especificación OpenAPI describe
+  los requisitos conocidos por operación.
+- En los listados que aceptan `solo_eliminados` o `incluir_eliminados`, pedir
+  registros eliminados requiere ser administrador aunque el listado normal
+  sea público.
+- El JWT protegido se acepta mediante la cookie `HttpOnly` `access_token` o
+  `Authorization: Bearer <token>`. El login establece cookies `access_token`
+  y `refresh_token`; refresh y logout operan con el refresh token.
+- Para peticiones de navegador con cookies, enviar credenciales y un `Origin`
+  permitido por `CORS_ALLOWED_ORIGINS` cuando corresponda.
+
+Las respuestas se serializan como JSON. Las respuestas exitosas usan
+`success: true` y, según la operación, `data` y `message`; los errores usan
+`success: false` y `error`, y pueden incluir `validation_errors`. Los códigos
+HTTP y las formas exactas de respuesta varían por operación: consultar OpenAPI
+en vez de asumir que todas las operaciones usan el mismo código o estructura.
+
+## 2. Rutas
+
+**Acceso:** Pública = sin JWT declarado; JWT = requiere autenticación. La
+autorización adicional se aplica en el backend según la acción y el recurso.
+
+### Salud y autenticación
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/health` | Pública |
+| `POST` | `/api/autenticador/login` | Pública |
+| `POST` | `/api/autenticador/register` | Pública |
+| `POST` | `/api/autenticador/logout` | Pública; usa/invalida el refresh token |
+| `POST` | `/api/autenticador/refresh` | Pública; requiere refresh token |
+| `GET` | `/api/autenticador/verificar-email` | Pública |
+| `POST` | `/api/autenticador/recuperar` | Pública |
+| `POST` | `/api/autenticador/restablecer` | Pública |
+| `POST` | `/api/autenticador/confirmar-cambio` | Pública |
+
+### Contacto y usuarios
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `POST` | `/api/contacto` | Pública |
+| `GET` | `/api/usuarios` | JWT; administración |
+| `GET` | `/api/usuarios/{id}` | JWT |
+| `GET` | `/api/usuarios/me` | JWT |
+| `GET` | `/api/usuarios/{id}/perfil-publico` | JWT |
+| `PUT` | `/api/usuarios/{id}` | JWT |
+| `DELETE` | `/api/usuarios/{id}` | JWT |
+| `POST` | `/api/usuarios/{id}/restaurar` | JWT; administración |
+| `POST` | `/api/admin/usuarios` | JWT; administración |
+
+### Catálogos
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/categorias` | Pública |
+| `POST` | `/api/categorias` | JWT; administración |
+| `GET` | `/api/categorias/{id}` | Pública |
+| `PUT` | `/api/categorias/{id}` | JWT; administración |
+| `DELETE` | `/api/categorias/{id}` | JWT; administración |
+| `POST` | `/api/categorias/{id}/restaurar` | JWT; administración |
+| `GET` | `/api/provincias` | Pública |
+| `POST` | `/api/provincias` | JWT; administración |
+| `GET` | `/api/provincias/{id}` | Pública |
+| `PUT` | `/api/provincias/{id}` | JWT; administración |
+| `DELETE` | `/api/provincias/{id}` | JWT; administración |
+| `POST` | `/api/provincias/{id}/restaurar` | JWT; administración |
+| `GET` | `/api/localidades` | Pública |
+| `POST` | `/api/localidades` | JWT; administración |
+| `GET` | `/api/localidades/{id}` | Pública |
+| `PUT` | `/api/localidades/{id}` | JWT; administración |
+| `DELETE` | `/api/localidades/{id}` | JWT; administración |
+| `POST` | `/api/localidades/{id}/restaurar` | JWT; administración |
+| `GET` | `/api/roles` | JWT; administración |
+| `POST` | `/api/roles` | JWT; administración |
+| `GET` | `/api/roles/{id}` | JWT; administración |
+| `PUT` | `/api/roles/{id}` | JWT; administración |
+| `DELETE` | `/api/roles/{id}` | JWT; administración |
+| `POST` | `/api/roles/{id}/restaurar` | JWT; administración |
+| `GET` | `/api/servicios` | Pública |
+| `POST` | `/api/servicios` | JWT; administración |
+| `GET` | `/api/servicios/{id}` | Pública |
+| `PUT` | `/api/servicios/{id}` | JWT; administración |
+| `DELETE` | `/api/servicios/{id}` | JWT; administración |
+| `POST` | `/api/servicios/{id}/restaurar` | JWT; administración |
+
+### Propiedades, imágenes y servicios asociados
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/propiedades` | Pública |
+| `POST` | `/api/propiedades` | JWT |
+| `GET` | `/api/propiedades/destacadas` | Pública |
+| `GET` | `/api/propiedades/mis-propiedades` | JWT |
+| `GET` | `/api/propiedades/{id}` | Pública |
+| `PUT` | `/api/propiedades/{id}` | JWT |
+| `DELETE` | `/api/propiedades/{id}` | JWT |
+| `POST` | `/api/propiedades/{id}/restaurar` | JWT |
+| `GET` | `/api/admin/propiedades` | JWT; administración |
+| `GET` | `/api/propiedad-imagenes` | Pública |
+| `POST` | `/api/propiedad-imagenes` | JWT; carga `multipart/form-data` |
+| `GET` | `/api/propiedad-imagenes/{id}` | Pública |
+| `PUT` | `/api/propiedad-imagenes/{id}/principal` | JWT |
+| `DELETE` | `/api/propiedad-imagenes/{id}` | JWT |
+| `GET` | `/api/propiedades/{propiedadId}/servicios` | Pública |
+| `POST` | `/api/propiedades/{propiedadId}/servicios` | JWT |
+| `POST` | `/api/propiedades/{propiedadId}/servicios/multiple` | JWT |
+| `PUT` | `/api/propiedades/{propiedadId}/servicios` | JWT |
+| `DELETE` | `/api/propiedades/{propiedadId}/servicios/{servicioId}` | JWT |
+| `GET` | `/api/servicios/{servicioId}/propiedades` | Pública |
+
+### Favoritos
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/favoritos` | JWT |
+| `POST` | `/api/favoritos` | JWT |
+| `GET` | `/api/usuarios/{id}/favoritos` | JWT |
+| `DELETE` | `/api/favoritos/propiedad/{propiedad_id}` | JWT |
+
+### Consultas y mensajes
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/consultas` | JWT |
+| `POST` | `/api/consultas` | JWT |
+| `GET` | `/api/consultas/{id}` | JWT |
+| `PUT` | `/api/consultas/{id}` | JWT |
+| `DELETE` | `/api/consultas/{id}` | JWT |
+| `POST` | `/api/consultas/{id}/restaurar` | JWT |
+| `GET` | `/api/consultas/propiedad/{propiedadId}` | JWT |
+| `GET` | `/api/consultas/usuario/{usuarioId}` | JWT |
+| `GET` | `/api/consultas/recibidas` | JWT |
+| `GET` | `/api/admin/consultas` | JWT; administración |
+| `GET` | `/api/consultas/{consulta_id}/mensajes` | JWT |
+| `POST` | `/api/consultas/{consulta_id}/mensajes` | JWT |
+
+### Reservas
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/reservas` | JWT |
+| `POST` | `/api/reservas` | JWT |
+| `GET` | `/api/reservas/{id}` | JWT |
+| `PUT` | `/api/reservas/{id}` | JWT |
+| `PUT` | `/api/reservas/{id}/confirmar` | JWT |
+| `PUT` | `/api/reservas/{id}/rechazar` | JWT |
+| `PUT` | `/api/reservas/{id}/finalizar` | JWT |
+| `PUT` | `/api/reservas/{id}/cancelar` | JWT |
+| `DELETE` | `/api/reservas/{id}` | JWT |
+| `POST` | `/api/reservas/{id}/restaurar` | JWT |
+| `POST` | `/api/admin/reservas` | JWT; administración |
+
+### Reseñas
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/resenas` | Pública |
+| `POST` | `/api/resenas` | JWT |
+| `GET` | `/api/resenas/{id}` | Pública |
+| `PUT` | `/api/resenas/{id}` | JWT |
+| `DELETE` | `/api/resenas/{id}` | JWT |
+| `POST` | `/api/resenas/{id}/restaurar` | JWT; administración |
+| `GET` | `/api/resenas/reserva/{reservaId}` | Pública |
+| `GET` | `/api/resenas/propiedad/{propiedadId}` | Pública |
+| `GET` | `/api/resenas/usuario/{usuarioId}` | Pública |
+| `GET` | `/api/resenas/calificador/{calificadorId}` | Pública |
+| `GET` | `/api/resenas/mis-propiedades` | JWT |
+| `GET` | `/api/resenas/como-inquilino` | JWT |
+| `POST` | `/api/admin/resenas` | JWT; administración |
+
+### Notificaciones y logs
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/notificaciones` | JWT |
+| `GET` | `/api/notificaciones/no-leidas` | JWT |
+| `PUT` | `/api/notificaciones/{id}/leer` | JWT |
+| `PUT` | `/api/notificaciones/leer-todas` | JWT |
+| `GET` | `/api/logs-actividad` | JWT; administración |
+| `GET` | `/api/logs-actividad/{id}` | JWT; administración |
+
+Los logs se generan como parte de las operaciones del sistema; el API solo
+expone las rutas de consulta indicadas.

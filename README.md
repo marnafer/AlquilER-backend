@@ -21,91 +21,89 @@ El sistema está desarrollado utilizando una arquitectura de API REST y las sigu
 
 Para ejecutar el backend se requiere:
 
-*PHP 8.2 o superior
-*Composer
-*MySQL 8.0 o superior
-*XAMPP o WAMP para disponer de Apache y MySQL
-*Git para clonar el repositorio
+- PHP 8.2 o superior.
+- Composer.
+- MySQL 8.0 o MariaDB compatible.
+- Git para clonar el repositorio.
+- Apache (opcional, por ejemplo XAMPP) o el servidor integrado de PHP.
 
 El proyecto utiliza Eloquent ORM como ORM para el acceso a datos, instalado mediante Composer. No requiere la instalación de Laravel.
 
-### Pasos para ejecutar el backend
-* **1. Clonar el repositorio**
+### Ejecutar el backend desde cero
 
-Clonar el repositorio utilizando Git:
+1. Clonar el repositorio e ingresar a su carpeta:
 
-git clone https://github.com/marnafer/alquiler-backend.git
-* **2. Ingresar a la carpeta del proyecto**
-* **cd alquiler-backend**
-* **3. Instalar las dependencias**
+   ```sh
+   git clone https://github.com/marnafer/alquiler-backend.git
+   cd alquiler-backend
+   ```
 
-Ejecutar:
+2. Instalar las dependencias:
 
-composer install
-* **4. Crear la base de datos**
+   ```sh
+   composer install
+   ```
 
-*Crear una base de datos MySQL llamada:
+3. Crear `.env` a partir del ejemplo. En Windows PowerShell:
 
-*sistema_alquiler_db_dev
+   ```powershell
+   Copy-Item .env.example .env
+   ```
 
-*Luego importar el archivo:
+   Revisar las credenciales de MySQL (`DB_HOST`, `DB_USERNAME`,
+   `DB_PASSWORD`) y establecer `DB_DATABASE=sistema_alquiler_db_dev`, que es el
+   nombre que crea y selecciona `create_database.sql`. Reemplazar `JWT_KEY`
+   por una clave aleatoria larga.
 
-*create_database.sql
+4. Importar `create_database.sql` con una cuenta MySQL que tenga permisos para
+   crear y eliminar bases de datos. El script crea `sistema_alquiler_db_dev`,
+   crea las tablas e incluye datos de ejemplo; **intencionalmente ejecuta
+   `DROP DATABASE IF EXISTS sistema_alquiler_db_dev` antes de crearla**, por
+   lo que cada importación vuelve a inicializar esa base y elimina los datos
+   que tuviera. No hace falta crear la base manualmente. En XAMPP se puede
+   importar el archivo desde phpMyAdmin.
 
-El archivo contiene la estructura necesaria para crear las tablas de la aplicación.
+5. Iniciar el servidor:
 
-* **5. Configurar las variables de entorno**
+   - Servidor integrado de PHP, desde la raíz del proyecto:
 
-Configurar el archivo .env con los datos correspondientes a la conexión de la base de datos y demás parámetros requeridos por el backend.
+     ```sh
+     php -S 127.0.0.1:8000 -t public
+     ```
 
-* **Ejemplo:**
+   - O con XAMPP: iniciar Apache y MySQL, colocar el repositorio dentro de
+     `htdocs` y habilitar `mod_rewrite` y el uso de `.htaccess` (`AllowOverride
+     All`) para que las rutas de la API se reescriban a `public/index.php`.
 
-DB_HOST=localhost
-DB_DATABASE=sistema_db_dev
-DB_USERNAME=root
-DB_PASSWORD=
+6. Comprobar que el servidor responde:
 
-JWT_KEY=cambiar_por_una_clave_aleatoria_larga
-JWT_EXP=3600
-AUTH_COOKIE_SECURE=false
-AUTH_COOKIE_SAMESITE=Lax
+   - Estado de la API: `http://127.0.0.1:8000/api/health`
+   - Documentación interactiva OpenAPI: `http://127.0.0.1:8000/docs/`
+   - Una consulta que también comprueba la conexión a MySQL:
+     `http://127.0.0.1:8000/api/propiedades`
+   - Con XAMPP, sustituir el origen por
+     `http://localhost/alquiler-backend/public`, por ejemplo:
+     `http://localhost/alquiler-backend/public/api/health`.
 
-APP_ENV=development
-APP_DEBUG=true
+El dump actual ya contiene las columnas de precalificación de interesados. La
+migración `scripts/migrations/20261010_precalificacion_interesados.sql` solo se
+debe ejecutar una vez en bases antiguas que todavía no tengan esas columnas;
+no se debe aplicar después de importar el dump actual.
 
-La autenticación entrega los tokens en cookies `HttpOnly`; el access token
-se envía automáticamente con las solicitudes y el refresh token se usa en
-`/api/autenticador/refresh`. En producción, usar HTTPS y
-`AUTH_COOKIE_SECURE=true`. Para un frontend en otro sitio, configurar
-`AUTH_COOKIE_SAMESITE=None` (requiere `AUTH_COOKIE_SECURE=true`), agregar su
-origen exacto a `CORS_ALLOWED_ORIGINS` y enviar las solicitudes del navegador
-con credenciales (`credentials: 'include'`). Las operaciones que modifican
-datos también validan que el `Origin` coincida con un origen permitido para
-mitigar CSRF.
+El envío de correo en desarrollo utiliza Mailpit en `127.0.0.1:1025` cuando
+`MAIL_HOST` está vacío. Para probar registro, recuperación de contraseña u
+otras funciones que envían correo, iniciar Mailpit o configurar un servidor
+SMTP en `.env`.
 
-* **6. Ejecutar el backend**
-*Opción A: Servidor integrado de PHP
-
-*Desde la raíz del proyecto:
-
-*php -S localhost:8000 -t public
-
-*Luego acceder desde el navegador a:
-
-*http://localhost:8000
-
-Si la base de datos ya existía antes de incorporar la precalificación de
-interesados, ejecutar una vez el script
-`scripts/migrations/20261010_precalificacion_interesados.sql` sobre esa base.
-* **Opción B: XAMPP**
-*Abrir XAMPP.
-*Iniciar los servicios Apache y MySQL.
-*Colocar el proyecto dentro del directorio htdocs de XAMPP.
-*Verificar que la base de datos sistema_alquiler_db_dev haya sido creada e importada correctamente.
-*Acceder desde el navegador a:
-*http://localhost/alquiler-backend/public
-
-Si Apache está configurado para utilizar otro puerto, utilizar el puerto correspondiente en la URL.
+La autenticación admite la cookie `HttpOnly` `access_token` y el encabezado
+`Authorization: Bearer`. El inicio de sesión también establece la cookie
+`refresh_token`, que se usa para renovar la sesión en
+`POST /api/autenticador/refresh`. En entornos distintos de `development`, las
+cookies se configuran como `Secure` y `SameSite=None`; usar HTTPS. Para un
+frontend en otro origen, incluir su URL exacta en `CORS_ALLOWED_ORIGINS` y
+enviar las solicitudes del navegador con credenciales (`credentials:
+'include'`). Las solicitudes mutables con cookies requieren un `Origin`
+permitido.
 
 ### Integración y despliegue continuo
 
@@ -305,30 +303,15 @@ volumen con `--users=N`, `--properties=N`, `--consultations=N`,
 `--favorites=N` y `--reservations=N`. Los usuarios sintéticos usan únicamente
 el rol estándar; no se crean cuentas administradoras.
 
-### Propósito general
-El sistema AlquilER tiene como objetivo gestionar el alquiler de propiedades, permitiendo centralizar la información relacionada con propiedades, usuarios, reservas, consultas, servicios y demás elementos asociados al proceso de alquiler. 
+### Alcance funcional
 
-El backend se desarrolla como una API REST, permitiendo que posteriormente pueda ser consumido por diferentes clientes, como una aplicación web y una aplicación móvil, manteniendo separada la lógica del servidor de las interfaces de usuario.
-
-### Módulos principales
-La API se encuentra organizada alrededor de las siguientes entidades principales:
-
-* **Autenticador:** registro, inicio y cierre de sesión mediante JWT.
-* **Usuarios:** gestión de los usuarios del sistema y sus roles.
-* **Propiedades:** administración y consulta de las propiedades disponibles.
-* **Imágenes:** gestión de las imágenes asociadas a las propiedades.
-* **Categorías:** clasificación de las propiedades.
-* **Provincias y localidades:** organización geográfica de las propiedades.
-* **Roles:** definición de los permisos y tipos de usuario.
-* **Favoritos:** permite a los usuarios guardar propiedades de interés.
-* **Consultas:** gestión de consultas realizadas sobre propiedades.
-* **Reservas:** administración del proceso de reserva de propiedades.
-* **Reseñas:** valoración y comentarios sobre propiedades.
-* **Servicios:** servicios disponibles para las propiedades.
-* **Propiedad-Servicios:** relación entre propiedades y servicios.
-* **Log de actividad:** registro de determinadas acciones realizadas en el sistema.
-
-> La API utiliza respuestas JSON estandarizadas y maneja códigos HTTP según el resultado de cada operación.
+Este repositorio contiene el backend REST de AlquilER; los clientes web o
+móviles se ejecutan por separado. La API cubre autenticación y recuperación de
+cuenta, usuarios, propiedades e imágenes, catálogos geográficos, favoritos,
+consultas y sus mensajes, reservas, reseñas, servicios, notificaciones,
+contacto y consulta administrativa de logs. El detalle vigente de rutas,
+seguridad y esquemas está en el [contrato API](./docs/API-CONTRACT.md) y en la
+[especificación OpenAPI](./public/docs/openapi.json).
 
 ### Interfaz del sistema
 **Captura de pantalla de la interfaz:**
@@ -341,119 +324,49 @@ La API se encuentra organizada alrededor de las siguientes entidades principales
 
 La estructura del backend se organiza mediante diferentes capas y responsabilidades. El objetivo es evitar que una misma clase concentre responsabilidades pertenecientes a distintas capas.
 
-| Archivo / Componente | Capa identificada |
+| Archivo / Componente | Responsabilidad |
 | :--- | :--- |
-| `public/index.php` | Entrada / API |
-| `src/routes/api.php` | Routing |
-| `src/routes/Router.php` | Routing |
-| `src/controllers/Api/` | BLL / Controladores |
-| `src/Models/` | DAL / Acceso y representación de datos |
-| `src/validators/` | BLL / Validación |
-| `src/sanitizers/` | BLL / Sanitización |
-| `src/middlewares/` | Autenticación / Autorización |
-| `src/helpers/Response.php` | API / Respuestas HTTP |
-| `src/helpers/TokenProviderInterface.php` | Contrato de autenticación |
-| `src/helpers/JwtProvider.php` | Implementación JWT |
-| `src/helpers/JwtHelper.php` | Soporte técnico JWT |
-| `src/repositories/UsuarioRepositoryInterface.php` | Contrato de persistencia |
-| `src/repositories/EloquentUsuarioRepository.php` | Implementación del repositorio |
-| `src/repositories/LogActividadRepositoryInterface.php` | Contrato de consulta y persistencia de logs |
-| `src/repositories/EloquentLogActividadRepository.php` | Implementación del repositorio de logs |
-| `src/services/LogActividadService.php` | Lógica de consulta y registro de actividad |
-| `src/services/` | Lógica de negocio |
-| `src/database.php` | DAL / Configuración de acceso a datos |
-| `config/config.php` | Configuración |
-| `.env` | Configuración de entorno |
-| `src/debug/` | Soporte / Desarrollo |
+| `public/index.php` | Carga de entorno, CORS, cookies/CSRF, rate limit y entrada HTTP |
+| `src/Routes/api.php`, `src/Routes/Router.php` | Registro y despacho de rutas |
+| `src/bootstrap.php` | Ensamblado de controladores, servicios y dependencias |
+| `src/Controllers/Api/` | Adaptación entre solicitudes HTTP y servicios |
+| `src/Services/` | Reglas de negocio y coordinación de operaciones |
+| `src/Repositories/`, `src/Models/` | Persistencia mediante Eloquent |
+| `src/Validators/`, `src/Sanitizers/` | Validación y normalización de datos |
+| `src/Security/Authenticator.php` | Validación de JWT y permisos por usuario/rol |
+| `src/Http/` | Solicitudes, respuestas HTTP y cookies de autenticación |
+| `src/Docs/`, `public/docs/` | Atributos OpenAPI y especificación/documentación servida |
+| `src/database.php`, `config/config.php`, `.env` | Configuración de la conexión y del entorno |
 
 ### Organización general
 
-El flujo principal de una petición puede representarse de la siguiente manera:
+El flujo de una solicitud es:
 
-`Cliente` → `public/index.php` → `Router` → `Middleware` → `Controller` → `Service` → `Repository / Provider` → `Model / BD` → `Response`
+`Cliente` → `public/index.php` → `src/Routes/Router.php` → controlador → servicio → repositorio/modelo → base de datos → respuesta HTTP.
 
-Los controladores coordinan la petición y delegan la lógica de negocio en los servicios. Los servicios utilizan repositorios para acceder a los datos y proveedores para resolver operaciones técnicas, como la generación y validación de tokens.
+`public/index.php` carga `.env`, prepara la solicitud y aplica las comprobaciones HTTP globales; las rutas se registran en `src/Routes/api.php`. Ese archivo obtiene las instancias creadas en `src/bootstrap.php`. Los controladores delegan las reglas de negocio en servicios; la persistencia se realiza con Eloquent. El detalle de responsabilidades puede variar según el recurso.
 
-Las implementaciones concretas se conectan actualmente en `src/routes/api.php`. Está previsto extraer este wiring a un archivo de bootstrap o contenedor independiente.
-
----
-
-## 3. Problemas de Diseño Detectados
-
-Durante el análisis inicial del sistema se detectaron diferentes situaciones en las que existía una mezcla de responsabilidades. Estos problemas constituyen puntos de partida para las refactorizaciones posteriores.
-
-### 3.1. Controladores con exceso de responsabilidades
-* **Archivo:** `src/controllers/Api/`
-* **Problema:** Algunos controladores concentran diferentes tareas dentro de una misma clase, como recepción de datos, validación, sanitización, aplicación de reglas de negocio, acceso a modelos y construcción de respuestas HTTP. Esto dificulta el mantenimiento y hace que los controladores dependan de demasiados componentes.
-* **Propuesta preliminar:** Separar progresivamente las responsabilidades, dejando en los controladores principalmente la coordinación de la petición y delegando la validación, sanitización y lógica específica a sus respectivos componentes.
-
-### 3.2. Acceso a datos y lógica de negocio demasiado acoplados
-* **Archivos:** `src/controllers/Api/` y `src/Models/`
-* **Problema:** Parte de la lógica necesaria para realizar determinadas operaciones puede quedar directamente relacionada con la forma en que se consulta o modifica la base de datos. Esto genera un acoplamiento entre la lógica de negocio y la persistencia.
-* **Propuesta preliminar:** Centralizar progresivamente las operaciones relacionadas con la persistencia y las relaciones entre entidades, evitando que los controladores tengan que conocer detalles innecesarios de la base de datos. De esta forma se busca una separación más clara entre BLL y DAL.
-
-### 3.3. Responsabilidades relacionadas con autenticación distribuidas
-* **Archivos:** `src/middlewares/`, `src/helpers/JwtHelper.php` y controladores relacionados con autenticación.
-* **Problema:** La autenticación requiere diferentes tareas: generación y validación de tokens, extracción del token de la petición, comprobación de permisos y aplicación de restricciones según el rol. Si estas responsabilidades se mezclan con la lógica propia de los controladores, aumenta el acoplamiento y se dificulta reutilizar los mecanismos de seguridad.
-* **Solución implementada:** La generación y validación de tokens se abstrae mediante `TokenProviderInterface`. `JwtProvider` implementa este contrato y delega actualmente en `JwtHelper`. El middleware utiliza el proveedor configurado desde el wiring centralizado para validar los tokens y controlar el acceso según la autenticación y el rol del usuario.
-
-### 3.4. Construcción de respuestas HTTP dentro de la lógica de las operaciones
-* **Archivo:** `src/helpers/Response.php` y controladores.
-* **Problema:** La API necesita mantener una estructura uniforme para las respuestas exitosas y los errores. Si cada controlador construye manualmente las respuestas, pueden aparecer diferencias en nombres de campos, códigos HTTP y estructuras JSON.
-* **Propuesta preliminar:** Centralizar la construcción de respuestas HTTP mediante el helper `Response`, manteniendo una estructura uniforme para respuestas exitosas, errores de validación, autenticación, autorización, recursos inexistentes y conflictos.
-
-### 3.5. Dependencias acopladas a implementaciones concretas
-
-* **Archivos:** `src/services/`, `src/controllers/Api/` y `src/routes/api.php`.
-* **Problema:** Los servicios y controladores pueden quedar acoplados a implementaciones concretas, como `UsuarioRepository` o `JwtHelper`. Esto dificulta reemplazar componentes y realizar pruebas unitarias aisladas.
-* **Solución implementada:** Los servicios dependen de interfaces (`UsuarioRepositoryInterface` y `TokenProviderInterface`) en lugar de clases concretas. `EloquentUsuarioRepository` implementa la interfaz de persistencia y `JwtProvider` implementa la interfaz de tokens.
-* **Wiring actual:** Las implementaciones concretas se construyen y conectan en `src/routes/api.php`, que actualmente centraliza la creación de repositorios, proveedores, servicios y controladores.
-* **Evolución prevista:** En una etapa posterior, este ensamblado se extraerá a un archivo de bootstrap o contenedor independiente, dejando `api.php` enfocado principalmente en el registro de rutas.
-
-El flujo de dependencias queda organizado de la siguiente manera:
-
-`AutenticadorController` → `AutenticadorService` → `UsuarioRepositoryInterface` / `TokenProviderInterface` / `LogActividadService`
-
-`UsuarioController` → `UsuarioService` → `UsuarioRepositoryInterface` / `LogActividadService`
-
-`PropiedadService` → `PropiedadRepositoryInterface` / `LogActividadService`
-
-`PropiedadImagenService` → `PropiedadImagenRepositoryInterface` / `LogActividadService`
-
-`UsuarioRepositoryInterface` → `EloquentUsuarioRepository`
-
-`LogActividadRepositoryInterface` → `EloquentLogActividadRepository`
-
-`TokenProviderInterface` → `JwtProvider` → `JwtHelper`
-
-### 3.6. Registro centralizado de actividad
-
-El registro de actividad se concentra en `LogActividadService`. Los servicios de negocio informan las acciones auditables y este servicio se encarga de sanitizar, validar, completar la dirección IP y la fecha, y persistir el registro mediante `LogActividadRepositoryInterface`.
-
-Los logs se exponen únicamente mediante endpoints de consulta para administradores. No existe un CRUD público para crear, modificar o eliminar registros de actividad.
+La especificación OpenAPI servida en `public/docs/` documenta los esquemas de entrada y salida. El índice de rutas en `docs/API-CONTRACT.md` sirve como referencia rápida; si se modifica una ruta o su comportamiento, se deben mantener sincronizados ambos documentos.
 
 ---
 
-## 4. Plan Preliminar de Mejora
+## 3. Autenticación y solicitudes
 
-El proceso de mejora priorizará inicialmente la consolidación de la arquitectura y la separación de responsabilidades:
+Las rutas protegidas aceptan el JWT mediante la cookie `access_token` o el
+encabezado `Authorization: Bearer <token>`. El login establece cookies
+`HttpOnly`; el refresh token se usa en las rutas de autenticación. La
+autorización adicional (por ejemplo, permisos de administrador o titularidad
+del recurso) depende del endpoint.
 
-1. **Integrantes:** Fernandez Mariano, Pretz Julian.
-2. **Roles asignados:** Fernandez Mariano: Teach lead, dev backend. Pretz Julian: deb frontend, QA / Documentador.
-3. **Dominio:** Gestión inmobiliaria y alquiler de propiedades. Entidades principales: Propiedad, Usuario, Reserva, Categoria y Servicio.
+Las solicitudes con cuerpo JSON deben enviar `Content-Type: application/json`.
+La carga de imágenes usa el tipo de contenido indicado por su operación
+OpenAPI. Las solicitudes mutables con cookies requieren un origen permitido
+por `CORS_ALLOWED_ORIGINS`.
 
----
-
-## 5. Plan Preliminar de Mejora
-
-El proceso de mejora priorizará inicialmente la consolidación de la arquitectura y la separación de responsabilidades:
-
-1. **Revisión de base de datos:** En primer lugar se verificará la estructura de la base de datos, sus relaciones y restricciones de integridad.
-2. **Revisión de flujo:** Posteriormente se revisará el flujo general de la API y la separación entre routing, autenticación, controladores, validación y acceso a datos.
-3. **Refactorización:** Luego se refactorizarán los componentes que presenten mayor acoplamiento o mezcla de responsabilidades.
-4. **Estandarización:** Finalmente se revisará el manejo uniforme de respuestas, errores, seguridad y consultas a la base de datos. 
-
-El objetivo es obtener una API REST más mantenible, segura, escalable y preparada para ser consumida por diferentes clientes.
+Las respuestas exitosas y los errores se serializan como JSON. Las respuestas
+de validación pueden incluir `validation_errors`; los errores inesperados se
+registran en el servidor con un identificador de solicitud. Los códigos y
+esquemas concretos se describen por operación en OpenAPI.
 
 ## Evidencia de pruebas
 
@@ -464,15 +377,22 @@ El objetivo es obtener una API REST más mantenible, segura, escalable y prepara
 [PUT-PROPIEDADES](./docs/capturas/put-propiedades-1.png)
 
 
-## 10. Migraciones y seeders
+## 4. Esquema y datos de desarrollo
 
-- Esquema base: `create_database.sql`
-- Migraciones incrementales: `scripts/migrations/*.sql`
-- Para poblar datos de desarrollo, ejecutar los scripts SQL en `storage/` (si existen) sobre `sistema_alquiler_db_dev`.
+- `create_database.sql` crea el esquema y carga registros de ejemplo en
+  `sistema_alquiler_db_dev`; al importarlo, esa base se elimina y se vuelve a
+  crear.
+- Las migraciones incrementales están en `scripts/migrations/`. La migración
+  de precalificación es solo para bases anteriores que aún no tienen esas
+  columnas.
+- `scripts/seed_e2e_users.php` agrega usuarios de prueba E2E; los scripts de
+  carga y datos sintéticos están descritos en la sección de pruebas de carga.
 
-## 11. Tests y cobertura
+## 5. Tests
 
-- Ejecutar: `composer test` (todos), `composer test:unit`, `composer test:integration`
-- Integración requiere MySQL corriendo y servidor en `127.0.0.1:8000`.
-- Cobertura (Xdebug): 100% líneas, métodos y clases (2.300 tests, 7.115 assertions).
-- Reporte HTML: `vendor/bin/phpunit --coverage-html coverage/`
+- `composer test`: suites unitarias y de integración.
+- `composer test:unit`: suite unitaria.
+- `composer test:integration`: integración con MySQL accesible mediante la
+  configuración de `.env`.
+- Para generar cobertura HTML se requiere Xdebug:
+  `vendor/bin/phpunit --coverage-html coverage/`.
