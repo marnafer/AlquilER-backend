@@ -119,7 +119,7 @@ class DebugController
             ]);
         // @codeCoverageIgnoreStart
         } catch (\Throwable $e) {
-            return Response::serverError('Error de conexi��n: ' . $e->getMessage());
+            return Response::serverError('Error de conexión: ' . $e->getMessage());
         }
         // @codeCoverageIgnoreEnd
 
