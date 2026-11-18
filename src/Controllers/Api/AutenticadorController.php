@@ -106,4 +106,19 @@ class AutenticadorController
             'Correo verificado correctamente'
         );
     }
+
+    public function reenviarVerificacion(Request $request): Response
+    {
+        $data = $request->json();
+
+        $this->service->reenviarVerificacion(
+            (string) ($data['email'] ?? '')
+        );
+
+        return Response::success(
+            [],
+            200,
+            'Si el correo existe y no está verificado, recibirás un enlace de verificación'
+        );
+    }
 }

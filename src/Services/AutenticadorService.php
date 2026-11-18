@@ -146,18 +146,7 @@ class AutenticadorService
                 . '&email='
                 . urlencode((string) $usuario->email);
 
-            $enviado = $this->mailService->enviar(
-                (string) $usuario->email,
-                'Verific? tu correo electr?nico',
-                '<p>Hola,</p>'
-                    . '<p>Gracias por registrarte en AlquilER.</p>'
-                    . '<p><a href="' . htmlspecialchars($enlace, ENT_QUOTES, 'UTF-8') . '">'
-                    . 'Verificar mi correo</a></p>'
-                    . '<p>El enlace es v?lido por 60 minutos.</p>',
-                'Hola,' . "\n\n" . 'Gracias por registrarte en AlquilER.'
-                    . "\n\n" . 'Verific? tu correo ingresando en: ' . $enlace
-                    . "\n\n" . 'El enlace es v?lido por 60 minutos.'
-            );
+            $enviado = $this->enviarCorreoVerificacion($usuario, $token, $enlace);
 
             if (!$enviado) {
                 throw new \RuntimeException(
@@ -174,6 +163,73 @@ class AutenticadorService
         }
 
         return $usuario;
+    }
+
+    private function enviarCorreoVerificacion(
+        Usuario $usuario,
+        string $token,
+        string $enlace
+    ): bool {
+        if ($this->mailService === null) {
+            return false;
+        }
+
+        return $this->mailService->enviar(
+            (string) $usuario->email,
+            'Verificá tu correo electrónico',
+            '<p>Hola,</p>'
+                . '<p>Gracias por registrarte en AlquilER.</p>'
+                . '<p><a href="' . htmlspecialchars($enlace, ENT_QUOTES, 'UTF-8') . '">'
+                . 'Verificar mi correo</a></p>'
+                . '<p>El enlace es válido por 60 minutos.</p>',
+            'Hola,' . "\n\n" . 'Gracias por registrarte en AlquilER.'
+                . "\n\n" . 'Verificá tu correo ingresando en: ' . $enlace
+                . "\n\n" . 'El enlace es válido por 60 minutos.'
+        );
+    }
+
+    public function reenviarVerificacion(string $email): void
+    {
+        $email = strtolower(trim($email));
+
+        if ($email === '') {
+            throw new ValidationException([
+                'email' => ['El email es requerido'],
+            ]);
+        }
+
+        $usuario = $this->usuarioRepository->findByEmail($email);
+
+        if (!$usuario || $usuario->isEmailVerified()) {
+            return;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+
+        $this->usuarioRepository->update($usuario, [
+            'email_verification_token' => $tokenHash,
+            'email_verification_expires_at' => date(
+                'Y-m-d H:i:s',
+                strtotime('+60 minutes')
+            ),
+        ]);
+
+        $enlace = rtrim($this->frontendUrl, '/')
+            . '/verificar-email?token='
+            . urlencode($token)
+            . '&email='
+            . urlencode((string) $usuario->email);
+
+        $enviado = $this->enviarCorreoVerificacion($usuario, $token, $enlace);
+
+        if (!$enviado) {
+            throw new \RuntimeException(
+                'No se pudo enviar el correo de verificacion. '
+                . 'Verifique la configuracion SMTP (MAIL_HOST, MAIL_PORT, '
+                . 'MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM) en el servidor.'
+            );
+        }
     }
 
     public function refresh(array $rawData): array
@@ -240,22 +296,30 @@ class AutenticadorService
         $token = trim((string) ($rawData['token'] ?? ''));
         if ($email === '' || $token === '') {
             throw new ValidationException([
-                'email' => ['Datos inv?lidos'],
-                'token' => ['Datos inv?lidos'],
+                'email' => ['Datos inválidos'],
+                'token' => ['Datos inválidos'],
             ]);
         }
 
         $usuario = $this->usuarioRepository->findByEmail($email);
 
-        if (!$usuario || $usuario->email_verification_token !== hash('sha256', $token)) {
-            throw new BadRequestException('El enlace de verificaci?n es inv?lido');
+        if (!$usuario) {
+            throw new BadRequestException('El enlace de verificación es inválido');
+        }
+
+        if ($usuario->isEmailVerified()) {
+            return;
+        }
+
+        if ($usuario->email_verification_token !== hash('sha256', $token)) {
+            throw new BadRequestException('El enlace de verificación es inválido');
         }
 
         if (
             $usuario->email_verification_expires_at === null
             || strtotime((string) $usuario->email_verification_expires_at) < time()
         ) {
-            throw new BadRequestException('El enlace de verificaci?n expir?');
+            throw new BadRequestException('El enlace de verificación expiró');
         }
 
         $this->usuarioRepository->update($usuario, [

@@ -37,6 +37,7 @@ $router->post('/api/autenticador/refresh', [$autenticadorController, 'refresh'])
 $router->post('/api/autenticador/recuperar', [$recuperarContrasenaController, 'solicitar']);
 $router->post('/api/autenticador/restablecer', [$recuperarContrasenaController, 'restablecer']);
 $router->get('/api/autenticador/verificar-email', [$autenticadorController, 'verificar']);
+$router->post('/api/autenticador/reenviar-verificacion', [$autenticadorController, 'reenviarVerificacion']);
 $router->post('/api/autenticador/confirmar-cambio', [$recuperarContrasenaController, 'confirmarCambio']);
 
 /*
