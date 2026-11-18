@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [dev, master]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: PHPUnit (Unit)
@@ -14,19 +17,31 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: pdo, pdo_mysql, gd, mbstring, xml
-          coverage: none
+          coverage: xdebug
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Run unit tests
-        run: composer test:unit
+      - name: Run unit tests with coverage
+        run: |
+          mkdir -p coverage
+          XDEBUG_MODE=coverage composer test:unit -- --coverage-text --coverage-html=coverage/html --coverage-clover=coverage/clover.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-coverage-${{ github.sha }}
+          path: coverage/
+          if-no-files-found: warn
 
   lint:
     name: PHP Lint
@@ -35,11 +50,87 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
 
       - name: Lint PHP files
-        run: find src -name "*.php" -print0 | xargs -0 -n1 php -l
+        run: |
+          find src public -name "*.php" -print0 | xargs -0 -n1 php -l
+          bash -n scripts/deploy/alwaysdata-release.sh
+          bash tests/Deployment/alwaysdata_release_test.sh
+
+  deploy:
+    name: Deploy production
+    needs: [test, lint]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.CD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: alquiler-production-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout approved commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure SSH
+        env:
+          ALWAYSDATA_HOST: ${{ vars.ALWAYSDATA_HOST }}
+          ALWAYSDATA_SSH_KEY: ${{ secrets.ALWAYSDATA_SSH_KEY }}
+          ALWAYSDATA_KNOWN_HOSTS: ${{ secrets.ALWAYSDATA_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$ALWAYSDATA_HOST"
+          test -n "$ALWAYSDATA_SSH_KEY"
+          test -n "$ALWAYSDATA_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$ALWAYSDATA_SSH_KEY" > "$HOME/.ssh/alquiler_deploy"
+          printf '%s\n' "$ALWAYSDATA_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/alquiler_deploy" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/alquiler_deploy" > /dev/null
+          ssh-keygen -F "$ALWAYSDATA_HOST" -f "$HOME/.ssh/known_hosts" > /dev/null
+
+      - name: Push approved commit to AlwaysData
+        env:
+          ALWAYSDATA_HOST: ${{ vars.ALWAYSDATA_HOST }}
+          ALWAYSDATA_USER: ${{ vars.ALWAYSDATA_USER }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$ALWAYSDATA_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$ALWAYSDATA_USER" =~ ^[A-Za-z0-9._-]+$ ]]
+          git remote add deploy "$ALWAYSDATA_USER@$ALWAYSDATA_HOST:~/alquiler-backend.git"
+          GIT_SSH_COMMAND="ssh -i $HOME/.ssh/alquiler_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+            git push deploy "$GITHUB_SHA:refs/heads/master"
+
+      - name: Deploy release and verify production
+        env:
+          ALWAYSDATA_HOST: ${{ vars.ALWAYSDATA_HOST }}
+          ALWAYSDATA_USER: ${{ vars.ALWAYSDATA_USER }}
+          PRODUCTION_HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$ALWAYSDATA_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$ALWAYSDATA_USER" =~ ^[A-Za-z0-9._-]+$ ]]
+          [[ "$PRODUCTION_HEALTH_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[^[:space:]]*)?$ ]]
+          printf -v remote_command 'bash -s -- deploy %q %q' "$GITHUB_SHA" "$PRODUCTION_HEALTH_URL"
+          ssh \
+            -i "$HOME/.ssh/alquiler_deploy" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            "$ALWAYSDATA_USER@$ALWAYSDATA_HOST" \
+            "$remote_command" \
+            < scripts/deploy/alwaysdata-release.sh
